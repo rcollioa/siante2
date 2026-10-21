@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: siante2-backend
+  namespace: siante2-prod
+  labels:
+    app: siante2-backend
+spec:
+  # Dos réplicas: un despliegue o un reinicio deja siempre una atendiendo.
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: siante2-backend
+  template:
+    metadata:
+      labels:
+        app: siante2-backend
+    spec:
+      # Sin token de la API de Kubernetes montado: la aplicación no la usa.
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: ghcr.io
+      containers:
+        - name: backend
+          image: ghcr.io/cgr-chile/siante2-backend
+          imagePullPolicy: IfNotPresent
+          # Sistema de archivos de solo lectura y sin privilegios: si alguien llega a ejecutar código en el
+          # contenedor, no puede modificar la aplicación ni escalar a root. Solo /tmp es escribible.
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: siante2-config
+            - secretRef:
+                name: siante2-secret
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1024Mi"
+          # Spring Boot tarda en arrancar (JVM + Hibernate + pool de Hikari). Mientras la startupProbe
+          # no pase, Kubernetes no evalúa las otras dos: da hasta 30 x 5 s = 150 s para el primer
+          # arranque, sin inflar initialDelaySeconds.
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          # Liveness mira solo si la aplicación sigue viva, NO la base: si la base se cae, reiniciar el
+          # pod no lo arregla y solo genera un bucle de reinicios. La caída de la base ya le llega al
+          # cliente como 503 DATA_SOURCE_UNAVAILABLE (ApiExceptionHandler).
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      # Con readOnlyRootFilesystem, la JVM (hsperfdata) y Tomcat embebido escriben en /tmp.
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi

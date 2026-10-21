@@ -1,0 +1,4 @@
+creation_rules:
+  - path_regex: k8s/(dev|prod)/secret(\.enc)?\.ya?ml$
+    encrypted_regex: '^(data|stringData)$'
+    age: REPLACE_WITH_AGE_PUBLIC_RECIPIENT

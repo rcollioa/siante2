@@ -1,0 +1,66 @@
+/* Sistema de diseño de la app — colores, tipografía, radios y sombras en UNA fuente de verdad: los
+ * componentes usan estas variables en vez de repetir literales. Los colores semánticos de datos (p. ej.
+ * una escala de cumplimiento en un mapa o gráfico) NO van acá: codifican significado propio y viven
+ * donde se calculan. */
+:root {
+  /* Color — marca */
+  --color-primary: #4c6fed;
+  --color-primary-dark: #3a60ec;
+  --color-primary-soft: #edf1fd;
+  --color-primary-ink: #2c3e8f;
+  --color-primary-tint: #dbe4ff;
+
+  /* Color — neutros y texto */
+  --color-ink: #1a2033;
+  --color-muted: #5a6673;
+  --color-faint: #9aa5b1;
+  --color-border: #d6dbe1;
+  --color-border-soft: #edf0f2;
+  --color-border-medium: #424242;
+  --color-hover: #edf3f7;
+  --color-surface: #ffffff;
+  --color-bg: #f4f5f8;
+
+  /* Color — estado */
+  --color-danger: #b3261e;
+  --color-danger-soft: #fbe9e7;
+  --color-success: #1f7a53;
+  --color-success-soft: #e3f5ec;
+
+  /* Tipografía */
+  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  /* Radios — un paso más generosos que el 0.375/0.5rem de antes: controles, tarjetas, paneles. */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+
+  /* Sombras — capa suave de contacto + un tinte hacia el azul de marca en vez de negro plano al
+   * 15-35% de opacidad (lo que había antes); da una elevación más "considerada" sin oscurecer. */
+  --shadow-sm: 0 1px 2px rgba(23, 28, 48, 0.08);
+  --shadow-md: 0 2px 6px rgba(23, 28, 48, 0.08), 0 10px 24px -10px rgba(76, 111, 237, 0.35);
+  --shadow-lg: 0 16px 40px -16px rgba(23, 28, 48, 0.35), 0 4px 14px rgba(76, 111, 237, 0.14);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background: var(--color-bg);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin: 0;
+}

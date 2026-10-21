@@ -1,0 +1,9 @@
+@if (visible()) {
+  <div class="pantalla-carga" role="status" aria-live="polite">
+    <div class="tarjeta">
+      <img class="logo" src="assets/img/logo_cgr.svg" alt="Contraloría General de la República" />
+      <div class="spinner"></div>
+      <div class="mensaje">{{ mensaje() }}</div>
+    </div>
+  </div>
+}

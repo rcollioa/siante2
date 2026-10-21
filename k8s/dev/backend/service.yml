@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: siante2-backend-test
+  namespace: siante2-test
+spec:
+  selector:
+    app: siante2-backend-test
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  type: ClusterIP

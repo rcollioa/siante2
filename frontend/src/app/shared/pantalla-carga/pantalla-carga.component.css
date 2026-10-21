@@ -1,0 +1,48 @@
+/* z-index por encima de todo — mientras hay una petición en curso se bloquea toda la página. */
+.pantalla-carga {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 32, 51, 0.35);
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: min(20rem, 90vw);
+  padding: 2rem 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.logo {
+  height: 2.75rem;
+  width: auto;
+}
+
+.spinner {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0.25rem solid var(--color-border-soft);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+.mensaje {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
