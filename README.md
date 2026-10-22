@@ -1,6 +1,6 @@
 # SIANTE (siante2)
 
-Aplicación web de la Contraloría General de la República, creada a partir de la plantilla de proyecto derivada de Geoportal Municipal. Trae la arquitectura, la infraestructura transversal y el despliegue listos; los módulos de negocio se agregan en `features/` (frontend) y en las capas del backend (ver "Agregar un módulo").
+Aplicación GIS de la Contraloría General de la República: nueva versión de SIANTE (capas, grupos, categorías, análisis espacial, reportes públicos con QR y exportación). Cada módulo de negocio se agrega en `features/` (frontend) y en su propio paquete del backend (ver "Agregar un módulo").
 
 ## Resumen
 
@@ -18,9 +18,9 @@ Qué trae ya resuelto:
 | CORS | `CorsConfig` (`APP_CORS_ALLOWED_ORIGINS`) | — |
 | Carga | — | Pantalla de carga global automática (`pantallaCargaInterceptor`) |
 | Salud | Actuator: `/actuator/health/liveness` y `/readiness` | nginx: `/health` |
-| Endurecimiento | Imagen JRE, usuario 10001; en k8s, disco de solo lectura, sin privilegios ni capabilities | nginx sin root; CSP y cabeceras de seguridad (`nginx-cabeceras-seguridad.conf`); fuentes servidas desde la app, sin Google Fonts |
+| Endurecimiento | Imagen JRE, usuario 10001 sin privilegios | nginx sin root; CSP y cabeceras de seguridad (`nginx-cabeceras-seguridad.conf`); fuentes servidas desde la app, sin Google Fonts |
 | Dependencias | Dependabot semanal (`.github/dependabot.yml`) | Dependabot semanal |
-| Calidad | Tests con `@WebMvcTest`, contexto completo contra H2, JPQL compilado en el build | Vitest, ESLint con reglas de accesibilidad |
+| Calidad | Tests con `@WebMvcTest`, contexto completo contra H2, JPQL compilado en el build, contrato OpenAPI versionado | Vitest, ESLint con reglas de accesibilidad |
 
 ## Nombre del proyecto
 
@@ -28,11 +28,11 @@ El nombre técnico es `siante2`, igual en todas partes (paquete Java, URLs, Kube
 
 | Qué | Dónde | Valor |
 |---|---|---|
-| Prefijo de la API | `backend/src/main/resources/application.properties` y `src/test/resources/application.properties` (`app.api.prefijo`), `ApiPrefijoConfig`, `CorsConfig`, `frontend/src/app/shared/api/api-prefijo.ts`, `frontend/src/proxy.conf*.json`, `k8s/*/ingress.yml`, tests de `adapter/in/web` | `/siante2/api` |
+| Prefijo de la API | `backend/src/main/resources/application.properties` y `src/test/resources/application.properties` (`app.api.prefijo`), `ApiPrefijoConfig`, `CorsConfig`, `frontend/src/app/shared/api/api-prefijo.ts`, `frontend/src/proxy.conf*.json`, `k8s/*/ingress.yml`, tests de `compartido/adapter/in/web` y de cada controlador | `/siante2/api` |
 | Ruta pública del frontend | `frontend/angular.json` (`baseHref`), `frontend/src/index.html`, `frontend/nginx.conf`, `frontend/Dockerfile` | `/siante2/` |
 | Paquete Java | `backend/src/main/java/siante2`, `backend/src/test/java/siante2` y `ConsultasJpqlTest` | `siante2` |
 | Título | `frontend/src/index.html`, `AppComponent.titulo` | `SIANTE` |
-| Kubernetes | `k8s/*/**`: namespace, nombres, host, imagen, ConfigMap y secreto | `siante2-test`, `siante2-prod`, `siante2.dev-qa.tanzu.contraloria.cl`, `siante2.tanzu.contraloria.cl`, `ghcr.io/cgr-chile/siante2-*` |
+| Kubernetes | `k8s/*/**`: nombres, host, imagen y secreto (namespaces compartidos `sisgeob-test` y `sisgeob-prod`) | `siante2-*`, `siante2.dev-qa.tanzu.contraloria.cl`, `siante2.tanzu.contraloria.cl`, `ghcr.io/cgr-chile/siante2-*` |
 | Contenedores locales | `docker-compose.yml` | `siante2-backend`, `siante2-frontend` |
 
 El prefijo de la API debe quedar igual en backend, frontend, proxies e ingress: si no coinciden, el frontend recibe 404.
@@ -42,40 +42,41 @@ El prefijo de la API debe quedar igual en backend, frontend, proxies e ingress: 
 ```text
 backend/src/main/java/siante2/
   BackendApplication.java
-  domain/                      SolicitudInvalidaException; model/: records de dominio
-  application/
-    port/in/                   un caso de uso por interfaz (ObtenerXUseCase)
-    port/out/                  lo que los servicios necesitan leer (XReadPort)
-    service/                   implementan port/in y usan port/out
-  adapter/
-    in/web/                    @RestController y configuración web transversal
-    out/oracle/                implementan port/out con Spring Data JPA
-      entity/                  @Entity
-      repository/              JpaRepository
+  compartido/                  transversal: SolicitudInvalidaException, errores, prefijo, caché, CORS, OpenAPI
+  <modulo>/                    un paquete por módulo (categorias, capas, grupos...), con la misma forma:
+    domain/                    records de dominio, sin Spring ni JPA
+    application/
+      port/in/                 un caso de uso por interfaz (ListarXUseCase)
+      port/out/                lo que los servicios necesitan leer (XReadPort)
+      service/                 implementan port/in y usan port/out
+    adapter/
+      in/web/                  @RestController del módulo
+      out/oracle/              @Entity, JpaRepository y la implementación de port/out
 frontend/src/app/
   app.component.*              shell: cabecera, router-outlet, pantalla de carga
   app.routes.ts
-  features/inicio/             página de inicio (reemplazar)
+  features/mapa/               mapa base (OpenLayers): capas base y MapaService
   shared/                      api, cache, errores, pantalla-carga
 k8s/dev, k8s/prod              kustomize: backend, frontend, ingress, secreto
 ```
 
-Cada paquete del backend tiene un `package-info.java` que describe qué va en él.
+El backend se organiza por módulo: todo lo de un módulo queda en su paquete y se revisa junto en un PR. Solo lo transversal va en `compartido/`.
 
 ## Agregar un módulo
 
-Ejemplo para un módulo `informes`:
+`categorias` es el módulo de referencia. Para un módulo `informes`, todo bajo `siante2/informes/`:
 
-1. Dominio: `domain/model/Informe.java` como `record`, sin Spring ni JPA.
-2. Puerto de entrada: `application/port/in/ObtenerInformesUseCase.java`.
+1. Dominio: `domain/Informe.java` como `record`, sin Spring ni JPA.
+2. Puerto de entrada: `application/port/in/ListarInformesUseCase.java`.
 3. Puerto de salida: `application/port/out/InformesReadPort.java`.
 4. Servicio: `application/service/InformesService.java`, que implementa el caso de uso, valida la entrada lanzando `SolicitudInvalidaException` y llama al puerto de salida.
-5. Adaptador Oracle: `adapter/out/oracle/entity/InformeEntity.java`, `adapter/out/oracle/repository/InformeJpaRepository.java` y `adapter/out/oracle/OracleInformesRepository.java`, que implementa `InformesReadPort` y traduce entidades a modelos de dominio.
-6. Controlador: `adapter/in/web/InformesController.java` con `@RequestMapping("/informes")`, sin el prefijo de la API.
-7. Tests: el servicio con un doble en memoria del puerto de salida, y el controlador con `@WebMvcTest` y `@MockitoBean` del caso de uso.
-8. Frontend: `features/informes/informes-api.service.ts`, que usa `API_PREFIJO` y `CacheConsultas`, más el componente, registrado en `app.routes.ts`.
+5. Adaptador Oracle en `adapter/out/oracle/`: `InformeEntity` (con `@Immutable` mientras SIANTE escriba en la misma tabla), `InformeJpaRepository` y `OracleInformesRepository`, que implementa `InformesReadPort` y traduce entidades a modelos de dominio. Repositorio y adaptador sin `public`: nada fuera del paquete conoce JPA.
+6. Controlador: `adapter/in/web/InformesController.java` con `@RequestMapping("/informes")`, sin el prefijo de la API. Los listados van envueltos en `{ "data": [...] }` y el nombre del método es el `operationId` del contrato (`listarInformes`, no `listar`).
+7. Tests: el controlador con `@WebMvcTest` y `@MockitoBean` del caso de uso; el adaptador con `@DataJpaTest` sobre H2; el servicio con un doble en memoria del puerto de salida cuando tenga lógica.
+8. Contrato: regenerar `contrato/openapi.json` (ver Tests) y revisar el diff.
+9. Frontend: `features/informes/informes-api.service.ts`, que usa `API_PREFIJO` y `CacheConsultas`, más el componente, registrado en `app.routes.ts`.
 
-Las entidades y los repositorios se detectan solos por estar bajo el paquete de `BackendApplication`. Si el proyecto necesita una segunda base, cada una necesita su propio `DataSource`, `EntityManagerFactory` y `@EnableJpaRepositories` (Geoportal Municipal tiene un ejemplo con GEOCGR y SIAPER).
+Las entidades y los repositorios se detectan solos por estar bajo el paquete de `BackendApplication`. Si el proyecto necesita una segunda base, cada una necesita su propio `DataSource`, `EntityManagerFactory` y `@EnableJpaRepositories`. Es lo que hará falta cuando un módulo use GEOCGR (`GEOCGR_DATASOURCE_*` en `.env`).
 
 ## Stack y versiones
 
@@ -88,7 +89,7 @@ Las entidades y los repositorios se detectan solos por estar bajo el paquete de 
 
 ### Backend
 
-Definir las variables de conexión (`APP_DATASOURCE_URL`, `APP_DATASOURCE_USERNAME`, `APP_DATASOURCE_PASSWORD`), descritas en `backend/src/main/resources/application.properties`. No guardar credenciales en el repositorio. Sin base de datos el backend no arranca; los tests sí corren sin ella.
+Definir las variables de conexión (`SIANTE_DATASOURCE_URL`, `SIANTE_DATASOURCE_USERNAME`, `SIANTE_DATASOURCE_PASSWORD`) en el `.env` de la raíz, que el backend lee solo; están descritas en `backend/src/main/resources/application.properties`. No guardar credenciales en el repositorio. Sin base de datos el backend no arranca; los tests sí corren sin ella.
 
 En PowerShell (ajustar la ruta del JDK si es necesario):
 
@@ -113,7 +114,7 @@ La aplicación queda en `http://localhost:4200/siante2/`. El proxy de desarrollo
 
 ### Con Docker
 
-Copiar `.env.example` como `.env`, completarlo y ejecutar `docker compose up --build` desde la raíz.
+Crear `.env` en la raíz (ignorado por git) con `SIANTE_DATASOURCE_URL`, `SIANTE_DATASOURCE_USERNAME` y `SIANTE_DATASOURCE_PASSWORD`, y ejecutar `docker compose up --build` desde la raíz. Las demás variables y sus valores por defecto están en `backend/src/main/resources/application.properties`.
 
 ## Tests
 
@@ -124,7 +125,8 @@ cd backend
 
 - `ConfiguracionWebTest` y `CorsConfigTest` prueban prefijo, caché, errores y CORS sobre `ControladorPrueba`, un controlador que solo existe en `src/test`.
 - `ContextoAplicacionTest` levanta el contexto completo contra H2 en memoria (`src/test/resources/application.properties`).
-- `ConsultasJpqlTest` compila cada `@Query` JPQL de `adapter/out/oracle/repository` contra el modelo de entidades, sin conectarse a Oracle. Sin repositorios, no genera casos.
+- `ConsultasJpqlTest` compila cada `@Query` JPQL de los repositorios de todos los módulos contra el modelo de entidades, sin conectarse a Oracle.
+- `ContratoApiTest` compara el contrato OpenAPI que genera la API (`/siante2/api/openapi`) con el versionado en `src/test/resources/contrato/openapi.json`. Si un cambio de la API es intencional, se regenera con `./mvnw test -Dtest=ContratoApiTest "-Dcontrato.actualizar=true"` y el diff del contrato se revisa en el PR. En producción el endpoint está desactivado (`APP_OPENAPI_ENABLED=false`).
 
 ```bash
 cd frontend
@@ -136,7 +138,7 @@ Los dos Dockerfile corren los tests (y el del frontend, también el lint) antes 
 
 ## Despliegue
 
-Mismo flujo GitOps que Geoportal Municipal:
+Flujo GitOps:
 
 1. Se hace push a `develop`.
 2. Un pipeline externo construye las imágenes con `backend/Dockerfile` y `frontend/Dockerfile` y las publica en `ghcr.io`.
@@ -144,21 +146,13 @@ Mismo flujo GitOps que Geoportal Municipal:
 
 | Ambiente | Manifiestos | Namespace | Réplicas |
 |---|---|---|---|
-| Dev/QA | `k8s/dev` | `siante2-test` | 1 de cada aplicación |
-| Producción | `k8s/prod` | `siante2-prod` | 2, con rolling update sin indisponibilidad |
+| Dev/QA | `k8s/dev` | `sisgeob-test` | 1 de cada aplicación |
+| Producción | `k8s/prod` | `sisgeob-prod` | 2, con rolling update sin indisponibilidad |
+
+Los namespaces son compartidos con otras aplicaciones del área; las imágenes son `ghcr.io/cgr-chile/siante2-{backend,frontend}:dev` y `:prod` con `imagePullPolicy: Always`, y sin ConfigMap. Como el namespace es compartido, todos los recursos llevan el prefijo `siante2-` para no chocar con los de otras aplicaciones.
 
 El ingress envía `/siante2/api` al backend y el resto al frontend.
 
-El secreto real (`k8s/*/secret.yml`) lo define Ingeniería y está ignorado por git. `secret.example.yml` lista las credenciales que espera el backend. `kustomization.yml` referencia `secret.yml`, así que debe existir antes de aplicar los manifiestos.
+El secreto real (`k8s/*/secret.yml`) lo define Ingeniería y está ignorado por git. `secret.example.yml` lista las credenciales que espera el backend (`SIANTE_DATASOURCE_*`). `kustomization.yml` referencia `secret.yml`, así que debe existir antes de aplicar los manifiestos.
 
-La configuración que no es secreta (`TZ`, `APP_CORS_ALLOWED_ORIGINS`, `JAVA_OPTS`) está en `configMapGenerator` de `k8s/*/kustomization.yml`. Kustomize agrega un hash del contenido al nombre del ConfigMap, así que cambiar un valor reinicia los pods del backend sin pasos manuales. Con `JAVA_OPTS` vacío, el heap queda en el 75 % de `resources.limits.memory` (ver `backend/Dockerfile`).
-
-### Versión de las imágenes
-
-Los deployments no fijan etiqueta: la pone `images[].newTag` de `k8s/*/kustomization.yml`. Debe ser una etiqueta inmutable, el SHA del commit que construyó la imagen, nunca `:dev` ni `:prod`. Así se sabe qué versión corre en cada ambiente, las réplicas de prod no pueden quedar con imágenes distintas, y volver a una versión anterior es revertir un commit.
-
-1. El pipeline publica `ghcr.io/cgr-chile/siante2-backend:<sha>` y `ghcr.io/cgr-chile/siante2-frontend:<sha>`.
-2. Actualiza `newTag` en `k8s/dev/kustomization.yml` con un commit (por ejemplo, con `kustomize edit set image ghcr.io/cgr-chile/siante2-backend:<sha>`). Argo CD despliega al ver el cambio.
-3. Para pasar a producción no se reconstruye: se copia a `k8s/prod/kustomization.yml` el mismo `newTag` validado en dev.
-
-El valor inicial `REEMPLAZAR_POR_SHA` no corresponde a ninguna imagen: el primer despliegue falla hasta que el pipeline lo reemplace.
+La única configuración no secreta fijada en k8s es `APP_OPENAPI_ENABLED=false` en el backend de producción. El resto (`TZ`, CORS, `JAVA_OPTS`) toma su valor por defecto; con `JAVA_OPTS` vacío, el heap queda en el 75 % de `resources.limits.memory` (ver `backend/Dockerfile`).
