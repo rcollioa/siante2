@@ -56,6 +56,8 @@ frontend/src/app/
   app.component.*              shell: cabecera, router-outlet, pantalla de carga
   app.routes.ts
   features/mapa/               mapa base (OpenLayers): capas base y MapaService
+  features/categorias/         servicio de API y panel de categorías sobre el mapa
+  shared/api/contrato.ts       tipos generados desde el contrato OpenAPI (npm run api:tipos)
   shared/                      api, cache, errores, pantalla-carga
 k8s/dev, k8s/prod              kustomize: backend, frontend, ingress, secreto
 ```
@@ -74,7 +76,7 @@ El backend se organiza por módulo: todo lo de un módulo queda en su paquete y 
 6. Controlador: `adapter/in/web/InformesController.java` con `@RequestMapping("/informes")`, sin el prefijo de la API. Los listados van envueltos en `{ "data": [...] }` y el nombre del método es el `operationId` del contrato (`listarInformes`, no `listar`).
 7. Tests: el controlador con `@WebMvcTest` y `@MockitoBean` del caso de uso; el adaptador con `@DataJpaTest` sobre H2; el servicio con un doble en memoria del puerto de salida cuando tenga lógica.
 8. Contrato: regenerar `contrato/openapi.json` (ver Tests) y revisar el diff.
-9. Frontend: `features/informes/informes-api.service.ts`, que usa `API_PREFIJO` y `CacheConsultas`, más el componente, registrado en `app.routes.ts`.
+9. Frontend: `npm run api:tipos` para regenerar `shared/api/contrato.ts` desde el contrato; luego `features/informes/informes-api.service.ts`, que usa esos tipos, `API_PREFIJO` y `CacheConsultas`, más el componente, registrado en `app.routes.ts` (ver `features/categorias`).
 
 Las entidades y los repositorios se detectan solos por estar bajo el paquete de `BackendApplication`. Si el proyecto necesita una segunda base, cada una necesita su propio `DataSource`, `EntityManagerFactory` y `@EnableJpaRepositories`. Es lo que hará falta cuando un módulo use GEOCGR (`GEOCGR_DATASOURCE_*` en `.env`).
 
@@ -126,7 +128,7 @@ cd backend
 - `ConfiguracionWebTest` y `CorsConfigTest` prueban prefijo, caché, errores y CORS sobre `ControladorPrueba`, un controlador que solo existe en `src/test`.
 - `ContextoAplicacionTest` levanta el contexto completo contra H2 en memoria (`src/test/resources/application.properties`).
 - `ConsultasJpqlTest` compila cada `@Query` JPQL de los repositorios de todos los módulos contra el modelo de entidades, sin conectarse a Oracle.
-- `ContratoApiTest` compara el contrato OpenAPI que genera la API (`/siante2/api/openapi`) con el versionado en `src/test/resources/contrato/openapi.json`. Si un cambio de la API es intencional, se regenera con `./mvnw test -Dtest=ContratoApiTest "-Dcontrato.actualizar=true"` y el diff del contrato se revisa en el PR. En producción el endpoint está desactivado (`APP_OPENAPI_ENABLED=false`).
+- `ContratoApiTest` compara el contrato OpenAPI que genera la API (`/siante2/api/openapi`) con el versionado en `src/test/resources/contrato/openapi.json`. Si un cambio de la API es intencional, se regenera con `./mvnw test -Dtest=ContratoApiTest "-Dcontrato.actualizar=true"` y el diff del contrato se revisa en el PR. En producción el endpoint está desactivado (perfil `prod`).
 
 ```bash
 cd frontend
@@ -155,4 +157,14 @@ El ingress envía `/siante2/api` al backend y el resto al frontend.
 
 El secreto real (`k8s/*/secret.yml`) lo define Ingeniería y está ignorado por git. `secret.example.yml` lista las credenciales que espera el backend (`SIANTE_DATASOURCE_*`). `kustomization.yml` referencia `secret.yml`, así que debe existir antes de aplicar los manifiestos.
 
-La única configuración no secreta fijada en k8s es `APP_OPENAPI_ENABLED=false` en el backend de producción. El resto (`TZ`, CORS, `JAVA_OPTS`) toma su valor por defecto; con `JAVA_OPTS` vacío, el heap queda en el 75 % de `resources.limits.memory` (ver `backend/Dockerfile`).
+Cada deployment del backend fija `SPRING_PROFILES_ACTIVE` (`dev` o `prod`) y `TZ=America/Santiago`. El resto (CORS, `JAVA_OPTS`) toma su valor por defecto; con `JAVA_OPTS` vacío, el heap queda en el 75 % de `resources.limits.memory` (ver `backend/Dockerfile`).
+
+### Perfiles y logs
+
+| Perfil | Dónde | Qué cambia |
+|---|---|---|
+| `local` (por omisión) | `mvnw spring-boot:run`, docker compose | Lee el `.env` de la raíz; logs en texto |
+| `dev` | `k8s/dev` | Logs en JSON (ECS), contrato OpenAPI publicado |
+| `prod` | `k8s/prod` | Logs en JSON (ECS), sin contrato OpenAPI |
+
+Cada solicitud lleva un identificador (`X-Request-Id`, se reutiliza el del ingress si viene) que aparece en todas sus líneas de log como `solicitud`. El nivel de log del código propio se ajusta con `LOG_LEVEL_SIANTE2` (por omisión `INFO`).

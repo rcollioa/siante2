@@ -30,10 +30,11 @@ spec:
           ports:
             - name: http
               containerPort: 8080
-          # Contrato OpenAPI solo en dev.
           env:
-            - name: APP_OPENAPI_ENABLED
-              value: "false"
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: TZ
+              value: America/Santiago
           envFrom:
             - secretRef:
                 name: siante2-secret

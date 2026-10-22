@@ -24,6 +24,11 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: dev
+            - name: TZ
+              value: America/Santiago
           envFrom:
             - secretRef:
                 name: siante2-secret
