@@ -1,7 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { esRutaApi } from '../api/api-prefijo';
 
-/** Parámetro de la URL que fuerza datos frescos: `/inicio?refrescar`. */
+/** Parámetro de la URL que fuerza datos frescos: `/mapa?refrescar`. */
 export const PARAMETRO_REFRESCAR = 'refrescar';
 
 /** Se lee una sola vez, al cargar la página: la navegación interna quita el parámetro de la URL, pero

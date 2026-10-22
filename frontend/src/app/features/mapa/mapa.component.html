@@ -1,0 +1,17 @@
+<section class="mapa" aria-label="Mapa">
+  <div #lienzo class="lienzo" role="application" aria-label="Mapa interactivo"></div>
+  <div class="capas-base" role="group" aria-label="Capa base">
+    <button
+      type="button"
+      [attr.aria-pressed]="mapaService.capaBase() === 'mapa'"
+      (click)="mapaService.usarCapaBase('mapa')">
+      Mapa
+    </button>
+    <button
+      type="button"
+      [attr.aria-pressed]="mapaService.capaBase() === 'satelital'"
+      (click)="mapaService.usarCapaBase('satelital')">
+      Satelital
+    </button>
+  </div>
+</section>
