@@ -16,6 +16,8 @@
 	<properties>
 		<java.version>25</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<tests.excluidos>oracle</tests.excluidos>
+		<tests.incluidos></tests.incluidos>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -75,6 +77,16 @@
 			<artifactId>spring-boot-starter-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-oracle-free</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<!-- Base en memoria para los tests (src/test/resources/application.properties): corren sin
 		     Oracle, también dentro del build de la imagen. -->
 		<dependency>
@@ -108,9 +120,23 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
 					<argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
+					<excludedGroups>${tests.excluidos}</excludedGroups>
+					<groups>${tests.incluidos}</groups>
 				</configuration>
 			</plugin>
 		</plugins>
 	</build>
+
+	<!-- Los tests @Tag("oracle") levantan Oracle Free con Docker: fuera del build normal y de la imagen.
+	     Se corren con: mvnw test -Poracle -->
+	<profiles>
+		<profile>
+			<id>oracle</id>
+			<properties>
+				<tests.excluidos></tests.excluidos>
+				<tests.incluidos>oracle</tests.incluidos>
+			</properties>
+		</profile>
+	</profiles>
 
 </project>

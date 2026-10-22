@@ -127,6 +127,7 @@ cd backend
 
 - `ConfiguracionWebTest` y `CorsConfigTest` prueban prefijo, caché, errores y CORS sobre `ControladorPrueba`, un controlador que solo existe en `src/test`.
 - `ContextoAplicacionTest` levanta el contexto completo contra H2 en memoria (`src/test/resources/application.properties`).
+- Geometrías: `GmlAGeometria` (lectura, GML de `SDO_UTIL.TO_GMLGEOMETRY` → GeoJSON) y `GeometriaAWkt` (escritura validada, con orientación de anillos corregida, por `SDO_UTIL.FROM_WKTGEOMETRY`) tienen tests unitarios. `GeometriaOracleTest` guarda cada tipo en Oracle Free y verifica que Oracle lo valide; usa Docker y no corre en el build normal: `./mvnw test -Poracle` (imagen `gvenzl/oracle-free:23-faststart`, unos 8 GB). Oracle Free no trae Java en la base, así que `TO_GMLGEOMETRY` solo se puede probar contra una base de la CGR.
 - `ConsultasJpqlTest` compila cada `@Query` JPQL de los repositorios de todos los módulos contra el modelo de entidades, sin conectarse a Oracle.
 - `ContratoApiTest` compara el contrato OpenAPI que genera la API (`/siante2/api/openapi`) con el versionado en `src/test/resources/contrato/openapi.json`. Si un cambio de la API es intencional, se regenera con `./mvnw test -Dtest=ContratoApiTest "-Dcontrato.actualizar=true"` y el diff del contrato se revisa en el PR. En producción el endpoint está desactivado (perfil `prod`).
 
