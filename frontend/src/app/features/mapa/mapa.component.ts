@@ -1,9 +1,11 @@
 import { afterNextRender, Component, DestroyRef, ElementRef, inject, viewChild } from '@angular/core';
+import { PanelCategoriasComponent } from '../categorias/panel-categorias.component';
 import { MapaService } from './mapa.service';
 
 @Component({
   selector: 'app-mapa',
   standalone: true,
+  imports: [PanelCategoriasComponent],
   templateUrl: './mapa.component.html',
   styleUrl: './mapa.component.css'
 })

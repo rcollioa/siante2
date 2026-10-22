@@ -9,7 +9,8 @@
     "start": "ng serve --host 0.0.0.0 --port 4200",
     "build": "ng build",
     "test": "ng test --watch=false",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "api:tipos": "npx --yes openapi-typescript@7.13.0 ../backend/src/test/resources/contrato/openapi.json -o src/app/shared/api/contrato.ts"
   },
   "dependencies": {
     "@angular/common": "^22.0.0",

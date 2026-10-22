@@ -42,7 +42,8 @@
           "nombre" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "descripcion", "id", "nombre" ]
       },
       "CategoriasResponse" : {
         "type" : "object",
@@ -53,7 +54,8 @@
               "$ref" : "#/components/schemas/Categoria"
             }
           }
-        }
+        },
+        "required" : [ "data" ]
       }
     }
   }

@@ -1,6 +1,7 @@
 package siante2.categorias.adapter.out.oracle;
 
 import java.util.List;
+import java.util.Objects;
 import org.springframework.stereotype.Repository;
 import siante2.categorias.application.port.out.CategoriasReadPort;
 import siante2.categorias.domain.Categoria;
@@ -17,7 +18,7 @@ class OracleCategoriasRepository implements CategoriasReadPort {
     @Override
     public List<Categoria> buscarActivas() {
         return jpa.buscarPorEstado(CategoriaEntity.ACTIVA).stream()
-                .map(c -> new Categoria(c.getId(), c.getNombre(), c.getDescripcion()))
+                .map(c -> new Categoria(c.getId(), c.getNombre(), Objects.requireNonNullElse(c.getDescripcion(), "")))
                 .toList();
     }
 }

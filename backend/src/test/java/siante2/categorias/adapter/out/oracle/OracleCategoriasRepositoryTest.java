@@ -31,9 +31,9 @@ class OracleCategoriasRepositoryTest {
     }
 
     @Test
-    void devuelveSoloLasActivasOrdenadasPorNombre() {
+    void devuelveSoloLasActivasOrdenadasPorNombreSinDescripcionesNulas() {
         assertThat(repositorio.buscarActivas()).containsExactly(
-                new Categoria(3, "Educación", null),
+                new Categoria(3, "Educación", ""),
                 new Categoria(1, "Salud", "Centros de salud"));
     }
 }
