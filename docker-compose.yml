@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: siante2-backend
     ports:
-      - "8080:8080"
+      - "${SIANTE_PUERTO_BACKEND:-8080}:8080"
     env_file:
       - .env
 
@@ -15,7 +15,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: siante2-frontend
     ports:
-      - "4200:4200"
+      - "${SIANTE_PUERTO_FRONTEND:-4200}:4200"
     command: npm start -- --proxy-config src/proxy.conf.docker.json
     depends_on:
       - backend
