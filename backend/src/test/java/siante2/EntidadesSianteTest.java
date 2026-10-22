@@ -38,6 +38,8 @@ class EntidadesSianteTest {
                     "LAYERS_GROUPS_ID", "QR", "NAME", "JSON_METADATA", "DESCRIPCION")),
             Map.entry("PUBLIC_REPORTS_DETAILS", List.of("CREADO", "F_CREACION", "X_PUREDET", "PURE_X_PURE", "LAYER_ID",
                     "VERSION", "QR", "NAME", "JSON_METADATA")),
+            Map.entry("NEXTVAL_PUBLIC_REPORTS", List.of("CORRELATIVO")),
+            Map.entry("NEXTVAL_PUBLIC_REPORTS_DETAILS", List.of("CORRELATIVO")),
             Map.entry("MULTIMEDIA", List.of("CREADO", "F_CREACION", "MODIFICADO", "F_MODIFICACION", "DESCRIPCION",
                     "X_MULTIMEDIA")));
 

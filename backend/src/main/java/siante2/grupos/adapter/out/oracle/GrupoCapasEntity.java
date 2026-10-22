@@ -1,6 +1,5 @@
 package siante2.grupos.adapter.out.oracle;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -14,29 +13,21 @@ import org.hibernate.annotations.Immutable;
 public class GrupoCapasEntity {
 
     @Id
-    @Column(name = "ID")
     private Integer id;
 
-    @Column(name = "NAME")
-    private String nombre;
+    private String name;
 
-    @Column(name = "DESCRIPTION")
-    private String descripcion;
+    private String description;
 
-    @Column(name = "OWNER")
-    private Integer dueno;
+    private Integer owner;
 
-    @Column(name = "STATUS")
-    private Integer estado;
+    private Integer status;
 
-    @Column(name = "CREATED_DATE")
-    private LocalDateTime fechaCreacion;
+    private LocalDateTime createdDate;
 
-    @Column(name = "IS_SCHEDULER")
-    private Integer programado;
+    private Integer isScheduler;
 
-    @Column(name = "CREATE_TYPE")
-    private String tipoCreacion;
+    private String createType;
 
     protected GrupoCapasEntity() {
     }
@@ -45,31 +36,31 @@ public class GrupoCapasEntity {
         return id;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getName() {
+        return name;
     }
 
-    public String getDescripcion() {
-        return descripcion;
+    public String getDescription() {
+        return description;
     }
 
-    public Integer getDueno() {
-        return dueno;
+    public Integer getOwner() {
+        return owner;
     }
 
-    public Integer getEstado() {
-        return estado;
+    public Integer getStatus() {
+        return status;
     }
 
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
     }
 
-    public Integer getProgramado() {
-        return programado;
+    public Integer getIsScheduler() {
+        return isScheduler;
     }
 
-    public String getTipoCreacion() {
-        return tipoCreacion;
+    public String getCreateType() {
+        return createType;
     }
 }

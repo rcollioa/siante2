@@ -1,6 +1,5 @@
 package siante2.capas.adapter.out.oracle;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -13,26 +12,19 @@ import org.hibernate.annotations.Immutable;
 public class PuntoCatalogoEntity {
 
     @Id
-    @Column(name = "ID")
     private Integer id;
 
-    @Column(name = "NAME")
-    private String nombre;
+    private String name;
 
-    @Column(name = "URL")
     private String url;
 
-    @Column(name = "NAME_FILE")
-    private String nombreArchivo;
+    private String nameFile;
 
-    @Column(name = "VISIBILITY")
-    private String visibilidad;
+    private String visibility;
 
-    @Column(name = "OWNER")
-    private Integer dueno;
+    private Integer owner;
 
-    @Column(name = "NAME_IMAGE")
-    private String nombreImagen;
+    private String nameImage;
 
     protected PuntoCatalogoEntity() {
     }
@@ -41,27 +33,27 @@ public class PuntoCatalogoEntity {
         return id;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getName() {
+        return name;
     }
 
     public String getUrl() {
         return url;
     }
 
-    public String getNombreArchivo() {
-        return nombreArchivo;
+    public String getNameFile() {
+        return nameFile;
     }
 
-    public String getVisibilidad() {
-        return visibilidad;
+    public String getVisibility() {
+        return visibility;
     }
 
-    public Integer getDueno() {
-        return dueno;
+    public Integer getOwner() {
+        return owner;
     }
 
-    public String getNombreImagen() {
-        return nombreImagen;
+    public String getNameImage() {
+        return nameImage;
     }
 }

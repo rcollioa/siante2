@@ -1,6 +1,5 @@
 package siante2.capas.adapter.out.oracle;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -14,35 +13,25 @@ import org.hibernate.annotations.Immutable;
 public class CapaEntity {
 
     @Id
-    @Column(name = "ID")
     private Integer id;
 
-    @Column(name = "OWNER")
-    private Integer dueno;
+    private Integer owner;
 
-    @Column(name = "NAME")
-    private String nombre;
+    private String name;
 
-    @Column(name = "ORIGIN")
-    private String origen;
+    private String origin;
 
-    @Column(name = "STATUS")
-    private String estado;
+    private String status;
 
-    @Column(name = "JSON_METADATA")
-    private String metadatosJson;
+    private String jsonMetadata;
 
-    @Column(name = "DESCRIPTION")
-    private String descripcion;
+    private String description;
 
-    @Column(name = "VISIBILITY")
-    private String visibilidad;
+    private String visibility;
 
-    @Column(name = "L_GROUP_ID")
-    private Integer grupoId;
+    private Integer lGroupId;
 
-    @Column(name = "CATEGORY_ID")
-    private Integer categoriaId;
+    private Integer categoryId;
 
     protected CapaEntity() {
     }
@@ -51,39 +40,39 @@ public class CapaEntity {
         return id;
     }
 
-    public Integer getDueno() {
-        return dueno;
+    public Integer getOwner() {
+        return owner;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getName() {
+        return name;
     }
 
-    public String getOrigen() {
-        return origen;
+    public String getOrigin() {
+        return origin;
     }
 
-    public String getEstado() {
-        return estado;
+    public String getStatus() {
+        return status;
     }
 
-    public String getMetadatosJson() {
-        return metadatosJson;
+    public String getJsonMetadata() {
+        return jsonMetadata;
     }
 
-    public String getDescripcion() {
-        return descripcion;
+    public String getDescription() {
+        return description;
     }
 
-    public String getVisibilidad() {
-        return visibilidad;
+    public String getVisibility() {
+        return visibility;
     }
 
-    public Integer getGrupoId() {
-        return grupoId;
+    public Integer getLGroupId() {
+        return lGroupId;
     }
 
-    public Integer getCategoriaId() {
-        return categoriaId;
+    public Integer getCategoryId() {
+        return categoryId;
     }
 }

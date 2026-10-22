@@ -17,6 +17,8 @@
 		<java.version>25</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<tests.excluidos>oracle</tests.excluidos>
+		<!-- Lo completa JaCoCo (prepare-agent); vacío si se omite. -->
+		<argLine></argLine>
 		<tests.incluidos></tests.incluidos>
 	</properties>
 	<dependencies>
@@ -78,6 +80,18 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- Reglas de arquitectura como tests (ArquitecturaTest); no está en el BOM de Spring Boot. -->
+		<dependency>
+			<groupId>com.tngtech.archunit</groupId>
+			<artifactId>archunit-junit5</artifactId>
+			<version>1.5.1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers-oracle-free</artifactId>
 			<scope>test</scope>
@@ -101,6 +115,14 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<!-- build-info: versión y fecha de compilación en /actuator/info. -->
+				<executions>
+					<execution>
+						<goals>
+							<goal>build-info</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<!-- Mockito como agente de Java en los tests: el JDK bloqueará que se adjunte solo en ejecución.
 			     "properties" expone la ruta del jar (${groupId:artifactId:jar}) que usa surefire. -->
@@ -119,10 +141,69 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
+					<argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+					<systemPropertyVariables>
+						<spring.profiles.active>test</spring.profiles.active>
+					</systemPropertyVariables>
 					<excludedGroups>${tests.excluidos}</excludedGroups>
 					<groups>${tests.incluidos}</groups>
 				</configuration>
+			</plugin>
+			<!-- Cobertura de los tests: informe en target/site/jacoco/index.html. -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.15</version>
+				<!-- Entidades JPA (solo mapeo, lo verifica EntidadesSianteTest) y la clase de arranque. -->
+				<configuration>
+					<excludes>
+						<exclude>**/*Entity.class</exclude>
+						<exclude>**/*Entity$*.class</exclude>
+						<exclude>siante2/BackendApplication.class</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>agente</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>informe</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+					<!-- Mínimo de cobertura en verify (lo corre el Dockerfile): un test suelto no falla por cobertura. -->
+					<execution>
+						<id>minimo</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.90</minimum>
+										</limit>
+										<limit>
+											<counter>BRANCH</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.65</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

@@ -78,6 +78,26 @@ El backend se organiza por módulo: todo lo de un módulo queda en su paquete y 
 8. Contrato: regenerar `contrato/openapi.json` (ver Tests) y revisar el diff.
 9. Frontend: `npm run api:tipos` para regenerar `shared/api/contrato.ts` desde el contrato; luego `features/informes/informes-api.service.ts`, que usa esos tipos, `API_PREFIJO` y `CacheConsultas`, más el componente, registrado en `app.routes.ts` (ver `features/categorias`).
 
+### Reglas de arquitectura
+
+`ArquitecturaTest` (ArchUnit) las verifica en cada build; si una falla, la imagen no se construye:
+
+- El dominio es Java puro: sin Spring, JPA, Hibernate ni Jackson (la forma JSON va en un `@JacksonMixin` de la capa web, como `GeometriaJsonMixin`).
+- `application` no conoce adaptadores; los controladores (`adapter/in`) no usan repositorios ni entidades.
+- Las entidades JPA viven y se usan solo en `adapter/out/oracle`; los repositorios de Spring Data no son `public`.
+- Un módulo usa de otro solo su dominio y sus puertos; `compartido` lo usan todos y no conoce a ninguno; sin ciclos entre módulos.
+
+### Prácticas de JPA / Hibernate (7.4, la versión la fija Spring Boot)
+
+- Lecturas: proyección directa al dominio (`select new ...(…)` o métodos derivados) en vez de cargar entidades para mapearlas; `coalesce` en la consulta para que el dominio no reciba null.
+- Transacciones: adaptadores con `@Transactional(readOnly = true)` a nivel de clase; métodos que escriben con `@Transactional`; el caso de uso que combina lectura y escritura, `@Transactional` en el servicio.
+- Limitar en la base (`findFirstBy…OrderBy…`, paginación), nunca `.stream().findFirst()` sobre una lista.
+- Asociaciones siempre `LAZY` (también `@ManyToOne`); para cargarlas, `join fetch` o `@EntityGraph` en la consulta que las necesita. Sin `FetchType.EAGER`.
+- Entidades: atributos con el nombre de la columna en camelCase (`LAST_NAME` → `lastName`, `L_GROUP_ID` → `lGroupId`), sin `@Column`: los mapea la estrategia de nombres de Spring Boot. `@Column` solo cuando esa regla no da la columna (dos mayúsculas seguidas, p. ej. `PURE_X_PURE`). Clases con sufijo `Entity`; los nombres en español quedan en el dominio. `EntidadesSianteTest` verifica columna por columna.
+- Entidades: `@Immutable` mientras SIANTE escriba en la tabla, constructor `protected` vacío, sin setters, IDs por trigger con `IDENTITY`.
+- Tests de repositorio verifican la cantidad de SQL con `ContadorSql` (estadísticas de Hibernate solo en el perfil `test`).
+- Configuración global en `application.properties`: `jdbc.fetch_size=100` (Oracle trae 10 por defecto), lotes de 50, `default_batch_fetch_size`, `in_clause_parameter_padding`, `fail_on_pagination_over_collection_fetch` y `log_slow_query` (`SIANTE_LOG_CONSULTA_LENTA_MS`).
+
 Las entidades y los repositorios se detectan solos por estar bajo el paquete de `BackendApplication`. Si el proyecto necesita una segunda base, cada una necesita su propio `DataSource`, `EntityManagerFactory` y `@EnableJpaRepositories`. Es lo que hará falta cuando un módulo use GEOCGR (`GEOCGR_DATASOURCE_*` en `.env`).
 
 ## Stack y versiones
@@ -126,7 +146,8 @@ cd backend
 ```
 
 - `ConfiguracionWebTest` y `CorsConfigTest` prueban prefijo, caché, errores y CORS sobre `ControladorPrueba`, un controlador que solo existe en `src/test`.
-- `ContextoAplicacionTest` levanta el contexto completo contra H2 en memoria (`src/test/resources/application.properties`).
+- Los tests corren con el perfil `test` (lo activa surefire): usan toda la configuración de `src/main/resources` y solo cambian la base por H2 (`src/test/resources/application-test.properties`). `ContextoAplicacionTest` levanta el contexto completo y `ActuatorTest` verifica salud, info y métricas.
+- Acceso a datos solo con JPA (Spring Data). IDs: las entidades de tablas con trigger usan `@GeneratedValue(strategy = IDENTITY)` y Hibernate recupera el ID que pone la base (en vez del "máximo ID" de SIANTE); los correlativos de reportes públicos se leen por JPQL de las vistas `NEXTVAL_*`. Se prueba en Oracle Free con trigger y secuencia.
 - Geometrías: `GmlAGeometria` (lectura, GML de `SDO_UTIL.TO_GMLGEOMETRY` → GeoJSON) y `GeometriaAWkt` (escritura validada, con orientación de anillos corregida, por `SDO_UTIL.FROM_WKTGEOMETRY`) tienen tests unitarios. `GeometriaOracleTest` guarda cada tipo en Oracle Free y verifica que Oracle lo valide; usa Docker y no corre en el build normal: `./mvnw test -Poracle` (imagen `gvenzl/oracle-free:23-faststart`, unos 8 GB). Oracle Free no trae Java en la base, así que `TO_GMLGEOMETRY` solo se puede probar contra una base de la CGR.
 - `ConsultasJpqlTest` compila cada `@Query` JPQL de los repositorios de todos los módulos contra el modelo de entidades, sin conectarse a Oracle.
 - `ContratoApiTest` compara el contrato OpenAPI que genera la API (`/siante2/api/openapi`) con el versionado en `src/test/resources/contrato/openapi.json`. Si un cambio de la API es intencional, se regenera con `./mvnw test -Dtest=ContratoApiTest "-Dcontrato.actualizar=true"` y el diff del contrato se revisa en el PR. En producción el endpoint está desactivado (perfil `prod`).
@@ -136,6 +157,8 @@ cd frontend
 npm test
 npm run lint
 ```
+
+Cobertura: `./mvnw verify` genera `target/site/jacoco/index.html` y exige 90 % de líneas y 65 % de ramas (sin contar entidades JPA ni la clase de arranque); el Dockerfile corre `verify`.
 
 Los dos Dockerfile corren los tests (y el del frontend, también el lint) antes del build: si alguno falla, la imagen no se construye.
 

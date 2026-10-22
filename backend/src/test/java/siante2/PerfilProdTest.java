@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** Perfil prod sobre H2: logs en JSON, sin contrato OpenAPI y con X-Request-Id en cada respuesta. */
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("prod")
+@ActiveProfiles({"test", "prod"})
 @ExtendWith(OutputCaptureExtension.class)
 class PerfilProdTest {
 

@@ -1,6 +1,5 @@
 package siante2.capas.adapter.out.oracle;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -13,20 +12,18 @@ import org.hibernate.annotations.Immutable;
 public class CapaCategoriaEntity {
 
     @Id
-    @Column(name = "LAYER_ID")
-    private Integer capaId;
+    private Integer layerId;
 
-    @Column(name = "CATEGORY_ID")
-    private Integer categoriaId;
+    private Integer categoryId;
 
     protected CapaCategoriaEntity() {
     }
 
-    public Integer getCapaId() {
-        return capaId;
+    public Integer getLayerId() {
+        return layerId;
     }
 
-    public Integer getCategoriaId() {
-        return categoriaId;
+    public Integer getCategoryId() {
+        return categoryId;
     }
 }

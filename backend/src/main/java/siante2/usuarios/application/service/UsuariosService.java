@@ -2,6 +2,7 @@ package siante2.usuarios.application.service;
 
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import siante2.usuarios.application.port.in.ObtenerUsuarioActualUseCase;
 import siante2.usuarios.application.port.out.UsuariosPort;
 import siante2.usuarios.domain.Usuario;
@@ -15,7 +16,9 @@ public class UsuariosService implements ObtenerUsuarioActualUseCase {
         this.usuarios = usuarios;
     }
 
+    /** Buscar, registrar y releer en una sola transacción. */
     @Override
+    @Transactional
     public Usuario obtener(String ivUser, List<String> grupos) {
         return usuarios.buscarPorIvUser(ivUser, grupos).orElseGet(() -> {
             usuarios.registrar(ivUser, grupos);

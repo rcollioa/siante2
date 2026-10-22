@@ -1,6 +1,5 @@
 package siante2.reportes.adapter.out.oracle;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -14,73 +13,63 @@ import org.hibernate.annotations.Immutable;
 public class ReportePublicoEntity {
 
     @Id
-    @Column(name = "X_PURE")
-    private Integer id;
+    private Integer xPure;
 
-    @Column(name = "CREADO")
-    private Integer creadoPor;
+    private Integer creado;
 
-    @Column(name = "F_CREACION")
-    private LocalDateTime fechaCreacion;
+    private LocalDateTime fCreacion;
 
-    @Column(name = "VERSION")
     private Integer version;
 
-    @Column(name = "LAYER_ID")
-    private Integer capaId;
+    private Integer layerId;
 
-    @Column(name = "LAYERS_GROUPS_ID")
-    private Integer grupoId;
+    private Integer layersGroupsId;
 
-    @Column(name = "QR")
     private String qr;
 
-    @Column(name = "NAME")
-    private String nombre;
+    private String name;
 
-    @Column(name = "JSON_METADATA")
-    private String metadatosJson;
+    private String jsonMetadata;
 
-    @Column(name = "DESCRIPCION")
     private String descripcion;
 
     protected ReportePublicoEntity() {
     }
 
-    public Integer getId() {
-        return id;
+    public Integer getXPure() {
+        return xPure;
     }
 
-    public Integer getCreadoPor() {
-        return creadoPor;
+    public Integer getCreado() {
+        return creado;
     }
 
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
+    public LocalDateTime getFCreacion() {
+        return fCreacion;
     }
 
     public Integer getVersion() {
         return version;
     }
 
-    public Integer getCapaId() {
-        return capaId;
+    public Integer getLayerId() {
+        return layerId;
     }
 
-    public Integer getGrupoId() {
-        return grupoId;
+    public Integer getLayersGroupsId() {
+        return layersGroupsId;
     }
 
     public String getQr() {
         return qr;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getName() {
+        return name;
     }
 
-    public String getMetadatosJson() {
-        return metadatosJson;
+    public String getJsonMetadata() {
+        return jsonMetadata;
     }
 
     public String getDescripcion() {

@@ -1,6 +1,5 @@
 package siante2.capas.adapter.out.oracle;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -13,47 +12,33 @@ import org.hibernate.annotations.Immutable;
 public class VistaCapaEntity {
 
     @Id
-    @Column(name = "ID")
     private Integer id;
 
-    @Column(name = "NAME")
-    private String nombre;
+    private String name;
 
-    @Column(name = "ORIGIN")
-    private String origen;
+    private String origin;
 
-    @Column(name = "JSON_METADATA")
-    private String metadatosJson;
+    private String jsonMetadata;
 
-    @Column(name = "DESCRIPTION")
-    private String descripcion;
+    private String description;
 
-    @Column(name = "VISIBILITY")
-    private String visibilidad;
+    private String visibility;
 
-    @Column(name = "STATUS")
-    private String estado;
+    private String status;
 
-    @Column(name = "USER_ID")
-    private Integer usuarioId;
+    private Integer userId;
 
-    @Column(name = "USER_NAME")
-    private String usuarioNombre;
+    private String userName;
 
-    @Column(name = "USER_LAST_NAME")
-    private String usuarioApellido;
+    private String userLastName;
 
-    @Column(name = "USER_EMAIL")
-    private String usuarioEmail;
+    private String userEmail;
 
-    @Column(name = "USER_AREA")
-    private String usuarioArea;
+    private String userArea;
 
-    @Column(name = "CATEGORY_ID")
-    private Integer categoriaId;
+    private Integer categoryId;
 
-    @Column(name = "CATEGORY_NAME")
-    private String categoriaNombre;
+    private String categoryName;
 
     protected VistaCapaEntity() {
     }
@@ -62,55 +47,55 @@ public class VistaCapaEntity {
         return id;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getName() {
+        return name;
     }
 
-    public String getOrigen() {
-        return origen;
+    public String getOrigin() {
+        return origin;
     }
 
-    public String getMetadatosJson() {
-        return metadatosJson;
+    public String getJsonMetadata() {
+        return jsonMetadata;
     }
 
-    public String getDescripcion() {
-        return descripcion;
+    public String getDescription() {
+        return description;
     }
 
-    public String getVisibilidad() {
-        return visibilidad;
+    public String getVisibility() {
+        return visibility;
     }
 
-    public String getEstado() {
-        return estado;
+    public String getStatus() {
+        return status;
     }
 
-    public Integer getUsuarioId() {
-        return usuarioId;
+    public Integer getUserId() {
+        return userId;
     }
 
-    public String getUsuarioNombre() {
-        return usuarioNombre;
+    public String getUserName() {
+        return userName;
     }
 
-    public String getUsuarioApellido() {
-        return usuarioApellido;
+    public String getUserLastName() {
+        return userLastName;
     }
 
-    public String getUsuarioEmail() {
-        return usuarioEmail;
+    public String getUserEmail() {
+        return userEmail;
     }
 
-    public String getUsuarioArea() {
-        return usuarioArea;
+    public String getUserArea() {
+        return userArea;
     }
 
-    public Integer getCategoriaId() {
-        return categoriaId;
+    public Integer getCategoryId() {
+        return categoryId;
     }
 
-    public String getCategoriaNombre() {
-        return categoriaNombre;
+    public String getCategoryName() {
+        return categoryName;
     }
 }

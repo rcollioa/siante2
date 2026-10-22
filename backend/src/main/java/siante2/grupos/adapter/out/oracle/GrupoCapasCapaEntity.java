@@ -1,6 +1,5 @@
 package siante2.grupos.adapter.out.oracle;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
@@ -18,56 +17,53 @@ import org.hibernate.annotations.Immutable;
 public class GrupoCapasCapaEntity {
 
     @Id
-    @Column(name = "LAYER_ID")
-    private Integer capaId;
+    private Integer layerId;
 
     @Id
-    @Column(name = "L_GROUP_ID")
-    private Integer grupoId;
+    private Integer lGroupId;
 
-    @Column(name = "CREATED_DATE")
-    private LocalDateTime fechaCreacion;
+    private LocalDateTime createdDate;
 
     protected GrupoCapasCapaEntity() {
     }
 
-    public Integer getCapaId() {
-        return capaId;
+    public Integer getLayerId() {
+        return layerId;
     }
 
-    public Integer getGrupoId() {
-        return grupoId;
+    public Integer getLGroupId() {
+        return lGroupId;
     }
 
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
     }
 
     /** Clave compuesta: la tabla de SIANTE no tiene ID propio. */
     public static class Clave implements Serializable {
 
-        private Integer capaId;
+        private Integer layerId;
 
-        private Integer grupoId;
+        private Integer lGroupId;
 
         protected Clave() {
         }
 
-        public Clave(Integer capaId, Integer grupoId) {
-            this.capaId = capaId;
-            this.grupoId = grupoId;
+        public Clave(Integer layerId, Integer lGroupId) {
+            this.layerId = layerId;
+            this.lGroupId = lGroupId;
         }
 
         @Override
         public boolean equals(Object otro) {
             return otro instanceof Clave c
-                    && Objects.equals(capaId, c.capaId)
-                    && Objects.equals(grupoId, c.grupoId);
+                    && Objects.equals(layerId, c.layerId)
+                    && Objects.equals(lGroupId, c.lGroupId);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(capaId, grupoId);
+            return Objects.hash(layerId, lGroupId);
         }
     }
 }

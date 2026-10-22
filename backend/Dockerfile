@@ -3,9 +3,8 @@ FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src src
-# Con tests: si alguno falla, la imagen no se construye. Ninguno necesita Oracle (controladores con
-# @WebMvcTest, contexto completo contra H2 en memoria), así que corren igual dentro del build.
-RUN mvn -q clean package
+# verify: tests (sin Oracle: @WebMvcTest y H2) y mínimo de cobertura de JaCoCo; si falla, no hay imagen.
+RUN mvn -q clean verify
 
 # Solo el runtime (JRE), sin compilador ni herramientas del JDK: imagen más chica y con menos que
 # atacar si alguien llega a ejecutar código en el contenedor.

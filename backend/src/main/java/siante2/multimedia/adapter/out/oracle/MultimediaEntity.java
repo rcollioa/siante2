@@ -1,6 +1,5 @@
 package siante2.multimedia.adapter.out.oracle;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -14,45 +13,39 @@ import org.hibernate.annotations.Immutable;
 public class MultimediaEntity {
 
     @Id
-    @Column(name = "X_MULTIMEDIA")
-    private Integer id;
+    private Integer xMultimedia;
 
-    @Column(name = "CREADO")
-    private String creadoPor;
+    private String creado;
 
-    @Column(name = "F_CREACION")
-    private LocalDateTime fechaCreacion;
+    private LocalDateTime fCreacion;
 
-    @Column(name = "MODIFICADO")
-    private String modificadoPor;
+    private String modificado;
 
-    @Column(name = "F_MODIFICACION")
-    private LocalDateTime fechaModificacion;
+    private LocalDateTime fModificacion;
 
-    @Column(name = "DESCRIPCION")
     private String descripcion;
 
     protected MultimediaEntity() {
     }
 
-    public Integer getId() {
-        return id;
+    public Integer getXMultimedia() {
+        return xMultimedia;
     }
 
-    public String getCreadoPor() {
-        return creadoPor;
+    public String getCreado() {
+        return creado;
     }
 
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
+    public LocalDateTime getFCreacion() {
+        return fCreacion;
     }
 
-    public String getModificadoPor() {
-        return modificadoPor;
+    public String getModificado() {
+        return modificado;
     }
 
-    public LocalDateTime getFechaModificacion() {
-        return fechaModificacion;
+    public LocalDateTime getFModificacion() {
+        return fModificacion;
     }
 
     public String getDescripcion() {

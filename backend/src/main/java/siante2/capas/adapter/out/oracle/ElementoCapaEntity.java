@@ -1,6 +1,5 @@
 package siante2.capas.adapter.out.oracle;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -15,48 +14,42 @@ import org.hibernate.annotations.Immutable;
 public class ElementoCapaEntity {
 
     @Id
-    @Column(name = "ID_FEATURE")
-    private Integer id;
+    private Integer idFeature;
 
-    @Column(name = "ID_LAYER")
-    private Integer capaId;
+    private Integer idLayer;
 
-    @Column(name = "TYPE")
-    private String tipo;
+    private String type;
 
-    @Column(name = "DATE_CREATE")
-    private LocalDateTime fechaCreacion;
+    private LocalDateTime dateCreate;
 
-    @Column(name = "DATE_MODIFY")
-    private LocalDateTime fechaModificacion;
+    private LocalDateTime dateModify;
 
-    @Column(name = "JSON_METADATA")
-    private String metadatosJson;
+    private String jsonMetadata;
 
     protected ElementoCapaEntity() {
     }
 
-    public Integer getId() {
-        return id;
+    public Integer getIdFeature() {
+        return idFeature;
     }
 
-    public Integer getCapaId() {
-        return capaId;
+    public Integer getIdLayer() {
+        return idLayer;
     }
 
-    public String getTipo() {
-        return tipo;
+    public String getType() {
+        return type;
     }
 
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
+    public LocalDateTime getDateCreate() {
+        return dateCreate;
     }
 
-    public LocalDateTime getFechaModificacion() {
-        return fechaModificacion;
+    public LocalDateTime getDateModify() {
+        return dateModify;
     }
 
-    public String getMetadatosJson() {
-        return metadatosJson;
+    public String getJsonMetadata() {
+        return jsonMetadata;
     }
 }

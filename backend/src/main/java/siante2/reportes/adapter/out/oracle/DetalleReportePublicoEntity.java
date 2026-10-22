@@ -14,54 +14,46 @@ import org.hibernate.annotations.Immutable;
 public class DetalleReportePublicoEntity {
 
     @Id
-    @Column(name = "X_PUREDET")
-    private Integer id;
+    private Integer xPuredet;
 
-    @Column(name = "CREADO")
-    private Integer creadoPor;
+    private Integer creado;
 
-    @Column(name = "F_CREACION")
-    private LocalDateTime fechaCreacion;
+    private LocalDateTime fCreacion;
 
     @Column(name = "PURE_X_PURE")
-    private Integer reporteId;
+    private Integer pureXPure;
 
-    @Column(name = "LAYER_ID")
-    private Integer capaId;
+    private Integer layerId;
 
-    @Column(name = "VERSION")
     private Integer version;
 
-    @Column(name = "QR")
     private String qr;
 
-    @Column(name = "NAME")
-    private String nombre;
+    private String name;
 
-    @Column(name = "JSON_METADATA")
-    private String metadatosJson;
+    private String jsonMetadata;
 
     protected DetalleReportePublicoEntity() {
     }
 
-    public Integer getId() {
-        return id;
+    public Integer getXPuredet() {
+        return xPuredet;
     }
 
-    public Integer getCreadoPor() {
-        return creadoPor;
+    public Integer getCreado() {
+        return creado;
     }
 
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
+    public LocalDateTime getFCreacion() {
+        return fCreacion;
     }
 
-    public Integer getReporteId() {
-        return reporteId;
+    public Integer getPureXPure() {
+        return pureXPure;
     }
 
-    public Integer getCapaId() {
-        return capaId;
+    public Integer getLayerId() {
+        return layerId;
     }
 
     public Integer getVersion() {
@@ -72,11 +64,11 @@ public class DetalleReportePublicoEntity {
         return qr;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getName() {
+        return name;
     }
 
-    public String getMetadatosJson() {
-        return metadatosJson;
+    public String getJsonMetadata() {
+        return jsonMetadata;
     }
 }

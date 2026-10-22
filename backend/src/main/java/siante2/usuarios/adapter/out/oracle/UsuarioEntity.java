@@ -1,52 +1,55 @@
 package siante2.usuarios.adapter.out.oracle;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
-/** Tabla {@code USERS} de SIANTE (modelo {@code User}). El alta va por consulta nativa: el ID lo pone la base. */
+/** Tabla {@code USERS} de SIANTE (modelo {@code User}). Se puede dar de alta, no modificar (@Immutable);
+ * el ID lo pone el trigger de la base y Hibernate lo recupera con RETURNING (IDENTITY). */
 @Entity
 @Immutable
 @Table(name = "USERS")
 public class UsuarioEntity {
 
     @Id
-    @Column(name = "ID")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "NAME")
-    private String nombre;
+    private String name;
 
-    @Column(name = "LAST_NAME")
-    private String apellido;
+    private String lastName;
 
-    @Column(name = "EMAIL")
     private String email;
 
-    @Column(name = "AREA")
     private String area;
 
-    @Column(name = "IV_USER")
     private String ivUser;
 
-    @Column(name = "IV_GROUP")
     private String ivGroup;
 
     protected UsuarioEntity() {
+    }
+
+    /** Mismas columnas que el alta de {@code Auth} en SIANTE: el nombre parte siendo el iv-user. */
+    UsuarioEntity(String ivUser, String grupos) {
+        this.name = ivUser;
+        this.ivUser = ivUser;
+        this.ivGroup = grupos;
     }
 
     public Integer getId() {
         return id;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getName() {
+        return name;
     }
 
-    public String getApellido() {
-        return apellido;
+    public String getLastName() {
+        return lastName;
     }
 
     public String getEmail() {

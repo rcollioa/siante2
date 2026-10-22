@@ -35,6 +35,18 @@
   width: auto;
 }
 
+.cuerpo {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 48rem) {
+  .cuerpo {
+    flex-direction: column;
+  }
+}
+
 /* Sin padding: el mapa ocupa todo el espacio y cada página define el suyo. */
 .contenido {
   display: flex;

@@ -1,6 +1,5 @@
 package siante2.favoritos.adapter.out.oracle;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
@@ -18,56 +17,53 @@ import org.hibernate.annotations.Immutable;
 public class FavoritoEntity {
 
     @Id
-    @Column(name = "USER_ID")
-    private Integer usuarioId;
+    private Integer userId;
 
     @Id
-    @Column(name = "L_GROUP_ID")
-    private Integer grupoId;
+    private Integer lGroupId;
 
-    @Column(name = "CREATED_DATE")
-    private LocalDateTime fechaCreacion;
+    private LocalDateTime createdDate;
 
     protected FavoritoEntity() {
     }
 
-    public Integer getUsuarioId() {
-        return usuarioId;
+    public Integer getUserId() {
+        return userId;
     }
 
-    public Integer getGrupoId() {
-        return grupoId;
+    public Integer getLGroupId() {
+        return lGroupId;
     }
 
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
     }
 
     /** Clave compuesta: la tabla de SIANTE no tiene ID propio. */
     public static class Clave implements Serializable {
 
-        private Integer usuarioId;
+        private Integer userId;
 
-        private Integer grupoId;
+        private Integer lGroupId;
 
         protected Clave() {
         }
 
-        public Clave(Integer usuarioId, Integer grupoId) {
-            this.usuarioId = usuarioId;
-            this.grupoId = grupoId;
+        public Clave(Integer userId, Integer lGroupId) {
+            this.userId = userId;
+            this.lGroupId = lGroupId;
         }
 
         @Override
         public boolean equals(Object otro) {
             return otro instanceof Clave c
-                    && Objects.equals(usuarioId, c.usuarioId)
-                    && Objects.equals(grupoId, c.grupoId);
+                    && Objects.equals(userId, c.userId)
+                    && Objects.equals(lGroupId, c.lGroupId);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(usuarioId, grupoId);
+            return Objects.hash(userId, lGroupId);
         }
     }
 }

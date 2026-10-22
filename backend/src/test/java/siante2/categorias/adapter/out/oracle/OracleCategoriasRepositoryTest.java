@@ -1,10 +1,12 @@
 package siante2.categorias.adapter.out.oracle;
 
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import siante2.ContadorSql;
 import siante2.categorias.domain.Categoria;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,6 +21,9 @@ class OracleCategoriasRepositoryTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private EntityManagerFactory fabrica;
+
     private OracleCategoriasRepository repositorio;
 
     @BeforeEach
@@ -31,9 +36,12 @@ class OracleCategoriasRepositoryTest {
     }
 
     @Test
-    void devuelveSoloLasActivasOrdenadasPorNombreSinDescripcionesNulas() {
+    void devuelveSoloLasActivasOrdenadasPorNombreSinDescripcionesNulasEnUnaSolaConsulta() {
+        ContadorSql sql = new ContadorSql(fabrica);
+
         assertThat(repositorio.buscarActivas()).containsExactly(
                 new Categoria(3, "Educación", ""),
                 new Categoria(1, "Salud", "Centros de salud"));
+        assertThat(sql.sentencias()).isEqualTo(1);
     }
 }

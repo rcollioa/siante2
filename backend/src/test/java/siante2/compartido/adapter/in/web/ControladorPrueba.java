@@ -68,4 +68,10 @@ class ControladorPrueba {
     Respuesta bug() {
         throw new IllegalStateException("detalle interno que no debe llegar al cliente");
     }
+
+    /** Si Tomcat atiende la solicitud en un hilo virtual (ver HilosVirtualesTest). */
+    @GetMapping("/hilo")
+    Respuesta hilo() {
+        return new Respuesta(String.valueOf(Thread.currentThread().isVirtual()));
+    }
 }

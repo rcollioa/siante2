@@ -1,0 +1,25 @@
+<nav class="menu" [class.abierto]="abierto()" aria-label="Secciones">
+  <button
+    type="button"
+    class="alternar"
+    [attr.aria-expanded]="abierto()"
+    aria-controls="lista-secciones"
+    (click)="abierto.set(!abierto())">
+    Menú
+  </button>
+  <ul id="lista-secciones">
+    @for (seccion of secciones; track seccion.nombre) {
+      <li>
+        @if (seccion.ruta) {
+          <a [routerLink]="seccion.ruta" routerLinkActive="activa" ariaCurrentWhenActive="page" (click)="abierto.set(false)">
+            {{ seccion.nombre }}
+          </a>
+        } @else {
+          <span class="pendiente" aria-disabled="true">
+            {{ seccion.nombre }} <small>Próximamente</small>
+          </span>
+        }
+      </li>
+    }
+  </ul>
+</nav>

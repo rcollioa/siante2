@@ -8,8 +8,13 @@
       <span class="usuario" [title]="sesion.usuario()?.email ?? ''">{{ sesion.nombreVisible() }}</span>
     }
   </header>
-  <main class="contenido">
-    <router-outlet />
-  </main>
+  <div class="cuerpo">
+    @if (sesion.estado() === 'activa') {
+      <app-menu-lateral />
+    }
+    <main class="contenido">
+      <router-outlet />
+    </main>
+  </div>
   <app-pantalla-carga />
 </div>

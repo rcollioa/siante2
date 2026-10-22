@@ -1,11 +1,13 @@
 package siante2.usuarios.adapter.out.oracle;
 
+import jakarta.persistence.EntityManagerFactory;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import siante2.ContadorSql;
 import siante2.usuarios.domain.Usuario;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,6 +21,9 @@ class OracleUsuariosRepositoryTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private EntityManagerFactory fabrica;
 
     private OracleUsuariosRepository repositorio;
 
@@ -45,10 +50,13 @@ class OracleUsuariosRepositoryTest {
     }
 
     @Test
-    void conDuplicadosTomaElDeMenorId() {
+    void conDuplicadosTomaElDeMenorIdEnUnaSolaConsulta() {
         jdbc.update("insert into USERS (ID, NAME, IV_USER) values (7, 'Segundo', 'dup')");
         jdbc.update("insert into USERS (ID, NAME, IV_USER) values (3, 'Primero', 'dup')");
 
+        ContadorSql sql = new ContadorSql(fabrica);
+
         assertThat(repositorio.buscarPorIvUser("dup", List.of()).orElseThrow().id()).isEqualTo(3);
+        assertThat(sql.sentencias()).isEqualTo(1);
     }
 }
