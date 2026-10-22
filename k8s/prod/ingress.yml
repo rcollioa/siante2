@@ -2,14 +2,13 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: siante2
-  namespace: siante2-prod
+  namespace: sisgeob-prod
 spec:
   ingressClassName: nginx
   rules:
     - host: siante2.tanzu.contraloria.cl
       http:
         paths:
-          # Debe coincidir con app.api.prefijo del backend y API_PREFIJO del frontend.
           - path: /siante2/api
             pathType: Prefix
             backend:

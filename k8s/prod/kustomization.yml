@@ -1,6 +1,5 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: siante2-prod
 resources:
   - secret.yml
   - backend/deployment.yml
@@ -8,23 +7,3 @@ resources:
   - frontend/deployment.yml
   - frontend/service.yml
   - ingress.yml
-
-# Configuración no secreta (credenciales en secret.yml). Kustomize agrega un hash al nombre,
-# así que cambiar un valor reinicia los pods solo.
-configMapGenerator:
-  - name: siante2-config
-    literals:
-      - TZ=America/Santiago
-      # Orígenes que pueden llamar a la API desde otro dominio, separados por coma (ver CorsConfig).
-      - APP_CORS_ALLOWED_ORIGINS=
-      # Opciones extra de la JVM. Vacío: el heap lo fija MaxRAMPercentage=75 del Dockerfile según
-      # resources.limits.memory. Un -Xmx aquí lo reemplaza; si se usa, dejarlo bajo ese límite.
-      - JAVA_OPTS=
-
-# Etiqueta inmutable: el SHA del commit que construyó la imagen, nunca :dev/:prod.
-# El pipeline actualiza newTag y Argo CD despliega; volver atrás es revertir ese commit.
-images:
-  - name: ghcr.io/cgr-chile/siante2-backend
-    newTag: REEMPLAZAR_POR_SHA
-  - name: ghcr.io/cgr-chile/siante2-frontend
-    newTag: REEMPLAZAR_POR_SHA

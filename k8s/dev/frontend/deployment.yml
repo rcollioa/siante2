@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: siante2-frontend-test
-  namespace: siante2-test
+  namespace: sisgeob-test
   labels:
     app: siante2-frontend
 spec:
@@ -15,27 +15,12 @@ spec:
       labels:
         app: siante2-frontend-test
     spec:
-      # Sin token de la API de Kubernetes montado: la aplicación no la usa.
-      automountServiceAccountToken: false
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 101
-        runAsGroup: 101
-        seccompProfile:
-          type: RuntimeDefault
       imagePullSecrets:
         - name: ghcr.io
       containers:
         - name: frontend
-          image: ghcr.io/cgr-chile/siante2-frontend
-          imagePullPolicy: IfNotPresent
-          # Sistema de archivos de solo lectura y sin privilegios: si alguien llega a ejecutar código en el
-          # contenedor, no puede modificar la aplicación ni escalar a root. Solo /tmp es escribible.
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
+          image: ghcr.io/cgr-chile/siante2-frontend:dev
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
@@ -58,11 +43,3 @@ spec:
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
-          volumeMounts:
-            - name: tmp
-              mountPath: /tmp
-      # Con readOnlyRootFilesystem, nginx escribe ahí el pid y sus archivos temporales.
-      volumes:
-        - name: tmp
-          emptyDir:
-            sizeLimit: 64Mi

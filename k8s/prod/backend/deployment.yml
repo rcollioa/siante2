@@ -2,11 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: siante2-backend
-  namespace: siante2-prod
+  namespace: sisgeob-prod
   labels:
     app: siante2-backend
 spec:
-  # Dos réplicas: un despliegue o un reinicio deja siempre una atendiendo.
+  # Dos réplicas sin estado propio: un despliegue o reinicio deja siempre una atendiendo.
   replicas: 2
   strategy:
     type: RollingUpdate
@@ -21,33 +21,20 @@ spec:
       labels:
         app: siante2-backend
     spec:
-      # Sin token de la API de Kubernetes montado: la aplicación no la usa.
-      automountServiceAccountToken: false
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 10001
-        runAsGroup: 10001
-        seccompProfile:
-          type: RuntimeDefault
       imagePullSecrets:
         - name: ghcr.io
       containers:
         - name: backend
-          image: ghcr.io/cgr-chile/siante2-backend
-          imagePullPolicy: IfNotPresent
-          # Sistema de archivos de solo lectura y sin privilegios: si alguien llega a ejecutar código en el
-          # contenedor, no puede modificar la aplicación ni escalar a root. Solo /tmp es escribible.
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
+          image: ghcr.io/cgr-chile/siante2-backend:prod
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
+          # Contrato OpenAPI solo en dev.
+          env:
+            - name: APP_OPENAPI_ENABLED
+              value: "false"
           envFrom:
-            - configMapRef:
-                name: siante2-config
             - secretRef:
                 name: siante2-secret
           resources:
@@ -77,11 +64,3 @@ spec:
               port: http
             periodSeconds: 10
             failureThreshold: 3
-          volumeMounts:
-            - name: tmp
-              mountPath: /tmp
-      # Con readOnlyRootFilesystem, la JVM (hsperfdata) y Tomcat embebido escriben en /tmp.
-      volumes:
-        - name: tmp
-          emptyDir:
-            sizeLimit: 256Mi
