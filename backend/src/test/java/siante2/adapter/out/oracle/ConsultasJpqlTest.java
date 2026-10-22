@@ -27,13 +27,8 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 
-/**
- * Compila cada {@code @Query} JPQL de los repositorios de {@code adapter.out.oracle.repository}
- * contra el modelo de entidades de Hibernate, sin conectarse a Oracle. Atrapa en el build los errores
- * que si no recién aparecen al arrancar contra la base (atributo mal escrito, constructor de un
- * {@code SELECT new} que no calza con los tipos), ya que no hay test con base de datos en el proyecto.
- * Las consultas nativas quedan fuera: dependen del SQL de Oracle.
- */
+/** Compila cada {@code @Query} JPQL de los repositorios contra el modelo de entidades, sin Oracle.
+ * Las consultas nativas quedan fuera. */
 class ConsultasJpqlTest {
 
     private static final String PAQUETE_ENTIDADES = "siante2.adapter.out.oracle.entity";

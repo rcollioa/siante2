@@ -57,18 +57,14 @@ spec:
             limits:
               cpu: "1000m"
               memory: "1024Mi"
-          # Spring Boot tarda en arrancar (JVM + Hibernate + pool de Hikari). Mientras la startupProbe
-          # no pase, Kubernetes no evalúa las otras dos: da hasta 30 x 5 s = 150 s para el primer
-          # arranque, sin inflar initialDelaySeconds.
+          # Spring Boot tarda en arrancar: hasta 30 x 5 s = 150 s antes de evaluar las otras probes.
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
               port: http
             periodSeconds: 5
             failureThreshold: 30
-          # Liveness mira solo si la aplicación sigue viva, NO la base: si la base se cae, reiniciar el
-          # pod no lo arregla y solo genera un bucle de reinicios. La caída de la base ya le llega al
-          # cliente como 503 DATA_SOURCE_UNAVAILABLE (ApiExceptionHandler).
+          # Liveness no mira la base: reiniciar el pod no la arregla y su caída ya responde 503.
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness

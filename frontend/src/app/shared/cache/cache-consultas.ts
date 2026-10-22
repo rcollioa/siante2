@@ -16,18 +16,8 @@ interface OpcionesCache {
   maxEntradas?: number;
 }
 
-/**
- * Caché en memoria de consultas HTTP, por clave (p. ej. `anio/region`). Volver a una selección ya
- * consultada responde al instante y sin tocar la red, y no hace falta que las pantallas lo sepan: lo
- * usan los `*ApiService`.
- *
- * - Una consulta en curso se comparte: si dos suscriptores piden lo mismo mientras viaja, hay una
- *   sola petición. Si todos se van antes de que termine (p. ej. el usuario cambió de selección y la
- *   pantalla la canceló), la petición se aborta y la próxima vez se vuelve a pedir.
- * - Un error no se guarda: el siguiente intento vuelve a consultar.
- * - Los objetos cacheados se comparten entre pantallas, así que quien los consuma no debe mutarlos
- *   (ordenar o filtrar sobre una copia).
- */
+/** Caché en memoria por clave para los `*ApiService`: comparte la petición en curso y no guarda errores.
+ * Los objetos se comparten entre pantallas: no mutarlos, usar una copia. */
 export class CacheConsultas {
   private readonly entradas = new Map<string, Entrada>();
 

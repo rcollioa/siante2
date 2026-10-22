@@ -9,9 +9,8 @@ resources:
   - frontend/service.yml
   - ingress.yml
 
-# Configuración del backend que no es secreta (las credenciales van en secret.yml). Kustomize agrega al
-# nombre un hash del contenido y actualiza la referencia del deployment: cambiar un valor aquí reinicia
-# los pods solo, sin "Restart" manual.
+# Configuración no secreta (credenciales en secret.yml). Kustomize agrega un hash al nombre,
+# así que cambiar un valor reinicia los pods solo.
 configMapGenerator:
   - name: siante2-config
     literals:
@@ -22,9 +21,8 @@ configMapGenerator:
       # resources.limits.memory. Un -Xmx aquí lo reemplaza; si se usa, dejarlo bajo ese límite.
       - JAVA_OPTS=
 
-# Versión desplegada: etiqueta inmutable (el SHA del commit que construyó la imagen), nunca :dev/:prod.
-# El pipeline publica la imagen con esa etiqueta y actualiza newTag con un commit; Argo CD despliega al
-# ver el cambio, y volver a una versión anterior es revertir ese commit.
+# Etiqueta inmutable: el SHA del commit que construyó la imagen, nunca :dev/:prod.
+# El pipeline actualiza newTag y Argo CD despliega; volver atrás es revertir ese commit.
 images:
   - name: ghcr.io/cgr-chile/siante2-backend
     newTag: REEMPLAZAR_POR_SHA

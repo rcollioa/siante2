@@ -28,21 +28,8 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-/**
- * Traduce las excepciones de la API a respuestas JSON con un código estable ({@link ApiErrorResponse}),
- * para que el frontend no dependa del mensaje ni del cuerpo de error por defecto de Spring.
- *
- * <p>Toda respuesta de error tiene el mismo formato, también las que arma Spring MVC (validación,
- * parámetro faltante o mal tipado, JSON mal formado, 404, 405...): hereda de
- * {@link ResponseEntityExceptionHandler}, que ya conoce el estado HTTP de cada una, y solo cambia el
- * cuerpo en {@link #handleExceptionInternal}. Los mensajes son para el usuario: nunca llevan el texto
- * interno de la excepción, salvo los de validación (escritos a propósito en las anotaciones) y
- * {@link SolicitudInvalidaException}.
- *
- * <p>Si se agrega Spring Security, sus excepciones ({@code AccessDeniedException},
- * {@code AuthenticationException}) necesitan su propio handler aquí: si no, las toma
- * {@link #handleInesperada} y responden 500.
- */
+/** Todo error de la API responde {@link ApiErrorResponse}, también los que arma Spring MVC.
+ * Si se agrega Spring Security, sus excepciones necesitan handler aquí o responden 500. */
 @RestControllerAdvice
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
@@ -59,9 +46,8 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleBadRequest(IllegalArgumentException exception) {
-        // Cualquier otra IllegalArgumentException no la lanzó un caso de uso a propósito (p. ej. una
-        // librería de terceros): se responde igual 400, pero con el stacktrace en el log, porque puede
-        // ser un bug real y el cliente solo ve el mensaje.
+        // IllegalArgumentException no lanzada por un caso de uso (p. ej. una librería): 400 igual,
+        // pero con stacktrace en el log porque puede ser un bug.
         log.warn("Solicitud inválida no prevista: {}", exception.getMessage(), exception);
         return badRequest(exception.getMessage());
     }
@@ -87,13 +73,8 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return fuenteNoDisponible();
     }
 
-    /**
-     * {@code CannotCreateTransactionException} (p. ej. el pool de Hikari no logra abrir una conexión
-     * porque la base no responde) es un {@code TransactionException}, no un {@code DataAccessException}:
-     * la falla ocurre al abrir la transacción, antes de que Hibernate llegue a traducir un
-     * {@code SQLException}. Sin este handler, la misma caída de base daría 503 en unas peticiones y 500
-     * sin cuerpo JSON en otras, según en qué punto exacto se corte la conexión.
-     */
+    /** Una base caída al abrir la transacción lanza TransactionException, no DataAccessException:
+     * sin este handler respondería 500 en vez de 503. */
     @ExceptionHandler(TransactionException.class)
     public ResponseEntity<ApiErrorResponse> handleTransaction(TransactionException exception) {
         log.error("Transaction error while serving a request", exception);
@@ -106,11 +87,8 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
                         "No fue posible consultar la información solicitada."));
     }
 
-    /**
-     * Cualquier otra excepción (un bug): 500 con mensaje genérico y el stacktrace en el log. Sin esto,
-     * Spring responde con su propio cuerpo de error. Las excepciones con {@code @ResponseStatus}
-     * conservan su estado, igual que sin este handler.
-     */
+    /** Cualquier otra excepción es un bug: 500 genérico y stacktrace en el log.
+     * Las excepciones con {@code @ResponseStatus} conservan su estado. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleInesperada(Exception exception) {
         ResponseStatus anotada = AnnotatedElementUtils.findMergedAnnotation(exception.getClass(), ResponseStatus.class);

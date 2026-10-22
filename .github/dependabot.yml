@@ -1,6 +1,5 @@
-# Actualizaciones de dependencias: Dependabot abre un PR por grupo cada semana. Las alertas de
-# vulnerabilidades (Dependabot alerts / security updates) se activan además en Settings > Code security
-# del repositorio; esas abren PR apenas se publica el aviso, sin esperar al lunes.
+# Dependabot abre un PR semanal por grupo. Las alertas de seguridad se activan aparte en
+# Settings > Code security y abren PR apenas se publica el aviso.
 version: 2
 updates:
   - package-ecosystem: maven

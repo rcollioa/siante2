@@ -5,15 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-/**
- * Orígenes que pueden llamar a la API desde otro dominio ({@code app.cors.allowed-origins}, que en k8s
- * viene de {@code APP_CORS_ALLOWED_ORIGINS}, separados por coma). El frontend no lo necesita: el ingress
- * lo publica en el mismo dominio que la API. Sin orígenes configurados no se agrega ninguna regla y el
- * navegador bloquea toda llamada desde otro dominio.
- *
- * <p>Solo se aceptan los orígenes de la lista, sin cookies ni cabeceras de autenticación. Si el proyecto
- * necesita credenciales u otros métodos, ajustar {@code allowCredentials}/{@code allowedMethods}.
- */
+/** Orígenes permitidos ({@code APP_CORS_ALLOWED_ORIGINS}, separados por coma); sin lista no hay regla.
+ * El frontend no lo necesita (mismo dominio) y no se aceptan credenciales. */
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 

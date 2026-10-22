@@ -14,17 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
-/**
- * Agrega {@code Cache-Control} a las respuestas GET exitosas de la API, para que el navegador las
- * reutilice sin volver a pedirlas al backend. Va como {@link ResponseBodyAdvice} y no como interceptor a
- * propósito: solo se ejecuta cuando hay un cuerpo que escribir con estado 2xx, así que un 400 o un 503
- * (ver {@link ApiExceptionHandler}) nunca quedan cacheados por accidente.
- *
- * <p>Aplica a todo {@code @RestController} con la misma duración ({@code app.cache.max-age}). Si un
- * recurso necesita otra política (p. ej. cartografía que casi no cambia), se agrega aquí eligiéndola
- * por el controlador que responde, no por la ruta, para no depender del prefijo de la API (ver
- * {@link ApiPrefijoConfig}). Con {@code PT0S} se desactiva el caché sin tocar el código.
- */
+/** Cache-Control ({@code app.cache.max-age}) solo en GET 2xx con cuerpo: un error nunca queda en caché.
+ * {@code PT0S} lo desactiva; una política distinta se elige por controlador, no por ruta. */
 @RestControllerAdvice
 public class CacheControlAdvice implements ResponseBodyAdvice<Object> {
 

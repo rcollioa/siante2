@@ -3,12 +3,8 @@ package siante2;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-/**
- * Levanta el contexto completo (web, JPA, Hikari, actuator) contra H2 en memoria (ver
- * {@code src/test/resources/application.properties}). Atrapa en el build los errores de cableado que si
- * no recién aparecen al desplegar: un bean sin implementación, un repositorio JPA mal declarado, una
- * propiedad con formato inválido.
- */
+/** Levanta el contexto completo contra H2 para detectar en el build errores de cableado
+ * (beans faltantes, repositorios mal declarados, propiedades inválidas). */
 @SpringBootTest
 class ContextoAplicacionTest {
 

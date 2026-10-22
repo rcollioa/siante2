@@ -13,11 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import siante2.domain.SolicitudInvalidaException;
 
-/**
- * Controlador que solo existe en los tests, para probar la configuración web transversal (prefijo,
- * CORS, caché, errores) sin depender de ningún módulo de negocio. Al agregar el primer controlador real
- * se puede seguir usando este, porque prueba la infraestructura y no un recurso.
- */
+/** Controlador solo de tests: prueba la configuración web transversal sin módulos de negocio. */
 @RestController
 @RequestMapping("/prueba")
 class ControladorPrueba {

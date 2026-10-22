@@ -19,10 +19,8 @@ bootstrapApplication(AppComponent, {
   providers: [
     { provide: LOCALE_ID, useValue: 'es-CL' },
     provideRouter(routes, withRouterConfig({ onSameUrlNavigation: 'reload' })),
-    // Orden importa: pantallaCarga envuelve TODO (incluidos los reintentos) para no parpadear el
-    // overlay en cada intento; reintento va antes que tiempoLimite para que cada intento tenga su
-    // propio plazo completo, no uno compartido entre todos. refrescoCache va al final para que cada
-    // reintento salga también con `?refrescar` aplicado.
+    // Orden: pantallaCarga envuelve los reintentos (sin parpadeo), cada reintento tiene su propio
+    // tiempo límite y refrescoCache va al final para que todos lleven `?refrescar`.
     provideHttpClient(withInterceptors([
       pantallaCargaInterceptor, reintentoInterceptor, tiempoLimiteInterceptor, refrescoCacheInterceptor
     ])),

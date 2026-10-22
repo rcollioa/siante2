@@ -1,13 +1,7 @@
 import { DestroyRef, Injectable, Signal, effect, inject, signal, untracked } from '@angular/core';
 
-/**
- * Estado de la pantalla de carga global (`PantallaCargaComponent`: logo + spinner + mensaje sobre un
- * fondo translúcido, mientras hay peticiones en curso). `pantallaCargaInterceptor` la muestra/oculta
- * solo alrededor de cualquier request a la API — no hace falta que las páginas la conozcan.
- *
- * El contador (no un simple booleano) es lo que evita que, con varias peticiones en paralelo (p. ej.
- * un `forkJoin`), la primera en terminar oculte la pantalla mientras las demás siguen en curso.
- */
+/** Estado de la pantalla de carga global. Usa un contador para que, con peticiones en paralelo,
+ * la primera en terminar no la oculte. */
 @Injectable({ providedIn: 'root' })
 export class PantallaCargaService {
   private readonly _pendientes = signal(0);
@@ -48,19 +42,8 @@ export class PantallaCargaService {
 /** Tiempo mínimo visible de la pantalla de carga de una página. */
 const DURACION_MINIMA_MS = 500;
 
-/**
- * Pantalla de carga global mientras una página espera sus datos. Pensada para páginas cuyas consultas
- * no la muestran por sí solas (`sinPantallaDeCarga()`, para que un cambio de filtro no bloquee toda la
- * vista): esto la muestra solo al entrar a la página.
- *
- * Se llama en el contexto de inyección del componente (inicializador de campo). `listo` debe pasar a
- * true cuando la página tiene sus datos o cuando su consulta falló: si no, la pantalla no se cerraría.
- * También se libera al destruirse el componente. Devuelve la función que la muestra (`iniciar`), que
- * se llama cada vez que se entra a la página.
- *
- * Se muestra siempre, aunque los datos ya estén en caché, y como mínimo `DURACION_MINIMA_MS`: si no,
- * con datos al instante se abriría y cerraría sin alcanzar a verse.
- */
+/** Pantalla de carga al entrar a la página, hasta que `listo` (datos o error) sea true.
+ * Llamar en el contexto de inyección; devuelve `iniciar`, para cada entrada a la página. */
 export function pantallaDeCargaDeCapa(listo: Signal<boolean>): () => void {
   const pantallaCarga = inject(PantallaCargaService);
   const esperando = signal(false);
