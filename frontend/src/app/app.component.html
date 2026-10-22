@@ -4,6 +4,9 @@
       <img src="assets/img/logo_cgr.svg" alt="Contraloría General de la República" />
       <span>{{ titulo }}</span>
     </a>
+    @if (sesion.nombreVisible()) {
+      <span class="usuario" [title]="sesion.usuario()?.email ?? ''">{{ sesion.nombreVisible() }}</span>
+    }
   </header>
   <main class="contenido">
     <router-outlet />

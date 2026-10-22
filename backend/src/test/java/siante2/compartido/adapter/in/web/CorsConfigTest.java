@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,6 +20,7 @@ class CorsConfigTest {
 
     @Nested
     @WebMvcTest(value = ControladorPrueba.class, properties = "app.cors.allowed-origins=https://permitido.cl,https://otro.cl")
+    @Import(UsuarioDePrueba.class)
     class ConOrigenesConfigurados {
 
         @Autowired
@@ -49,6 +51,7 @@ class CorsConfigTest {
 
     @Nested
     @WebMvcTest(ControladorPrueba.class)
+    @Import(UsuarioDePrueba.class)
     class SinOrigenesConfigurados {
 
         @Autowired

@@ -159,6 +159,16 @@ El secreto real (`k8s/*/secret.yml`) lo define Ingeniería y está ignorado por 
 
 Cada deployment del backend fija `SPRING_PROFILES_ACTIVE` (`dev` o `prod`) y `TZ=America/Santiago`. El resto (CORS, `JAVA_OPTS`) toma su valor por defecto; con `JAVA_OPTS` vacío, el heap queda en el 75 % de `resources.limits.memory` (ver `backend/Dockerfile`).
 
+### Identidad
+
+WebSEAL autentica al usuario y el ingress entrega al backend las cabeceras `iv-user` e `iv-groups`, igual que en SIANTE. El ingress debe eliminar esas cabeceras si vienen del navegador. `IdentidadWebSealFilter` las convierte en el usuario de Spring Security (grupos como `GRUPO_<nombre>`) y lo agrega a los logs como `usuario`. Toda la API exige usuario, salvo `/actuator/health` y el contrato OpenAPI; sin usuario responde 401 `{code, message}`.
+
+`GET /siante2/api/usuarios/actual` devuelve el usuario y lo registra en `USERS` la primera vez, como `/auth` de SIANTE. El frontend lo consulta al entrar (`SesionService`, `sesionGuard`) y, si no hay permiso, muestra `/no-autorizado`.
+
+En el equipo no hay WebSEAL: con el perfil `local`, `SIANTE_USUARIO_LOCAL` en el `.env` define el `iv-user` que se asume. En `dev` y `prod` esa variable se ignora.
+
+Las peticiones que modifican datos llevan protección CSRF por cookie (`XSRF-TOKEN`), que Angular envía solo.
+
 ### Perfiles y logs
 
 | Perfil | Dónde | Qué cambia |

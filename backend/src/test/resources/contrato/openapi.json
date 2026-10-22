@@ -25,6 +25,24 @@
         },
         "tags" : [ "categorias-controller" ]
       }
+    },
+    "/siante2/api/usuarios/actual" : {
+      "get" : {
+        "operationId" : "obtenerUsuarioActual",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Usuario"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "usuarios-controller" ]
+      }
     }
   },
   "components" : {
@@ -56,6 +74,34 @@
           }
         },
         "required" : [ "data" ]
+      },
+      "Usuario" : {
+        "type" : "object",
+        "properties" : {
+          "apellido" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "grupos" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ivUser" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "apellido", "email", "grupos", "id", "ivUser", "nombre" ]
       }
     }
   }

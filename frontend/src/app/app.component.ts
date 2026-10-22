@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { PantallaCargaComponent } from './shared/pantalla-carga/pantalla-carga.component';
+import { SesionService } from './shared/sesion/sesion.service';
 
 @Component({
   selector: 'app-root',
@@ -11,4 +12,5 @@ import { PantallaCargaComponent } from './shared/pantalla-carga/pantalla-carga.c
 })
 export class AppComponent {
   protected readonly titulo = 'SIANTE';
+  protected readonly sesion = inject(SesionService);
 }

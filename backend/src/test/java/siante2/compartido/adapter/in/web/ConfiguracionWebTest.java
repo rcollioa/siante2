@@ -3,10 +3,13 @@ package siante2.compartido.adapter.in.web;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultMatcher;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -17,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** Prefijo de la API ({@link ApiPrefijoConfig}), caché ({@link CacheControlAdvice}) y errores
  * ({@link ApiExceptionHandler}), sobre {@link ControladorPrueba}. */
 @WebMvcTest(ControladorPrueba.class)
+@Import(UsuarioDePrueba.class)
 class ConfiguracionWebTest {
 
     private static final String RUTA = "/siante2/api/prueba";
@@ -42,7 +46,7 @@ class ConfiguracionWebTest {
     void unPostNoSeCachea() throws Exception {
         mockMvc.perform(post(RUTA))
                 .andExpect(status().isOk())
-                .andExpect(header().doesNotExist(HttpHeaders.CACHE_CONTROL));
+                .andExpect(noSeCachea());
     }
 
     @Test
@@ -51,7 +55,7 @@ class ConfiguracionWebTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.message").value("Año fuera de rango"))
-                .andExpect(header().doesNotExist(HttpHeaders.CACHE_CONTROL));
+                .andExpect(noSeCachea());
     }
 
     @Test
@@ -66,7 +70,7 @@ class ConfiguracionWebTest {
         mockMvc.perform(get(RUTA + "/base-caida"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("DATA_SOURCE_UNAVAILABLE"))
-                .andExpect(header().doesNotExist(HttpHeaders.CACHE_CONTROL));
+                .andExpect(noSeCachea());
     }
 
     @Test
@@ -98,7 +102,7 @@ class ConfiguracionWebTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.message").value("anio: debe ser 2000 o posterior"))
-                .andExpect(header().doesNotExist(HttpHeaders.CACHE_CONTROL));
+                .andExpect(noSeCachea());
     }
 
     @Test
@@ -138,6 +142,14 @@ class ConfiguracionWebTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
                 .andExpect(jsonPath("$.message").value("Ocurrió un error inesperado."))
-                .andExpect(header().doesNotExist(HttpHeaders.CACHE_CONTROL));
+                .andExpect(noSeCachea());
+    }
+
+    /** Sin Cache-Control o con no-store (Spring Security lo agrega a las respuestas que no cachea CacheControlAdvice). */
+    private static ResultMatcher noSeCachea() {
+        return resultado -> {
+            String valor = resultado.getResponse().getHeader(HttpHeaders.CACHE_CONTROL);
+            assertThat(valor == null || valor.contains("no-store")).as("Cache-Control: %s", valor).isTrue();
+        };
     }
 }
