@@ -30,6 +30,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
+		<!-- Contrato OpenAPI sin Swagger UI; la versión 3.1 corresponde a Spring Boot 4.1. -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+			<version>3.1.1</version>
+		</dependency>
 		<!-- Hibernate/Spring Data JPA. La versión de Hibernate la fija el BOM de
 		     spring-boot-starter-parent (arriba), no se pisa a mano. -->
 		<dependency>
@@ -48,17 +54,20 @@
 			<scope>runtime</scope>
 			<optional>true</optional>
 		</dependency>
-		<!-- JUnit 5 + AssertJ + Mockito + @WebMvcTest/MockMvc. En Spring Boot 4 el soporte de test de
-		     cada módulo va en su propio starter; este ya incluye spring-boot-starter-test. Solo en la
-		     fase de test: no entra al .jar. -->
+		<!-- En Spring Boot 4 cada módulo trae su starter de test: @WebMvcTest/MockMvc (incluye JUnit,
+		     AssertJ y Mockito) y @DataJpaTest. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<!-- Base en memoria para los tests que levantan el contexto completo (ver
-		     src/test/resources/application.properties): así corren sin Oracle, también dentro del
-		     build de la imagen. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- Base en memoria para los tests (src/test/resources/application.properties): corren sin
+		     Oracle, también dentro del build de la imagen. -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
@@ -72,10 +81,8 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-			<!-- Mockito como agente de Java en los tests. Sin esto, Mockito se adjunta solo a la JVM en
-			     tiempo de ejecución, algo que el JDK ya advierte y bloqueará en versiones futuras: el build
-			     de la imagen (que corre los tests) dejaría de funcionar. El goal "properties" expone la ruta
-			     del jar de cada dependencia como propiedad (${groupId:artifactId:jar}), y surefire la usa. -->
+			<!-- Mockito como agente de Java en los tests: el JDK bloqueará que se adjunte solo en ejecución.
+			     "properties" expone la ruta del jar (${groupId:artifactId:jar}) que usa surefire. -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>

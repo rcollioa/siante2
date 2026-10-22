@@ -1,7 +1,6 @@
 # Local secrets and Kubernetes secrets (los define Ingeniería; en el repo solo va secret.example.yml)
 .env
 .env.*
-!.env.example
 k8s/*/secret.yml
 k8s/*/secret.yaml
 k8s/*/secret.dec.yaml
@@ -12,3 +11,4 @@ frontend/dist/
 frontend/node_modules/
 frontend/.angular/
 .angular/
+docs/plan-migracion.md

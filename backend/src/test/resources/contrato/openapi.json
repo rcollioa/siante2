@@ -1,0 +1,60 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "SIANTE API",
+    "version" : "1"
+  },
+  "servers" : [ {
+    "url" : "/"
+  } ],
+  "paths" : {
+    "/siante2/api/categorias" : {
+      "get" : {
+        "operationId" : "listarCategorias",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CategoriasResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "categorias-controller" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "Categoria" : {
+        "type" : "object",
+        "properties" : {
+          "descripcion" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombre" : {
+            "type" : "string"
+          }
+        }
+      },
+      "CategoriasResponse" : {
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Categoria"
+            }
+          }
+        }
+      }
+    }
+  }
+}
