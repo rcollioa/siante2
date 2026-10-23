@@ -20,6 +20,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/siante2/api/multimedia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listarMultimedia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/siante2/api/multimedia/{id}/archivo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["obtenerArchivoMultimedia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/usuarios/actual": {
         parameters: {
             query?: never;
@@ -48,6 +80,14 @@ export interface components {
         };
         CategoriasResponse: {
             data: components["schemas"]["Categoria"][];
+        };
+        Multimedia: {
+            descripcion: string;
+            /** Format: int32 */
+            id: number;
+        };
+        MultimediaResponse: {
+            data: components["schemas"]["Multimedia"][];
         };
         Usuario: {
             apellido: string;
@@ -83,6 +123,51 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoriasResponse"];
+                };
+            };
+        };
+    };
+    listarMultimedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MultimediaResponse"];
+                };
+            };
+        };
+    };
+    obtenerArchivoMultimedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                    "application/pdf": string;
+                    "image/gif": string;
+                    "image/png": string;
                 };
             };
         };

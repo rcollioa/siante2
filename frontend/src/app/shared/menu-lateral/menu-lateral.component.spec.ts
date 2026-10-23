@@ -16,7 +16,7 @@ describe('MenuLateralComponent', () => {
     const enlaces = Array.from(elemento.querySelectorAll('a')).map((a) => a.textContent?.trim());
     const pendientes = elemento.querySelectorAll('[aria-disabled="true"]');
 
-    expect(enlaces).toEqual(['Inicio']);
+    expect(enlaces).toEqual(['Inicio', 'Ayuda']);
     expect(pendientes.length).toBe(6);
     expect(pendientes[0].textContent).toContain('Mis capas');
   });

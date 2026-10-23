@@ -13,8 +13,8 @@ Qué trae ya resuelto:
 | Área | Backend | Frontend |
 |---|---|---|
 | Prefijo de la API | `ApiPrefijoConfig` (`app.api.prefijo`) | `API_PREFIJO`, `esRutaApi` |
-| Errores | `ApiExceptionHandler`: todo error responde `{code, message}`. 400 `INVALID_REQUEST` (también validación, parámetros y JSON mal formado), 503 `DATA_SOURCE_UNAVAILABLE`, 404/405 y 500 con el nombre del estado | `reintentoInterceptor` (502/503/504), `tiempoLimiteInterceptor` (30 s), `tolerarFallos` |
-| Caché | `CacheControlAdvice` (`app.cache.max-age`) | `CacheConsultas` en memoria, `?refrescar` en la URL |
+| Errores | `ApiExceptionHandler`: todo error responde `{code, message}`. 400 `INVALID_REQUEST` (también validación, parámetros y JSON mal formado), 404 `NOT_FOUND` (`RecursoNoEncontradoException`), 503 `DATA_SOURCE_UNAVAILABLE`, 404/405 y 500 con el nombre del estado | `reintentoInterceptor` (502/503/504), `tiempoLimiteInterceptor` (30 s), `tolerarFallos` |
+| Caché | `CacheControlAdvice` (`app.cache.max-age`); Caffeine con `@Cacheable` para catálogos (`categorias`, `multimedia`), vigencia `SIANTE_CACHE_SERVIDOR` (1 h por defecto) | `CacheConsultas` en memoria, `?refrescar` en la URL |
 | CORS | `CorsConfig` (`APP_CORS_ALLOWED_ORIGINS`) | — |
 | Carga | — | Pantalla de carga global automática (`pantallaCargaInterceptor`) |
 | Salud | Actuator: `/actuator/health/liveness` y `/readiness` | nginx: `/health` |
@@ -57,6 +57,7 @@ frontend/src/app/
   app.routes.ts
   features/mapa/               mapa base (OpenLayers): capas base y MapaService
   features/categorias/         servicio de API y panel de categorías sobre el mapa
+  features/ayuda/              políticas de uso, manual (PDF) y guías animadas desde /multimedia
   shared/api/contrato.ts       tipos generados desde el contrato OpenAPI (npm run api:tipos)
   shared/                      api, cache, errores, pantalla-carga
 k8s/dev, k8s/prod              kustomize: backend, frontend, ingress, secreto

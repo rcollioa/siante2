@@ -41,7 +41,7 @@ class EntidadesSianteTest {
             Map.entry("NEXTVAL_PUBLIC_REPORTS", List.of("CORRELATIVO")),
             Map.entry("NEXTVAL_PUBLIC_REPORTS_DETAILS", List.of("CORRELATIVO")),
             Map.entry("MULTIMEDIA", List.of("CREADO", "F_CREACION", "MODIFICADO", "F_MODIFICACION", "DESCRIPCION",
-                    "X_MULTIMEDIA")));
+                    "X_MULTIMEDIA", "ARCHIVO")));
 
     @Autowired
     private JdbcTemplate jdbc;

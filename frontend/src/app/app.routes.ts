@@ -11,6 +11,11 @@ export const routes: Routes = [
 		loadComponent: () => import('./features/mapa/mapa.component').then((m) => m.MapaComponent)
 	},
 	{
+		path: 'ayuda',
+		canActivate: [sesionGuard],
+		loadComponent: () => import('./features/ayuda/ayuda.component').then((m) => m.AyudaComponent)
+	},
+	{
 		path: 'no-autorizado',
 		loadComponent: () => import('./features/no-autorizado/no-autorizado.component').then((m) => m.NoAutorizadoComponent)
 	},

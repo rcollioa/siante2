@@ -11,5 +11,6 @@ export const SECCIONES: Seccion[] = [
   { nombre: 'Capas formales' },
   { nombre: 'Grupos de capas' },
   { nombre: 'Mis reportes compartidos' },
-  { nombre: 'Mis reportes compartidos (grupos de capas)' }
+  { nombre: 'Mis reportes compartidos (grupos de capas)' },
+  { nombre: 'Ayuda', ruta: '/ayuda' }
 ];

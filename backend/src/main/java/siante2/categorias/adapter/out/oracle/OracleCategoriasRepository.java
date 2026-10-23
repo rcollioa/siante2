@@ -1,6 +1,7 @@
 package siante2.categorias.adapter.out.oracle;
 
 import java.util.List;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import siante2.categorias.application.port.out.CategoriasReadPort;
@@ -17,6 +18,7 @@ class OracleCategoriasRepository implements CategoriasReadPort {
     }
 
     @Override
+    @Cacheable("categorias")
     public List<Categoria> buscarActivas() {
         return jpa.buscarPorEstado(CategoriaEntity.ACTIVA);
     }

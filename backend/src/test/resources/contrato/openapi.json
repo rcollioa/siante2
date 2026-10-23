@@ -26,6 +26,70 @@
         "tags" : [ "categorias-controller" ]
       }
     },
+    "/siante2/api/multimedia" : {
+      "get" : {
+        "operationId" : "listarMultimedia",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MultimediaResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "multimedia-controller" ]
+      }
+    },
+    "/siante2/api/multimedia/{id}/archivo" : {
+      "get" : {
+        "operationId" : "obtenerArchivoMultimedia",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/octet-stream" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              },
+              "application/pdf" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              },
+              "image/gif" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              },
+              "image/png" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "multimedia-controller" ]
+      }
+    },
     "/siante2/api/usuarios/actual" : {
       "get" : {
         "operationId" : "obtenerUsuarioActual",
@@ -70,6 +134,31 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/Categoria"
+            }
+          }
+        },
+        "required" : [ "data" ]
+      },
+      "Multimedia" : {
+        "type" : "object",
+        "properties" : {
+          "descripcion" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "descripcion", "id" ]
+      },
+      "MultimediaResponse" : {
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Multimedia"
             }
           }
         },

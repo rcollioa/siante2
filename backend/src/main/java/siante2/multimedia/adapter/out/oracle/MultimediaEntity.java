@@ -1,12 +1,16 @@
 package siante2.multimedia.adapter.out.oracle;
 
+import jakarta.persistence.Basic;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.Immutable;
 
-/** Archivo multimedia (manual de usuario): tabla {@code MULTIMEDIA} de SIANTE (modelo {@code Multimedia}), solo lectura. */
+/** Archivo multimedia (manual, GIF de ayuda): tabla {@code MULTIMEDIA} de SIANTE (modelo {@code Multimedia}), solo
+ * lectura. {@code ARCHIVO} solo lo lee la consulta que lo pide; los listados usan proyecciones. */
 @Entity
 @Immutable
 @Table(name = "MULTIMEDIA")
@@ -24,6 +28,10 @@ public class MultimediaEntity {
     private LocalDateTime fModificacion;
 
     private String descripcion;
+
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    private byte[] archivo;
 
     protected MultimediaEntity() {
     }

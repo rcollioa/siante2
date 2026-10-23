@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.stream.Stream;
+import siante2.compartido.domain.RecursoNoEncontradoException;
 import siante2.compartido.domain.SolicitudInvalidaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleSolicitudInvalida(SolicitudInvalidaException exception) {
         log.warn("Solicitud inválida: {}", exception.getMessage());
         return badRequest(exception.getMessage());
+    }
+
+    @ExceptionHandler(RecursoNoEncontradoException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoEncontrado(RecursoNoEncontradoException exception) {
+        log.info("Recurso no encontrado: {}", exception.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiErrorResponse(codigo(HttpStatus.NOT_FOUND), exception.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

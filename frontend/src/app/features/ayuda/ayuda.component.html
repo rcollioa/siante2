@@ -1,0 +1,61 @@
+<article class="ayuda" aria-labelledby="titulo-ayuda">
+  <h1 id="titulo-ayuda">Ayuda</h1>
+
+  <section aria-labelledby="titulo-politicas">
+    <h2 id="titulo-politicas">Políticas de uso de SIANTE</h2>
+    <p>
+      La información contenida en este sitio es de carácter <strong>referencial</strong> y puede sufrir variaciones o
+      actualizaciones, debido a que se utilizan fuentes externas. Por consiguiente, puede haber un desplazamiento en la
+      información georreferenciada por la actualización de los mapas, que fueron fijados en los años 2019-2020.
+    </p>
+  </section>
+
+  <section aria-labelledby="titulo-manual">
+    <h2 id="titulo-manual">Manual de usuario</h2>
+    @switch (estado()) {
+      @case ('cargando') {
+        <p class="aviso" aria-live="polite">Consultando…</p>
+      }
+      @case ('error') {
+        <p class="aviso error" aria-live="polite">No se pudo consultar el material de ayuda.</p>
+        <button type="button" (click)="cargar()">Reintentar</button>
+      }
+      @default {
+        @if (manual(); as url) {
+          <a class="boton" [href]="url" download>Descargar manual (PDF)</a>
+        } @else {
+          <p class="aviso">El manual no está disponible.</p>
+        }
+      }
+    }
+  </section>
+
+  @if (gifAnexos() || gifMetadata()) {
+    <section aria-labelledby="titulo-guias">
+      <h2 id="titulo-guias">Guías rápidas</h2>
+      @if (gifAnexos(); as url) {
+        <figure>
+          <img [src]="url" alt="Animación: marcar el recuadro a la derecha de un anexo para visualizarlo" loading="lazy" />
+          <figcaption>
+            <strong>Visualizar anexos:</strong> marque el recuadro ubicado a la derecha de cada anexo disponible.
+          </figcaption>
+        </figure>
+      }
+      @if (gifMetadata(); as url) {
+        <figure>
+          <img [src]="url" alt="Animación: seleccionar un punto o figura para ver su metadata a la derecha" loading="lazy" />
+          <figcaption>
+            <strong>Visualizar metadata:</strong> seleccione un punto o figura y a la derecha se desplegará su metadata.
+          </figcaption>
+        </figure>
+      }
+    </section>
+  }
+
+  <section aria-labelledby="titulo-contacto">
+    <h2 id="titulo-contacto">Contacto</h2>
+    <p>
+      En caso de dudas o consultas, escriba a <a [href]="'mailto:' + correo">{{ correo }}</a>.
+    </p>
+  </section>
+</article>
