@@ -1,5 +1,5 @@
 # Multi-stage build: compila Angular y sirve los estáticos con Nginx
-FROM node:22-alpine AS build
+FROM node:22.23.4-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install --no-audit --no-fund
@@ -11,7 +11,7 @@ RUN npm run lint
 RUN npm test
 RUN npm run build
 
-FROM nginxinc/nginx-unprivileged:1.27-alpine
+FROM nginxinc/nginx-unprivileged:1.30.6-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY nginx-cabeceras-seguridad.conf /etc/nginx/snippets/cabeceras-seguridad.conf
 COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html/siante2

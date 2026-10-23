@@ -102,10 +102,12 @@ Las entidades y los repositorios se detectan solos por estar bajo el paquete de 
 
 ## Stack y versiones
 
-- Java: JDK 25 LTS. Maven 3.9.16 mediante el wrapper incluido (`mvnw`).
-- Spring Boot: 4.1, con Tomcat embebido.
-- Node.js: 22.x LTS (`frontend/.nvmrc`), npm 10.x.
+- Java: JDK 25 LTS. Maven 3.9.16 mediante el wrapper incluido (`mvnw`). En la imagen se ejecuta con SapMachine 25.0.5 (JRE).
+- Spring Boot: 4.1, con Tomcat embebido. Driver Oracle `ojdbc11` en la versión que fija Spring Boot.
+- Node.js: 22.23.4 LTS (`frontend/.nvmrc`), solo para compilar; en producción el frontend lo sirve nginx 1.30.
 - Angular: 22.
+
+Las imágenes base de los Dockerfile van con versión exacta: actualizar una es un cambio visible en git. Ante un boletín de seguridad (CPU de Oracle, Node.js), subir esas versiones y reconstruir.
 
 ## Inicio rápido
 

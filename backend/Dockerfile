@@ -6,9 +6,9 @@ COPY src src
 # verify: tests (sin Oracle: @WebMvcTest y H2) y mínimo de cobertura de JaCoCo; si falla, no hay imagen.
 RUN mvn -q clean verify
 
-# Solo el runtime (JRE), sin compilador ni herramientas del JDK: imagen más chica y con menos que
-# atacar si alguien llega a ejecutar código en el contenedor.
-FROM eclipse-temurin:25-jre
+# Solo el JRE (sin compilador): imagen más chica. SapMachine (OpenJDK de SAP) por tener primero el
+# CPU de octubre 2026 (25.0.5); versión fija para que cada actualización quede en git.
+FROM sapmachine:25.0.5-jre
 WORKDIR /app
 COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 # Heap al 75 % del límite de memoria del contenedor (la JVM toma 25 % por defecto).

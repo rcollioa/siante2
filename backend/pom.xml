@@ -38,6 +38,15 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+		<!-- Caché en memoria del servidor para catálogos que casi no cambian (ver CacheConfig). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
 		<!-- Contrato OpenAPI sin Swagger UI; la versión 3.1 corresponde a Spring Boot 4.1. -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
@@ -53,7 +62,6 @@
 		<dependency>
 			<groupId>com.oracle.database.jdbc</groupId>
 			<artifactId>ojdbc11</artifactId>
-			<version>23.3.0.23.09</version>
 		</dependency>
 
 		<dependency>
