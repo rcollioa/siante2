@@ -13,6 +13,14 @@
   inset: 0;
 }
 
+/* A la derecha de los botones de zoom de OpenLayers. */
+.buscador {
+  position: absolute;
+  top: 0.5rem;
+  left: 2.75rem;
+  z-index: 1;
+}
+
 /* Debajo de los botones de zoom de OpenLayers. */
 .panel-izquierdo {
   position: absolute;

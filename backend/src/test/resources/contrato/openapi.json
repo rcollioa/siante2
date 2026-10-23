@@ -26,6 +26,32 @@
         "tags" : [ "categorias-controller" ]
       }
     },
+    "/siante2/api/direcciones" : {
+      "get" : {
+        "operationId" : "buscarDirecciones",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "texto",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DireccionesResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "direcciones-controller" ]
+      }
+    },
     "/siante2/api/multimedia" : {
       "get" : {
         "operationId" : "listarMultimedia",
@@ -134,6 +160,35 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/Categoria"
+            }
+          }
+        },
+        "required" : [ "data" ]
+      },
+      "Direccion" : {
+        "type" : "object",
+        "properties" : {
+          "latitud" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "longitud" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "nombre" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "latitud", "longitud", "nombre" ]
+      },
+      "DireccionesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Direccion"
             }
           }
         },

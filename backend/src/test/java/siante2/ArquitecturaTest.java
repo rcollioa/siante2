@@ -73,7 +73,7 @@ class ArquitecturaTest {
             .that().resideInAPackage("siante2.compartido..")
             .should().dependOnClassesThat().resideInAnyPackage(
                     "siante2.categorias..", "siante2.usuarios..", "siante2.capas..", "siante2.favoritos..",
-                    "siante2.grupos..", "siante2.reportes..", "siante2.multimedia..")
+                    "siante2.grupos..", "siante2.reportes..", "siante2.multimedia..", "siante2.direcciones..")
             .because("compartido es la base de todos los módulos y no conoce a ninguno");
 
     @ArchTest

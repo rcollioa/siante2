@@ -13,7 +13,7 @@ Qué trae ya resuelto:
 | Área | Backend | Frontend |
 |---|---|---|
 | Prefijo de la API | `ApiPrefijoConfig` (`app.api.prefijo`) | `API_PREFIJO`, `esRutaApi` |
-| Errores | `ApiExceptionHandler`: todo error responde `{code, message}`. 400 `INVALID_REQUEST` (también validación, parámetros y JSON mal formado), 404 `NOT_FOUND` (`RecursoNoEncontradoException`), 503 `DATA_SOURCE_UNAVAILABLE`, 404/405 y 500 con el nombre del estado | `reintentoInterceptor` (502/503/504), `tiempoLimiteInterceptor` (30 s), `tolerarFallos` |
+| Errores | `ApiExceptionHandler`: todo error responde `{code, message}`. 400 `INVALID_REQUEST` (también validación, parámetros y JSON mal formado), 404 `NOT_FOUND` (`RecursoNoEncontradoException`), 503 `EXTERNAL_SERVICE_UNAVAILABLE` (`ServicioExternoNoDisponibleException`), 503 `DATA_SOURCE_UNAVAILABLE`, 404/405 y 500 con el nombre del estado | `reintentoInterceptor` (502/503/504), `tiempoLimiteInterceptor` (30 s), `tolerarFallos` |
 | Caché | `CacheControlAdvice` (`app.cache.max-age`); Caffeine con `@Cacheable` para catálogos (`categorias`, `multimedia`), vigencia `SIANTE_CACHE_SERVIDOR` (1 h por defecto) | `CacheConsultas` en memoria, `?refrescar` en la URL |
 | CORS | `CorsConfig` (`APP_CORS_ALLOWED_ORIGINS`) | — |
 | Carga | — | Pantalla de carga global automática (`pantallaCargaInterceptor`) |
@@ -58,6 +58,7 @@ frontend/src/app/
   features/mapa/               mapa base (OpenLayers): capas base y MapaService
   features/categorias/         servicio de API y panel de categorías sobre el mapa
   features/ayuda/              políticas de uso, manual (PDF) y guías animadas desde /multimedia
+  features/direcciones/        buscador de direcciones sobre el mapa (geocodificación en el backend)
   shared/api/contrato.ts       tipos generados desde el contrato OpenAPI (npm run api:tipos)
   shared/                      api, cache, errores, pantalla-carga
 k8s/dev, k8s/prod              kustomize: backend, frontend, ingress, secreto
@@ -100,6 +101,17 @@ El backend se organiza por módulo: todo lo de un módulo queda en su paquete y 
 - Configuración global en `application.properties`: `jdbc.fetch_size=100` (Oracle trae 10 por defecto), lotes de 50, `default_batch_fetch_size`, `in_clause_parameter_padding`, `fail_on_pagination_over_collection_fetch` y `log_slow_query` (`SIANTE_LOG_CONSULTA_LENTA_MS`).
 
 Las entidades y los repositorios se detectan solos por estar bajo el paquete de `BackendApplication`. Si el proyecto necesita una segunda base, cada una necesita su propio `DataSource`, `EntityManagerFactory` y `@EnableJpaRepositories`. Es lo que hará falta cuando un módulo use GEOCGR (`GEOCGR_DATASOURCE_*` en `.env`).
+
+### Servicios externos
+
+El navegador solo habla con la API propia (la CSP no permite otros orígenes en `connect-src`); los servicios externos se llaman desde un adaptador de salida (`adapter/out/<servicio>`), como `direcciones/adapter/out/nominatim`:
+
+- Cliente `RestClient` con tiempo límite (connect y lectura) y el proxy de la JVM (`-Dhttps.proxyHost`, vía `JAVA_TOOL_OPTIONS`).
+- `@Retryable` y `@ConcurrencyLimit` de Spring Framework 7 (`ResilienciaConfig`), más `@Cacheable` para no repetir consultas.
+- Si falla, el adaptador lanza `ServicioExternoNoDisponibleException` y la API responde 503 `EXTERNAL_SERVICE_UNAVAILABLE`.
+- Tests con `MockRestServiceServer` y los proxies reales (`NominatimGeocodificadorTest`).
+
+Búsqueda de direcciones (`GET /direcciones?texto=`): Nominatim de OpenStreetMap, que exige identificar la aplicación, máximo una solicitud por segundo y prohíbe autocompletar; por eso el frontend busca al enviar. Variables: `SIANTE_GEOCODIFICACION_URL` (para apuntar a un Nominatim propio), `SIANTE_GEOCODIFICACION_TIEMPO_LIMITE` (5 s) y `SIANTE_GEOCODIFICACION_PAISES` (`cl`; vacío busca en todo el mundo). En k8s el pod necesita salida a internet hacia ese servidor.
 
 ## Stack y versiones
 

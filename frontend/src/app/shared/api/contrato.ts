@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/siante2/api/direcciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["buscarDirecciones"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/multimedia": {
         parameters: {
             query?: never;
@@ -81,6 +97,16 @@ export interface components {
         CategoriasResponse: {
             data: components["schemas"]["Categoria"][];
         };
+        Direccion: {
+            /** Format: double */
+            latitud: number;
+            /** Format: double */
+            longitud: number;
+            nombre: string;
+        };
+        DireccionesResponse: {
+            data: components["schemas"]["Direccion"][];
+        };
         Multimedia: {
             descripcion: string;
             /** Format: int32 */
@@ -123,6 +149,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoriasResponse"];
+                };
+            };
+        };
+    };
+    buscarDirecciones: {
+        parameters: {
+            query: {
+                texto: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DireccionesResponse"];
                 };
             };
         };

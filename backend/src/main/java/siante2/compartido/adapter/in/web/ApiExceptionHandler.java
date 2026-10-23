@@ -5,6 +5,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.stream.Stream;
 import siante2.compartido.domain.RecursoNoEncontradoException;
+import siante2.compartido.domain.ServicioExternoNoDisponibleException;
 import siante2.compartido.domain.SolicitudInvalidaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         log.info("Recurso no encontrado: {}", exception.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ApiErrorResponse(codigo(HttpStatus.NOT_FOUND), exception.getMessage()));
+    }
+
+    @ExceptionHandler(ServicioExternoNoDisponibleException.class)
+    public ResponseEntity<ApiErrorResponse> handleServicioExterno(ServicioExternoNoDisponibleException exception) {
+        log.warn("{} Causa: {}", exception.getMessage(), String.valueOf(exception.getCause()));
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ApiErrorResponse("EXTERNAL_SERVICE_UNAVAILABLE", exception.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
