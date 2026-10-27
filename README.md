@@ -26,6 +26,8 @@ Qué trae ya resuelto:
 
 El nombre técnico es `siante2`, igual en todas partes (paquete Java, URLs, Kubernetes, DNS e imágenes). El título visible es "SIATE".
 
+La diferencia es intencional: es la segunda versión del sistema cuyo nombre técnico siempre fue `siante` (repositorio, WAR y `/siante/api`). En octubre de 2026 se decidió no pasar el nombre técnico a `siate2`, porque implicaría cambiar URLs, DNS, imágenes, el secreto y el junction de WebSEAL, sin ningún beneficio para los usuarios. Los textos visibles siempre dicen SIATE.
+
 | Qué | Dónde | Valor |
 |---|---|---|
 | Prefijo de la API | `backend/src/main/resources/application.properties` y `src/test/resources/application.properties` (`app.api.prefijo`), `ApiPrefijoConfig`, `CorsConfig`, `frontend/src/app/shared/api/api-prefijo.ts`, `frontend/src/proxy.conf*.json`, `k8s/*/ingress.yml`, tests de `compartido/adapter/in/web` y de cada controlador | `/siante2/api` |
