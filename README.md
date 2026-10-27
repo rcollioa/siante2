@@ -149,7 +149,7 @@ npm ci
 npm start
 ```
 
-La aplicación queda en `http://localhost:4200/siante2/`. El proxy de desarrollo (`src/proxy.conf.json`) redirige `/siante2/api` al backend en `http://localhost:8080`.
+La aplicación queda en `http://localhost:4200/`: la configuración `development` de `angular.json` usa `baseHref: "/"`, y la imagen de nginx que se despliega sigue en `/siante2/`. El proxy de desarrollo (`src/proxy.conf.json`) redirige `/siante2/api` al backend en `http://localhost:8080`.
 
 ### Con Docker
 
