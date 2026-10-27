@@ -31,7 +31,7 @@ El nombre técnico es `siante2`, igual en todas partes (paquete Java, URLs, Kube
 | Prefijo de la API | `backend/src/main/resources/application.properties` y `src/test/resources/application.properties` (`app.api.prefijo`), `ApiPrefijoConfig`, `CorsConfig`, `frontend/src/app/shared/api/api-prefijo.ts`, `frontend/src/proxy.conf*.json`, `k8s/*/ingress.yml`, tests de `compartido/adapter/in/web` y de cada controlador | `/siante2/api` |
 | Ruta pública del frontend | `frontend/angular.json` (`baseHref`), `frontend/src/index.html`, `frontend/nginx.conf`, `frontend/Dockerfile` | `/siante2/` |
 | Paquete Java | `backend/src/main/java/siante2`, `backend/src/test/java/siante2` y `ConsultasJpqlTest` | `siante2` |
-| Título | `frontend/src/index.html`, `AppComponent.titulo` | `SIANTE` |
+| Título | `frontend/src/index.html` (`<title>`), texto alternativo del logo en `menu-lateral` y `no-autorizado` (`assets/img/logo-siante.svg`) | `SIANTE` |
 | Kubernetes | `k8s/*/**`: nombres, host, imagen y secreto (namespaces compartidos `sisgeob-test` y `sisgeob-prod`) | `siante2-*`, `siante2.dev-qa.tanzu.contraloria.cl`, `siante2.tanzu.contraloria.cl`, `ghcr.io/cgr-chile/siante2-*` |
 | Contenedores locales | `docker-compose.yml` | `siante2-backend`, `siante2-frontend` |
 

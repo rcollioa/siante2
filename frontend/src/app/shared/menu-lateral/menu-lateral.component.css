@@ -1,9 +1,83 @@
+:host {
+  display: flex;
+  flex: none;
+}
+
+/* Panel de SIANTE: 340 px a todo el alto, con el logo y el usuario arriba. */
 .menu {
-  width: 15rem;
-  height: 100%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  width: 21.25rem;
   background: var(--color-surface);
   border-right: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+
+/* Cerrado queda solo una franja con el botón, para no tapar los controles del mapa. */
+.menu:not(.abierto) {
+  width: 2.75rem;
+}
+
+.menu:not(.abierto) .marca,
+.menu:not(.abierto) .contenido-menu {
+  display: none;
+}
+
+.encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.5rem;
+}
+
+.marca {
+  padding: 1rem 0 1rem 1rem;
+}
+
+.marca img {
+  display: block;
+  height: 3.5rem;
+  width: auto;
+}
+
+.alternar {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.alternar:hover {
+  background: var(--color-hover);
+}
+
+.contenido-menu {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Franja oscura con bordes de marca, como el usuario en SIANTE. */
+.usuario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.6rem 1.5rem;
+  border-block: 3px solid var(--color-primary);
+  background: var(--color-ink);
+  color: var(--color-surface);
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.usuario a {
+  color: inherit;
 }
 
 ul {
@@ -12,7 +86,7 @@ ul {
   list-style: none;
 }
 
-a,
+li a,
 .pendiente {
   display: block;
   padding: 0.6rem 0.75rem;
@@ -21,11 +95,11 @@ a,
   text-decoration: none;
 }
 
-a:hover {
+li a:hover {
   background: var(--color-hover);
 }
 
-a.activa {
+li a.activa {
   background: var(--color-primary-soft);
   color: var(--color-primary-ink);
   font-weight: 600;
@@ -47,33 +121,12 @@ a:focus-visible,
   font-size: 0.75rem;
 }
 
-.alternar {
-  display: none;
-}
-
-/* En pantallas chicas el menú se pliega y se abre con el botón. */
+/* En pantallas chicas el menú abierto se pone encima del mapa a todo el ancho, como en SIANTE. */
 @media (max-width: 48rem) {
-  .menu {
+  .menu.abierto {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
     width: auto;
-    height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .alternar {
-    display: block;
-    width: 100%;
-    padding: 0.6rem 1rem;
-    border: 0;
-    background: transparent;
-    color: var(--color-ink);
-    font: inherit;
-    font-weight: 600;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .menu:not(.abierto) ul {
-    display: none;
   }
 }

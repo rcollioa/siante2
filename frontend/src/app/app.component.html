@@ -1,20 +1,9 @@
 <div class="shell">
-  <header class="cabecera">
-    <a class="marca" routerLink="/">
-      <img src="assets/img/logo_cgr.svg" alt="Contraloría General de la República" />
-      <span>{{ titulo }}</span>
-    </a>
-    @if (sesion.nombreVisible()) {
-      <span class="usuario" [title]="sesion.usuario()?.email ?? ''">{{ sesion.nombreVisible() }}</span>
-    }
-  </header>
-  <div class="cuerpo">
-    @if (sesion.estado() === 'activa') {
-      <app-menu-lateral />
-    }
-    <main class="contenido">
-      <router-outlet />
-    </main>
-  </div>
+  @if (sesion.estado() === 'activa') {
+    <app-menu-lateral />
+  }
+  <main class="contenido">
+    <router-outlet />
+  </main>
   <app-pantalla-carga />
 </div>

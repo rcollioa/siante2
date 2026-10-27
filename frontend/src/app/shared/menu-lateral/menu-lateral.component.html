@@ -1,25 +1,42 @@
 <nav class="menu" [class.abierto]="abierto()" aria-label="Secciones">
-  <button
-    type="button"
-    class="alternar"
-    [attr.aria-expanded]="abierto()"
-    aria-controls="lista-secciones"
-    (click)="abierto.set(!abierto())">
-    Menú
-  </button>
-  <ul id="lista-secciones">
-    @for (seccion of secciones; track seccion.nombre) {
-      <li>
-        @if (seccion.ruta) {
-          <a [routerLink]="seccion.ruta" routerLinkActive="activa" ariaCurrentWhenActive="page" (click)="abierto.set(false)">
-            {{ seccion.nombre }}
-          </a>
-        } @else {
-          <span class="pendiente" aria-disabled="true">
-            {{ seccion.nombre }} <small>Próximamente</small>
-          </span>
+  <div class="encabezado">
+    <a class="marca" routerLink="/" (click)="alNavegar()">
+      <img src="assets/img/logo-siante.svg" alt="SIANTE" />
+    </a>
+    <button
+      type="button"
+      class="alternar"
+      [attr.aria-expanded]="abierto()"
+      aria-controls="contenido-menu"
+      [attr.aria-label]="abierto() ? 'Ocultar menú' : 'Mostrar menú'"
+      [title]="abierto() ? 'Ocultar menú' : 'Mostrar menú'"
+      (click)="abierto.set(!abierto())">
+      <span aria-hidden="true">☰</span>
+    </button>
+  </div>
+  <div id="contenido-menu" class="contenido-menu">
+    @if (sesion.usuario(); as usuario) {
+      <div class="usuario">
+        <span>Usuario: {{ sesion.nombreVisible() }}</span>
+        @if (usuario.email) {
+          <span>Correo: <a [href]="'mailto:' + usuario.email">{{ usuario.email }}</a></span>
         }
-      </li>
+      </div>
     }
-  </ul>
+    <ul>
+      @for (seccion of secciones; track seccion.nombre) {
+        <li>
+          @if (seccion.ruta) {
+            <a [routerLink]="seccion.ruta" routerLinkActive="activa" ariaCurrentWhenActive="page" (click)="alNavegar()">
+              {{ seccion.nombre }}
+            </a>
+          } @else {
+            <span class="pendiente" aria-disabled="true">
+              {{ seccion.nombre }} <small>Próximamente</small>
+            </span>
+          }
+        </li>
+      }
+    </ul>
+  </div>
 </nav>
