@@ -25,6 +25,12 @@
           <span>Correo: <a [href]="'mailto:' + usuario.email">{{ usuario.email }}</a></span>
         }
       </div>
+    } @else if (sesion.estado() === 'pendiente') {
+      <!-- Mientras llega el usuario, la franja ya ocupa su alto: así las secciones no se mueven. -->
+      <div class="usuario" aria-hidden="true">
+        <div class="fila-usuario"><span class="salir reservada">&nbsp;</span></div>
+        <span>&nbsp;</span>
+      </div>
     }
     <ul>
       @for (seccion of secciones; track seccion.nombre) {

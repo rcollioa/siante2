@@ -108,6 +108,11 @@
   outline-offset: 2px;
 }
 
+/* Ocupa el alto del botón Salir mientras llega el usuario. */
+.reservada {
+  visibility: hidden;
+}
+
 ul {
   margin: 0;
   padding: 0.5rem;

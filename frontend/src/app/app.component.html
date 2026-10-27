@@ -1,8 +1,9 @@
 <div class="shell">
-  @if (sesion.estado() === 'activa') {
+  <!-- Desde que se consulta la sesión: si apareciera al llegar el usuario, empujaría el mapa hacia la derecha. -->
+  @if (sesion.estado() === 'pendiente' || sesion.estado() === 'activa') {
     <app-menu-lateral />
   }
-  <main class="contenido">
+  <main class="contenido" [class.esperando]="!rutaInicialRevisada()">
     <router-outlet />
   </main>
   <app-pantalla-carga />

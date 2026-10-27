@@ -22,6 +22,16 @@ describe('SesionService', () => {
     return estado;
   }
 
+  it('parte sin consultar y queda pendiente mientras espera la respuesta', () => {
+    expect(sesion.estado()).toBe('sin-consultar');
+
+    sesion.iniciar().subscribe();
+    expect(sesion.estado()).toBe('pendiente');
+
+    http.expectOne(URL).flush({ id: 1, ivUser: 'jperez', nombre: 'Juan', apellido: 'Pérez', email: '', grupos: [] });
+    expect(sesion.estado()).toBe('activa');
+  });
+
   it('con usuario queda activa, guarda el nombre y no vuelve a consultar', () => {
     let estado: EstadoSesion | undefined;
     sesion.iniciar().subscribe((e) => (estado = e));

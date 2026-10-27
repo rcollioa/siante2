@@ -13,12 +13,18 @@ describe('MenuLateralComponent', () => {
     vi.restoreAllMocks();
   });
 
-  function crear(): ComponentFixture<MenuLateralComponent> {
+  function crear(conUsuario = true): ComponentFixture<MenuLateralComponent> {
     TestBed.configureTestingModule({
       imports: [MenuLateralComponent],
       providers: [provideRouter([{ path: '**', children: [] }]), provideHttpClient(), provideHttpClientTesting()]
     });
-    TestBed.inject(SesionService).usuario.set(usuario);
+    const sesion = TestBed.inject(SesionService);
+    if (conUsuario) {
+      sesion.usuario.set(usuario);
+      sesion.estado.set('activa');
+    } else {
+      sesion.estado.set('pendiente');
+    }
     const fixture = TestBed.createComponent(MenuLateralComponent);
     fixture.detectChanges();
     return fixture;
@@ -37,6 +43,16 @@ describe('MenuLateralComponent', () => {
     expect(enlaces).toEqual(['Inicio', 'Ayuda']);
     expect(pendientes.length).toBe(6);
     expect(pendientes[0].textContent).toContain('Mis capas');
+  });
+
+  it('mientras se consulta la sesión reserva la franja del usuario, sin Salir ni datos', () => {
+    const elemento: HTMLElement = crear(false).nativeElement;
+
+    const franja = elemento.querySelector('.usuario');
+    expect(franja?.getAttribute('aria-hidden')).toBe('true');
+    expect(franja?.textContent?.trim()).toBe('');
+    expect(elemento.querySelector('button.salir')).toBeNull();
+    expect(elemento.querySelectorAll('ul li')).toHaveLength(8);
   });
 
   it('muestra el logo, el usuario y su correo en el menú, como SIATE', () => {
