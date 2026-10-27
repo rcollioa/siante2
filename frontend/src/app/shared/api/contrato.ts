@@ -36,6 +36,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/siante2/api/direcciones/sugerencias": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["sugerirDirecciones"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/multimedia": {
         parameters: {
             query?: never;
@@ -157,6 +173,31 @@ export interface operations {
         parameters: {
             query: {
                 texto: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DireccionesResponse"];
+                };
+            };
+        };
+    };
+    sugerirDirecciones: {
+        parameters: {
+            query: {
+                texto: string;
+                latitud?: number;
+                longitud?: number;
+                zoom?: number;
             };
             header?: never;
             path?: never;

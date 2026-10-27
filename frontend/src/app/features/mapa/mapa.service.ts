@@ -6,7 +6,7 @@ import { defaults as controlesPorDefecto, ScaleLine } from 'ol/control';
 import { Coordinate } from 'ol/coordinate';
 import Point from 'ol/geom/Point';
 import VectorLayer from 'ol/layer/Vector';
-import { fromLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat } from 'ol/proj';
 import VectorSource from 'ol/source/Vector';
 import { Circle, Fill, Stroke, Style, Text as Texto } from 'ol/style';
 import { esPantallaChica } from '../../shared/pantalla/pantalla-chica';
@@ -27,6 +27,13 @@ const CLAVE_CAPA_BASE = 'siante2.capaBase';
 
 /** Por qué no se muestra la posición del usuario. */
 export type AvisoUbicacion = 'no-disponible' | 'sin-permiso';
+
+/** Centro (EPSG:4326) y zoom del mapa. */
+export interface ZonaVisible {
+  latitud: number;
+  longitud: number;
+  zoom: number;
+}
 
 // El canvas no lee variables CSS: mismos valores que --color-danger y --color-surface.
 const ESTILO_MARCADOR = new Style({
@@ -118,6 +125,13 @@ export class MapaService {
 
   quitarMarcador(): void {
     this.marcador.clear();
+  }
+
+  /** Lo que se está mirando: las sugerencias de direcciones cercanas aparecen primero. */
+  zonaVisible(): ZonaVisible {
+    const vista = this.mapa.getView();
+    const [longitud, latitud] = toLonLat(vista.getCenter() ?? CENTRO_CHILE);
+    return { latitud, longitud, zoom: vista.getZoom() ?? 0 };
   }
 
   /** Como SIATE al abrir el mapa: lo centra en la posición del usuario y la marca. Pide la posición una sola vez. */

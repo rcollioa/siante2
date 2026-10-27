@@ -2,17 +2,25 @@
   <form role="search" aria-label="Buscar dirección" (submit)="buscar($event)">
     <input
       type="search"
+      role="combobox"
       aria-label="Dirección o lugar"
+      aria-autocomplete="list"
+      aria-controls="direcciones-opciones"
+      [attr.aria-expanded]="listaAbierta()"
+      [attr.aria-activedescendant]="activa() >= 0 ? 'direccion-opcion-' + activa() : null"
       placeholder="Buscar dirección o lugar"
       autocomplete="off"
       maxlength="200"
       [value]="texto()"
       (input)="escribir($event)"
-      (keydown.escape)="limpiar()" />
+      (keydown)="teclear($event)"
+      (blur)="alSalir()" />
     <button type="submit" [disabled]="estado() === 'buscando'">Buscar</button>
   </form>
 
-  <div class="resultados" aria-live="polite">
+  <p class="solo-lectores" aria-live="polite">{{ anuncio() }}</p>
+
+  <div class="resultados">
     @switch (estado()) {
       @case ('buscando') {
         <p class="aviso">Buscando…</p>
@@ -20,20 +28,34 @@
       @case ('error') {
         <p class="aviso error">{{ mensajeError() }}</p>
       }
+      @case ('sin-sugerencias') {
+        <p class="aviso">Las sugerencias no están disponibles: presione Enter para buscar.</p>
+      }
+      @case ('sugerencias') {
+        @if (resultados().length === 0) {
+          <p class="aviso">Sin sugerencias: presione Enter para buscar.</p>
+        }
+      }
       @case ('listo') {
         @if (resultados().length === 0) {
           <p class="aviso">No se encontraron direcciones.</p>
-        } @else {
-          <p class="solo-lectores">{{ resultados().length }} resultados.</p>
-          <ul>
-            @for (direccion of resultados(); track $index) {
-              <li>
-                <button type="button" (click)="elegir(direccion)">{{ direccion.nombre }}</button>
-              </li>
-            }
-          </ul>
         }
       }
     }
+    <!-- Siempre en el DOM: aria-controls del campo apunta aquí aunque esté vacía. -->
+    <ul id="direcciones-opciones" role="listbox" aria-label="Direcciones" [hidden]="!listaAbierta()">
+      @for (direccion of resultados(); track $index) {
+        <!-- mousedown y no click: así el campo no pierde el foco ni cierra la lista antes de elegir. -->
+        <li
+          role="option"
+          tabindex="-1"
+          [id]="'direccion-opcion-' + $index"
+          [attr.aria-selected]="$index === activa()"
+          [class.activa]="$index === activa()"
+          (mousedown)="$event.preventDefault(); elegir(direccion)">
+          {{ direccion.nombre }}
+        </li>
+      }
+    </ul>
   </div>
 </div>

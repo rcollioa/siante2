@@ -52,6 +52,56 @@
         "tags" : [ "direcciones-controller" ]
       }
     },
+    "/siante2/api/direcciones/sugerencias" : {
+      "get" : {
+        "operationId" : "sugerirDirecciones",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "texto",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "latitud",
+          "required" : false,
+          "schema" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }, {
+          "in" : "query",
+          "name" : "longitud",
+          "required" : false,
+          "schema" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }, {
+          "in" : "query",
+          "name" : "zoom",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DireccionesResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "direcciones-controller" ]
+      }
+    },
     "/siante2/api/multimedia" : {
       "get" : {
         "operationId" : "listarMultimedia",

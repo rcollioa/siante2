@@ -115,7 +115,18 @@ El navegador solo habla con la API propia (la CSP no permite otros orígenes en 
 - Si falla, el adaptador lanza `ServicioExternoNoDisponibleException` y la API responde 503 `EXTERNAL_SERVICE_UNAVAILABLE`.
 - Tests con `MockRestServiceServer` y los proxies reales (`NominatimGeocodificadorTest`).
 
-Búsqueda de direcciones (`GET /direcciones?texto=`): Nominatim de OpenStreetMap, que exige identificar la aplicación, máximo una solicitud por segundo y prohíbe autocompletar; por eso el frontend busca al enviar. Variables: `SIANTE_GEOCODIFICACION_URL` (para apuntar a un Nominatim propio), `SIANTE_GEOCODIFICACION_TIEMPO_LIMITE` (5 s) y `SIANTE_GEOCODIFICACION_PAISES` (`cl`; vacío busca en todo el mundo). En k8s el pod necesita salida a internet hacia ese servidor.
+El buscador de direcciones usa dos servicios de OpenStreetMap, ambos llamados desde el backend:
+
+- **Sugerencias mientras se escribe** (`GET /direcciones/sugerencias?texto=&latitud=&longitud=&zoom=`): Photon, que está hecho para autocompletar.
+  - El frontend pide después de 400 ms sin teclear y solo con 3 caracteres o más.
+  - Envía el centro y el zoom del mapa redondeados a unos 1 km. Así las sugerencias cercanas a lo que se está mirando aparecen primero, sin excluir el resto de Chile. Sin esos tres parámetros, se sugiere en todo Chile por igual.
+  - A Photon le llega un zoom de 12 como máximo. Con más zoom, su radio de cercanía es tan chico que, si no hay coincidencias muy cerca, vuelve al orden mundial, y cerca de la frontera ese orden lo dominan resultados de Argentina.
+  - Se descartan los lugares de otros países (el recuadro también toma parte de Argentina) y los nombres repetidos (por ejemplo, los tramos de una misma calle), y se muestran hasta 5.
+  - La caché `sugerencias` evita repetir. No reintenta: la siguiente tecla vuelve a pedir.
+  - Variables: `SIANTE_AUTOCOMPLETADO_URL` (`https://photon.komoot.io`, o un Photon propio), `SIANTE_AUTOCOMPLETADO_TIEMPO_LIMITE` (3 s) y `SIANTE_AUTOCOMPLETADO_RECUADRO` (oeste,sur,este,norte; por defecto Chile con Isla de Pascua). Los países son los de `SIANTE_GEOCODIFICACION_PAISES`.
+- **Búsqueda completa al presionar Enter** sin elegir una sugerencia (`GET /direcciones?texto=`): Nominatim, que exige identificar la aplicación, admite máximo una solicitud por segundo y **prohíbe autocompletar**; por eso no se usa para las sugerencias. Además, es el respaldo si Photon no responde. Variables: `SIANTE_GEOCODIFICACION_URL` (para apuntar a un Nominatim propio), `SIANTE_GEOCODIFICACION_TIEMPO_LIMITE` (5 s) y `SIANTE_GEOCODIFICACION_PAISES` (`cl`; vacío busca en todo el mundo).
+
+En k8s, el pod necesita salida a internet hacia los dos servidores. Lo que escriben los usuarios llega a ambos servicios externos; si eso deja de ser aceptable, las dos URLs se pueden apuntar a instancias propias.
 
 ## Stack y versiones
 

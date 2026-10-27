@@ -103,6 +103,18 @@ describe('MapaService', () => {
     expect(marcadores()).toHaveLength(0);
   });
 
+  it('entrega la zona que se está mirando en EPSG:4326', () => {
+    expect(servicio.zonaVisible().zoom).toBe(4);
+
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    servicio.irA(-71.25, -29.9);
+
+    const zona = servicio.zonaVisible();
+    expect(zona.longitud).toBeCloseTo(-71.25);
+    expect(zona.latitud).toBeCloseTo(-29.9);
+    expect(zona.zoom).toBe(17);
+  });
+
   describe('ubicarUsuario', () => {
     type Exito = (posicion: { coords: { longitude: number; latitude: number } }) => void;
     type Fallo = (error: { code: number }) => void;
