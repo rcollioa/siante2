@@ -27,4 +27,12 @@ describe('DireccionesApiService', () => {
     servicio.buscar('teatinos 56').subscribe();
     http.expectNone('/siante2/api/direcciones?texto=teatinos%2056');
   });
+
+  it('espacios y mayúsculas no cambian la búsqueda: se pide una sola vez', () => {
+    servicio.buscar('  Teatinos   56 ').subscribe();
+    http.expectOne('/siante2/api/direcciones?texto=teatinos%2056').flush({ data: [direccion] });
+
+    servicio.buscar('teatinos 56').subscribe();
+    http.expectNone('/siante2/api/direcciones?texto=teatinos%2056');
+  });
 });

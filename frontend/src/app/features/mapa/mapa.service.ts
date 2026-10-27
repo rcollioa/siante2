@@ -16,6 +16,9 @@ const ZOOM_DIRECCION = 17;
 const ZOOM_UBICACION = 12;
 const ZOOM_UBICACION_PANTALLA_CHICA = 7;
 const PERMISO_DENEGADO = 1; // GeolocationPositionError.PERMISSION_DENIED
+// En equipos de oficina no hay GPS que aproveche alta precisión: la red responde en segundos y una posición
+// de los últimos 10 minutos sirve para centrar el mapa, así el siguiente ingreso es inmediato.
+const OPCIONES_UBICACION: PositionOptions = { enableHighAccuracy: false, timeout: 10_000, maximumAge: 10 * 60_000 };
 
 // El canvas no lee variables CSS: mismos valores que --color-danger y --color-surface.
 const ESTILO_MARCADOR = new Style({
@@ -94,7 +97,7 @@ export class MapaService {
       ({ coords }) => this.mostrarUbicacion(coords.longitude, coords.latitude),
       // Si el usuario negó el permiso no se le avisa: ya sabe por qué no aparece.
       (error) => this.sinUbicacion.set(error.code !== PERMISO_DENEGADO),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      OPCIONES_UBICACION
     );
   }
 

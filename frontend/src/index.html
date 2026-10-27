@@ -6,6 +6,9 @@
     <base href="/siante2/">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <!-- El mapa parte con OSM: la conexión queda abierta antes de pedir las primeras teselas. "crossorigin"
+         porque OpenLayers las pide con CORS; la satelital no, porque casi nunca es la primera. -->
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
     <!-- Las fuentes (Manrope, IBM Plex Sans, IBM Plex Mono) se sirven desde la propia app, no desde
          Google Fonts: las declara "styles" de angular.json con los paquetes @fontsource. Así no salen
          peticiones a terceros, funcionan en redes sin salida a internet y la CSP queda en 'self'. -->

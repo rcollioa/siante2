@@ -4,7 +4,7 @@ import localeEsCl from '@angular/common/locales/es-CL';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { AppComponent } from './app/app.component';
-import { provideRouter, RouteReuseStrategy, withRouterConfig } from '@angular/router';
+import { PreloadAllModules, provideRouter, RouteReuseStrategy, withPreloading, withRouterConfig } from '@angular/router';
 import { routes } from './app/app.routes';
 import { GrupoRouteReuseStrategy } from './app/app.route-reuse-strategy';
 import { pantallaCargaInterceptor } from './app/shared/pantalla-carga/pantalla-carga.interceptor';
@@ -18,7 +18,8 @@ registerLocaleData(localeEsCl, 'es-CL');
 bootstrapApplication(AppComponent, {
   providers: [
     { provide: LOCALE_ID, useValue: 'es-CL' },
-    provideRouter(routes, withRouterConfig({ onSameUrlNavigation: 'reload' })),
+    // Tras la primera pantalla, descarga las demás (Ayuda, salida…) para que abrirlas sea instantáneo.
+    provideRouter(routes, withRouterConfig({ onSameUrlNavigation: 'reload' }), withPreloading(PreloadAllModules)),
     // Orden: pantallaCarga envuelve los reintentos (sin parpadeo), cada reintento tiene su propio
     // tiempo límite y refrescoCache va al final para que todos lleven `?refrescar`.
     provideHttpClient(withInterceptors([

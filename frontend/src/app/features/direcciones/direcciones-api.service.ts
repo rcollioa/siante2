@@ -14,10 +14,15 @@ export class DireccionesApiService {
   private readonly http = inject(HttpClient);
   private readonly cache = new CacheConsultas({ ttlMs: TTL_DATOS_MS });
 
+  /** Como el backend, espacios y mayúsculas no cambian la búsqueda: así la caché la reconoce. */
   buscar(texto: string): Observable<Direccion[]> {
-    return this.cache.obtener(`direcciones:${texto}`, () =>
+    const normalizado = texto.trim().replace(/\s+/g, ' ').toLowerCase();
+    return this.cache.obtener(`direcciones:${normalizado}`, () =>
       this.http
-        .get<DireccionesResponse>(`${API_PREFIJO}/direcciones`, { params: { texto }, context: sinPantallaDeCarga() })
+        .get<DireccionesResponse>(`${API_PREFIJO}/direcciones`, {
+          params: { texto: normalizado },
+          context: sinPantallaDeCarga()
+        })
         .pipe(map((respuesta) => respuesta.data))
     );
   }

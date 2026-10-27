@@ -13,7 +13,7 @@ Qué trae ya resuelto:
 | Área | Backend | Frontend |
 |---|---|---|
 | Prefijo de la API | `ApiPrefijoConfig` (`app.api.prefijo`) | `API_PREFIJO`, `esRutaApi` |
-| Errores | `ApiExceptionHandler`: todo error responde `{code, message}`. 400 `INVALID_REQUEST` (también validación, parámetros y JSON mal formado), 404 `NOT_FOUND` (`RecursoNoEncontradoException`), 503 `EXTERNAL_SERVICE_UNAVAILABLE` (`ServicioExternoNoDisponibleException`), 503 `DATA_SOURCE_UNAVAILABLE`, 404/405 y 500 con el nombre del estado | `reintentoInterceptor` (502/503/504), `tiempoLimiteInterceptor` (30 s), `tolerarFallos` |
+| Errores | `ApiExceptionHandler`: todo error responde `{code, message}`. 400 `INVALID_REQUEST` (también validación, parámetros y JSON mal formado), 404 `NOT_FOUND` (`RecursoNoEncontradoException`), 503 `EXTERNAL_SERVICE_UNAVAILABLE` (`ServicioExternoNoDisponibleException`), 503 `DATA_SOURCE_UNAVAILABLE`, 404/405 y 500 con el nombre del estado | `reintentoInterceptor` (502/503/504, salvo `EXTERNAL_SERVICE_UNAVAILABLE`: el backend ya reintentó al tercero), `tiempoLimiteInterceptor` (30 s), `tolerarFallos` |
 | Caché | `CacheControlAdvice`: siempre `private` (ningún proxy guarda datos de un usuario); los controladores `@Catalogo` se guardan en el navegador `app.cache.max-age` y el resto se revalida (`no-cache` + ETag de `EtagApiFilter`, 304 si no cambió). Caffeine con `@Cacheable` para catálogos (`categorias`, `multimedia`), vigencia `SIANTE_CACHE_SERVIDOR` (1 h por defecto) | `CacheConsultas` en memoria, `?refrescar` en la URL |
 | CORS | `CorsConfig` (`APP_CORS_ALLOWED_ORIGINS`) | — |
 | Carga | — | Pantalla de carga global automática (`pantallaCargaInterceptor`) |
