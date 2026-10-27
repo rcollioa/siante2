@@ -213,6 +213,8 @@ Además, no autentica un `iv-user` de más de 256 caracteres, para que no entren
 
 `GET /siante2/api/usuarios/actual` devuelve el usuario y lo registra en `USERS` la primera vez, como `/auth` de SIANTE. El frontend lo consulta al entrar (`SesionService`, `sesionGuard`) y, si no hay permiso, muestra `/no-autorizado`.
 
+"Salir", en el menú, hace lo mismo que en SIANTE: cierra la ventana. El navegador lo impide si la pestaña no la abrió un script o si ya tiene historial; en ese caso queda a la vista `/salida`, con un enlace para volver a ingresar. No cierra la sesión de WebSEAL, que pertenece a otro sistema.
+
 En el equipo no hay WebSEAL: con el perfil `local`, `SIANTE_USUARIO_LOCAL` en el `.env` define el `iv-user` que se asume. En `dev` y `prod` esa variable se ignora.
 
 Las peticiones que modifican datos llevan protección CSRF por cookie (`XSRF-TOKEN`), que Angular envía solo.

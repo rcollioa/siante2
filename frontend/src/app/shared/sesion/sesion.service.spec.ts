@@ -41,6 +41,18 @@ describe('SesionService', () => {
     expect(estado).toBe('no-autorizado');
   });
 
+  it('al finalizar olvida al usuario y, si vuelve a ingresar, consulta de nuevo', () => {
+    sesion.iniciar().subscribe();
+    http.expectOne(URL).flush({ id: 1, ivUser: 'jperez', nombre: 'Juan', apellido: 'Pérez', email: '', grupos: [] });
+
+    sesion.finalizar();
+    expect(sesion.estado()).toBe('finalizada');
+    expect(sesion.usuario()).toBeNull();
+
+    iniciar();
+    http.expectOne(URL);
+  });
+
   it('un error de conexión permite reintentar con una consulta nueva', () => {
     sesion.iniciar().subscribe();
     http.expectOne(URL).flush(null, { status: 503, statusText: 'Service Unavailable' });

@@ -5,7 +5,7 @@ import { API_PREFIJO } from '../api/api-prefijo';
 import { components } from '../api/contrato';
 
 export type Usuario = components['schemas']['Usuario'];
-export type EstadoSesion = 'pendiente' | 'activa' | 'no-autorizado' | 'error';
+export type EstadoSesion = 'pendiente' | 'activa' | 'no-autorizado' | 'error' | 'finalizada';
 
 /** Usuario de la sesión (lo identifica WebSEAL); se consulta una vez por carga de página. */
 @Injectable({ providedIn: 'root' })
@@ -40,5 +40,12 @@ export class SesionService {
       shareReplay(1)
     );
     return this.consulta;
+  }
+
+  /** Al salir: oculta el menú y, si vuelve a ingresar, consulta el usuario de nuevo. */
+  finalizar(): void {
+    this.consulta = undefined;
+    this.usuario.set(null);
+    this.estado.set('finalizada');
   }
 }

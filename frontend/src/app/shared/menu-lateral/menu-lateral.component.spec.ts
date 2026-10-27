@@ -1,14 +1,17 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { SesionService } from '../sesion/sesion.service';
 import { MenuLateralComponent } from './menu-lateral.component';
 
 describe('MenuLateralComponent', () => {
   const usuario = { id: 7, ivUser: 'jperez', nombre: 'Juan', apellido: 'Pérez', email: 'jperez@contraloria.cl', grupos: [] };
 
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   function crear(): ComponentFixture<MenuLateralComponent> {
     TestBed.configureTestingModule({
@@ -70,6 +73,18 @@ describe('MenuLateralComponent', () => {
     fixture.nativeElement.querySelector('ul a').click();
     fixture.detectChanges();
     expect(boton.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('Salir finaliza la sesión, lleva a la página de salida e intenta cerrar la ventana, como SIANTE', async () => {
+    const cerrar = vi.spyOn(window, 'close').mockImplementation(() => undefined);
+    const fixture = crear();
+
+    fixture.nativeElement.querySelector('.usuario button.salir').click();
+    await fixture.whenStable();
+
+    expect(TestBed.inject(SesionService).estado()).toBe('finalizada');
+    expect(TestBed.inject(Router).url).toBe('/salida');
+    expect(cerrar).toHaveBeenCalled();
   });
 
   it('en escritorio sigue abierto al elegir una sección', () => {

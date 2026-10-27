@@ -80,6 +80,27 @@
   color: inherit;
 }
 
+.salir {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  padding: 0.2rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.salir:hover {
+  background: var(--color-primary);
+}
+
+.salir:focus-visible {
+  outline: 2px solid var(--color-surface);
+  outline-offset: 2px;
+}
+
 ul {
   margin: 0;
   padding: 0.5rem;

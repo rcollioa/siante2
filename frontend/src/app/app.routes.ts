@@ -19,5 +19,9 @@ export const routes: Routes = [
 		path: 'no-autorizado',
 		loadComponent: () => import('./features/no-autorizado/no-autorizado.component').then((m) => m.NoAutorizadoComponent)
 	},
+	{
+		path: 'salida',
+		loadComponent: () => import('./features/salida/salida.component').then((m) => m.SalidaComponent)
+	},
 	{ path: '**', redirectTo: 'mapa' }
 ];
