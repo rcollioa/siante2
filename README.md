@@ -97,6 +97,8 @@ El backend se organiza por módulo: todo lo de un módulo queda en su paquete y 
 - Asociaciones siempre `LAZY` (también `@ManyToOne`); para cargarlas, `join fetch` o `@EntityGraph` en la consulta que las necesita. Sin `FetchType.EAGER`.
 - Entidades: atributos con el nombre de la columna en camelCase (`LAST_NAME` → `lastName`, `L_GROUP_ID` → `lGroupId`), sin `@Column`: los mapea la estrategia de nombres de Spring Boot. `@Column` solo cuando esa regla no da la columna (dos mayúsculas seguidas, p. ej. `PURE_X_PURE`). Clases con sufijo `Entity`; los nombres en español quedan en el dominio. `EntidadesSianteTest` verifica columna por columna.
 - Entidades: `@Immutable` mientras SIANTE escriba en la tabla, constructor `protected` vacío, sin setters, IDs por trigger con `IDENTITY`.
+- Vistas (`V_*`): no tienen clave primaria y el `@Id` de su entidad se infiere del modelo de SIANTE. Si se repitiera, Hibernate devolvería una instancia por clave y descartaría el resto sin aviso. Por eso se leen solo con proyecciones, desde un repositorio que extiende `Repository` y no `JpaRepository`, para que nadie use `findAll` ni `findById`.
+- CLOB: `JSON_METADATA` de una capa llega a 1.800.000 caracteres (el límite de SIANTE antes de usar `SCHEDULER_DATA`). Los listados no seleccionan columnas CLOB; se leen por elemento cuando se necesitan.
 - Tests de repositorio verifican la cantidad de SQL con `ContadorSql` (estadísticas de Hibernate solo en el perfil `test`).
 - Configuración global en `application.properties`: `jdbc.fetch_size=100` (Oracle trae 10 por defecto), lotes de 50, `default_batch_fetch_size`, `in_clause_parameter_padding`, `fail_on_pagination_over_collection_fetch` y `log_slow_query` (`SIANTE_LOG_CONSULTA_LENTA_MS`).
 
