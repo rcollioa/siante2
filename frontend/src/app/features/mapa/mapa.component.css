@@ -3,9 +3,11 @@
   flex: 1;
 }
 
+/* Contenedor de consultas: los controles se acomodan al ancho del mapa, no al de la ventana. */
 .mapa {
   position: relative;
   flex: 1;
+  container-type: inline-size;
 }
 
 .lienzo {
@@ -13,57 +15,97 @@
   inset: 0;
 }
 
-/* A la derecha de los botones de zoom de OpenLayers. */
+/* Como en SIANTE: el buscador centrado arriba y, a su izquierda, los botones de satélite y manual. */
 .buscador {
   position: absolute;
   top: 0.5rem;
-  left: 2.75rem;
+  left: 50%;
   z-index: 1;
+  transform: translateX(-50%);
 }
 
-/* Debajo de los botones de zoom de OpenLayers. */
-.panel-izquierdo {
+.acciones {
   position: absolute;
-  top: 4.25rem;
-  left: 0.5rem;
-}
-
-.capas-base {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
+  top: 0.5rem;
+  right: calc(50% + 12.5rem);
   display: flex;
-  overflow: hidden;
+  gap: 0.5rem;
+}
+
+/* Con el mapa angosto los botones bajan a la esquina inferior derecha, como SIANTE en pantallas chicas. */
+@container (max-width: 44rem) {
+  .acciones {
+    top: auto;
+    right: 1.25rem;
+    bottom: 5vh;
+  }
+}
+
+.accion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 2px solid var(--color-border-medium);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.accion:hover {
+  background: var(--color-hover);
+}
+
+.accion[aria-pressed='true'] {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-ink);
+}
+
+.accion:focus-visible,
+.aviso-ubicacion button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.aviso-ubicacion {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  transform: translateX(-50%);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
 }
 
-.capas-base button {
-  padding: 0.4rem 0.9rem;
-  border: 0;
-  background: transparent;
+.aviso-ubicacion button {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
   color: var(--color-ink);
   font: inherit;
   cursor: pointer;
 }
 
-.capas-base button + button {
-  border-left: 1px solid var(--color-border);
-}
-
-.capas-base button:hover {
-  background: var(--color-hover);
-}
-
-.capas-base button[aria-pressed='true'] {
-  background: var(--color-primary-soft);
-  color: var(--color-primary-ink);
-  font-weight: 600;
-}
-
-.capas-base button:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

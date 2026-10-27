@@ -1,5 +1,6 @@
+/* Ancho según el mapa (cqi): centrado arriba, deja libres los botones de zoom. */
 .buscador {
-  width: min(24rem, calc(100vw - 4rem));
+  width: min(24rem, calc(100cqi - 7rem));
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);

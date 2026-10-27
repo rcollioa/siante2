@@ -1,19 +1,39 @@
 <section class="mapa" aria-label="Mapa">
   <div #lienzo class="lienzo" role="application" aria-label="Mapa interactivo"></div>
   <app-buscador-direcciones class="buscador" />
-  <app-panel-categorias class="panel-izquierdo" />
-  <div class="capas-base" role="group" aria-label="Capa base">
+  <div class="acciones">
     <button
       type="button"
-      [attr.aria-pressed]="mapaService.capaBase() === 'mapa'"
-      (click)="mapaService.usarCapaBase('mapa')">
-      Mapa
-    </button>
-    <button
-      type="button"
+      class="accion"
+      aria-label="Vista satelital"
       [attr.aria-pressed]="mapaService.capaBase() === 'satelital'"
-      (click)="mapaService.usarCapaBase('satelital')">
-      Satelital
+      [title]="mapaService.capaBase() === 'satelital' ? 'Mapa modo mapa' : 'Mapa modo satélite'"
+      (click)="alternarCapaBase()">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path
+          d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round" />
+      </svg>
     </button>
+    @if (manual(); as url) {
+      <a class="accion" [href]="url" download="Manual_SIATE.pdf" title="Descargar manual de usuario">
+        <span aria-hidden="true">?</span>
+        <span class="solo-lectores">Descargar manual de usuario</span>
+      </a>
+    } @else {
+      <a class="accion" routerLink="/ayuda" title="Ayuda">
+        <span aria-hidden="true">?</span>
+        <span class="solo-lectores">Ayuda</span>
+      </a>
+    }
   </div>
+  @if (mapaService.sinUbicacion()) {
+    <div class="aviso-ubicacion" role="status">
+      No se pudo obtener tu ubicación.
+      <button type="button" (click)="mapaService.sinUbicacion.set(false)">Cerrar</button>
+    </div>
+  }
 </section>

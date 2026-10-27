@@ -6,10 +6,11 @@ import { MapaService } from './mapa.service';
 describe('MapaService', () => {
   let servicio: MapaService;
 
-  // Las dos primeras capas son las base; la última, el marcador de direcciones.
+  // Las dos primeras capas son las base; después, el marcador de direcciones y la posición del usuario.
   const capas = () => servicio.mapa.getLayers().getArray();
   const visibles = () => capas().slice(0, 2).map((capa) => capa.getVisible());
   const marcadores = () => (capas()[2] as VectorLayer<VectorSource>).getSource()!.getFeatures();
+  const ubicaciones = () => (capas()[3] as VectorLayer<VectorSource>).getSource()!.getFeatures();
 
   beforeEach(() => {
     // jsdom no trae ResizeObserver y OpenLayers lo usa al crear el mapa.
@@ -46,5 +47,82 @@ describe('MapaService', () => {
 
     servicio.quitarMarcador();
     expect(marcadores()).toHaveLength(0);
+  });
+
+  describe('ubicarUsuario', () => {
+    type Exito = (posicion: { coords: { longitude: number; latitude: number } }) => void;
+    type Fallo = (error: { code: number }) => void;
+    let getCurrentPosition: ReturnType<typeof vi.fn<(exito: Exito, fallo: Fallo) => void>>;
+
+    // jsdom no trae geolocalización: se simula y se responde a mano.
+    beforeEach(() => {
+      getCurrentPosition = vi.fn();
+      Object.defineProperty(navigator, 'geolocation', { value: { getCurrentPosition }, configurable: true });
+    });
+
+    afterEach(() => Reflect.deleteProperty(navigator, 'geolocation'));
+
+    const responder = (longitud: number, latitud: number) =>
+      getCurrentPosition.mock.calls[0][0]({ coords: { longitude: longitud, latitude: latitud } });
+    const fallar = (code: number) => getCurrentPosition.mock.calls[0][1]({ code });
+    const centro = () => toLonLat(servicio.mapa.getView().getCenter()!);
+
+    it('centra el mapa en la posición del usuario con zoom 12 y la marca', () => {
+      servicio.ubicarUsuario();
+      responder(-70.6, -33.4);
+
+      expect(ubicaciones()).toHaveLength(1);
+      expect(centro()[0]).toBeCloseTo(-70.6);
+      expect(centro()[1]).toBeCloseTo(-33.4);
+      expect(servicio.mapa.getView().getZoom()).toBe(12);
+    });
+
+    it('en pantallas chicas parte con zoom 7, como SIANTE', () => {
+      vi.stubGlobal('matchMedia', (consulta: string) => ({ matches: consulta === '(max-width: 48rem)' }));
+      servicio.ubicarUsuario();
+      responder(-70.6, -33.4);
+
+      expect(servicio.mapa.getView().getZoom()).toBe(7);
+    });
+
+    it('pide la posición una sola vez', () => {
+      servicio.ubicarUsuario();
+      servicio.ubicarUsuario();
+
+      expect(getCurrentPosition).toHaveBeenCalledTimes(1);
+    });
+
+    it('si el usuario ya buscó una dirección, marca su posición sin mover el mapa', () => {
+      vi.stubGlobal('matchMedia', () => ({ matches: true }));
+      servicio.ubicarUsuario();
+      servicio.irA(-71.62, -33.04);
+      responder(-70.6, -33.4);
+
+      expect(ubicaciones()).toHaveLength(1);
+      expect(centro()[0]).toBeCloseTo(-71.62);
+      expect(centro()[1]).toBeCloseTo(-33.04);
+    });
+
+    it('avisa si no se pudo obtener la posición', () => {
+      servicio.ubicarUsuario();
+      fallar(3);
+
+      expect(servicio.sinUbicacion()).toBe(true);
+    });
+
+    it('no avisa si el usuario negó el permiso', () => {
+      servicio.ubicarUsuario();
+      fallar(1);
+
+      expect(servicio.sinUbicacion()).toBe(false);
+    });
+
+    it('sin geolocalización en el navegador no hace nada', () => {
+      Reflect.deleteProperty(navigator, 'geolocation');
+      servicio.ubicarUsuario();
+
+      expect(ubicaciones()).toHaveLength(0);
+      expect(servicio.sinUbicacion()).toBe(false);
+    });
   });
 });

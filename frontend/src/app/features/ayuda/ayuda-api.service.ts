@@ -33,4 +33,14 @@ export class AyudaApiService {
   urlArchivo(id: number): string {
     return `${API_PREFIJO}/multimedia/${id}/archivo`;
   }
+
+  /** URL del manual de usuario, o null si no está en MULTIMEDIA. */
+  urlManual(): Observable<string | null> {
+    return this.listarMultimedia().pipe(
+      map((archivos) => {
+        const manual = archivos.find((archivo) => archivo.descripcion === ARCHIVOS_AYUDA.manual);
+        return manual ? this.urlArchivo(manual.id) : null;
+      })
+    );
+  }
 }
