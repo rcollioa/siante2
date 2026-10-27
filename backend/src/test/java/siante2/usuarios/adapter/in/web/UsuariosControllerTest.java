@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import siante2.compartido.adapter.in.web.SeguridadConfig;
@@ -13,6 +14,7 @@ import siante2.usuarios.domain.Usuario;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -37,6 +39,16 @@ class UsuariosControllerTest {
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.nombre").value("Juan"))
                 .andExpect(jsonPath("$.grupos[1]").value("CGR"));
+    }
+
+    @Test
+    void losDatosDelUsuarioNoQuedanEnCachesCompartidasYSeRevalidan() throws Exception {
+        when(usuarioActual.obtener("jperez", List.of()))
+                .thenReturn(new Usuario(5, "jperez", "Juan", "Pérez", "jperez@contraloria.cl", List.of()));
+
+        mockMvc.perform(get("/siante2/api/usuarios/actual").header("iv-user", "jperez").header("iv-groups", ""))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-cache, private"));
     }
 
     @Test

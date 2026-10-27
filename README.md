@@ -14,7 +14,7 @@ Qué trae ya resuelto:
 |---|---|---|
 | Prefijo de la API | `ApiPrefijoConfig` (`app.api.prefijo`) | `API_PREFIJO`, `esRutaApi` |
 | Errores | `ApiExceptionHandler`: todo error responde `{code, message}`. 400 `INVALID_REQUEST` (también validación, parámetros y JSON mal formado), 404 `NOT_FOUND` (`RecursoNoEncontradoException`), 503 `EXTERNAL_SERVICE_UNAVAILABLE` (`ServicioExternoNoDisponibleException`), 503 `DATA_SOURCE_UNAVAILABLE`, 404/405 y 500 con el nombre del estado | `reintentoInterceptor` (502/503/504), `tiempoLimiteInterceptor` (30 s), `tolerarFallos` |
-| Caché | `CacheControlAdvice` (`app.cache.max-age`); Caffeine con `@Cacheable` para catálogos (`categorias`, `multimedia`), vigencia `SIANTE_CACHE_SERVIDOR` (1 h por defecto) | `CacheConsultas` en memoria, `?refrescar` en la URL |
+| Caché | `CacheControlAdvice`: siempre `private` (ningún proxy guarda datos de un usuario); los controladores `@Catalogo` se guardan en el navegador `app.cache.max-age` y el resto se revalida (`no-cache` + ETag de `EtagApiFilter`, 304 si no cambió). Caffeine con `@Cacheable` para catálogos (`categorias`, `multimedia`), vigencia `SIANTE_CACHE_SERVIDOR` (1 h por defecto) | `CacheConsultas` en memoria, `?refrescar` en la URL |
 | CORS | `CorsConfig` (`APP_CORS_ALLOWED_ORIGINS`) | — |
 | Carga | — | Pantalla de carga global automática (`pantallaCargaInterceptor`) |
 | Salud | Actuator: `/actuator/health/liveness` y `/readiness` | nginx: `/health` |
@@ -75,7 +75,7 @@ El backend se organiza por módulo: todo lo de un módulo queda en su paquete y 
 3. Puerto de salida: `application/port/out/InformesReadPort.java`.
 4. Servicio: `application/service/InformesService.java`, que implementa el caso de uso, valida la entrada lanzando `SolicitudInvalidaException` y llama al puerto de salida.
 5. Adaptador Oracle en `adapter/out/oracle/`: `InformeEntity` (con `@Immutable` mientras SIANTE escriba en la misma tabla), `InformeJpaRepository` y `OracleInformesRepository`, que implementa `InformesReadPort` y traduce entidades a modelos de dominio. Repositorio y adaptador sin `public`: nada fuera del paquete conoce JPA.
-6. Controlador: `adapter/in/web/InformesController.java` con `@RequestMapping("/informes")`, sin el prefijo de la API. Los listados van envueltos en `{ "data": [...] }` y el nombre del método es el `operationId` del contrato (`listarInformes`, no `listar`).
+6. Controlador: `adapter/in/web/InformesController.java` con `@RequestMapping("/informes")`, sin el prefijo de la API. Los listados van envueltos en `{ "data": [...] }` y el nombre del método es el `operationId` del contrato (`listarInformes`, no `listar`). Solo si los datos son iguales para todos y casi no cambian, el controlador lleva `@Catalogo`; los datos de cada usuario o que se editan quedan sin anotación, así se revalidan y una edición se ve al instante.
 7. Tests: el controlador con `@WebMvcTest` y `@MockitoBean` del caso de uso; el adaptador con `@DataJpaTest` sobre H2; el servicio con un doble en memoria del puerto de salida cuando tenga lógica.
 8. Contrato: regenerar `contrato/openapi.json` (ver Tests) y revisar el diff.
 9. Frontend: `npm run api:tipos` para regenerar `shared/api/contrato.ts` desde el contrato; luego `features/informes/informes-api.service.ts`, que usa esos tipos, `API_PREFIJO` y `CacheConsultas`, más el componente, registrado en `app.routes.ts` (ver `features/categorias`).

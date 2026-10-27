@@ -3,6 +3,7 @@ package siante2.compartido.adapter.in.web;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -14,15 +15,18 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
-/** Cache-Control ({@code app.cache.max-age}) solo en GET 2xx con cuerpo: un error nunca queda en caché.
- * {@code PT0S} lo desactiva; una política distinta se elige por controlador, no por ruta. */
+/** Cache-Control solo en GET 2xx con cuerpo (un error nunca queda en caché), siempre {@code private}: la
+ * identidad llega en cabeceras de WebSEAL y un proxy compartido podría entregarle a otro los datos de un usuario.
+ * Un {@link Catalogo} se guarda {@code app.cache.max-age}; el resto se revalida con ETag ({@link EtagApiFilter}). */
 @RestControllerAdvice
 public class CacheControlAdvice implements ResponseBodyAdvice<Object> {
 
-    private final CacheControl politica;
+    private static final CacheControl REVALIDAR = CacheControl.noCache().cachePrivate();
+
+    private final CacheControl catalogo;
 
     public CacheControlAdvice(@Value("${app.cache.max-age:PT5M}") Duration maxAge) {
-        this.politica = politica(maxAge);
+        this.catalogo = politica(maxAge);
     }
 
     @Override
@@ -39,7 +43,8 @@ public class CacheControlAdvice implements ResponseBodyAdvice<Object> {
             ServerHttpRequest request,
             ServerHttpResponse response) {
         if (HttpMethod.GET.equals(request.getMethod()) && esExitosa(response)) {
-            response.getHeaders().setCacheControl(politica);
+            boolean catalogo = AnnotatedElementUtils.hasAnnotation(returnType.getContainingClass(), Catalogo.class);
+            response.getHeaders().setCacheControl(catalogo ? this.catalogo : REVALIDAR);
         }
         return body;
     }
@@ -50,6 +55,6 @@ public class CacheControlAdvice implements ResponseBodyAdvice<Object> {
 
     /** Duración cero o negativa desactiva el caché: el navegador debe revalidar siempre. */
     private static CacheControl politica(Duration maxAge) {
-        return maxAge.isPositive() ? CacheControl.maxAge(maxAge).cachePublic() : CacheControl.noCache();
+        return maxAge.isPositive() ? CacheControl.maxAge(maxAge).cachePrivate() : REVALIDAR;
     }
 }

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import siante2.categorias.application.port.in.ListarCategoriasUseCase;
@@ -13,6 +14,7 @@ import siante2.compartido.adapter.in.web.UsuarioDePrueba;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -46,5 +48,13 @@ class CategoriasControllerTest {
         mockMvc.perform(get("/siante2/api/categorias"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void esUnCatalogoQueGuardaSoloElNavegador() throws Exception {
+        when(listarCategorias.listarActivas()).thenReturn(List.of());
+
+        mockMvc.perform(get("/siante2/api/categorias"))
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "max-age=300, private"));
     }
 }

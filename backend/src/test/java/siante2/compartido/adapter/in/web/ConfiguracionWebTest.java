@@ -13,13 +13,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Prefijo de la API ({@link ApiPrefijoConfig}), caché ({@link CacheControlAdvice}) y errores
- * ({@link ApiExceptionHandler}), sobre {@link ControladorPrueba}. */
-@WebMvcTest(ControladorPrueba.class)
+/** Prefijo de la API ({@link ApiPrefijoConfig}), caché ({@link CacheControlAdvice}, {@link EtagApiFilter}) y
+ * errores ({@link ApiExceptionHandler}), sobre {@link ControladorPrueba} y {@link CatalogoPrueba}. */
+@WebMvcTest({ControladorPrueba.class, CatalogoPrueba.class})
 @Import(UsuarioDePrueba.class)
 class ConfiguracionWebTest {
 
@@ -37,9 +38,33 @@ class ConfiguracionWebTest {
     }
 
     @Test
-    void unGetExitosoSeCachea() throws Exception {
+    void unGetExitosoSeRevalidaSiempreYNoQuedaEnCachesCompartidas() throws Exception {
         mockMvc.perform(get(RUTA))
-                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "max-age=300, public"));
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-cache, private"))
+                .andExpect(header().exists(HttpHeaders.ETAG));
+    }
+
+    @Test
+    void conElMismoEtagResponde304SinCuerpo() throws Exception {
+        String etag = mockMvc.perform(get(RUTA)).andReturn().getResponse().getHeader(HttpHeaders.ETAG);
+
+        mockMvc.perform(get(RUTA).header(HttpHeaders.IF_NONE_MATCH, etag))
+                .andExpect(status().isNotModified())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    void unCatalogoSeGuardaEnElNavegadorPeroNoEnCachesCompartidas() throws Exception {
+        mockMvc.perform(get(RUTA + "/catalogo"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "max-age=300, private"));
+    }
+
+    @Test
+    void unArchivoNoLlevaEtag() throws Exception {
+        mockMvc.perform(get(RUTA + "/catalogo/archivo"))
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist(HttpHeaders.ETAG));
     }
 
     @Test
