@@ -120,7 +120,8 @@ ul {
 }
 
 li a,
-.pendiente {
+.pendiente,
+.desplegable {
   display: block;
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius-sm);
@@ -128,8 +129,40 @@ li a,
   text-decoration: none;
 }
 
-li a:hover {
+li a:hover,
+.desplegable:hover {
   background: var(--color-hover);
+}
+
+/* Sección con su lista debajo, como en el menú de SIATE. */
+.desplegable {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.flecha {
+  transition: transform 0.15s;
+}
+
+.desplegable[aria-expanded='true'] .flecha {
+  transform: rotate(180deg);
+}
+
+.panel {
+  padding: 0 0 0.25rem 0.75rem;
+}
+
+.cargando {
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  color: var(--color-muted);
+  font-size: 0.875rem;
 }
 
 li a.activa {
@@ -139,7 +172,8 @@ li a.activa {
 }
 
 a:focus-visible,
-.alternar:focus-visible {
+.alternar:focus-visible,
+.desplegable:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }

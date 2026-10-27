@@ -1,0 +1,31 @@
+@switch (estado()) {
+  @case ('cargando') {
+    <p class="aviso" role="status">Cargando sus capas…</p>
+  }
+  @case ('error') {
+    <p class="aviso error" role="alert">No se pudieron cargar sus capas.</p>
+    <button type="button" class="reintentar" (click)="cargar()">Reintentar</button>
+  }
+  @default {
+    @if (capas().length === 0) {
+      <p class="aviso">Aún no tiene capas.</p>
+    } @else {
+      <ul>
+        @for (capa of capas(); track capa.id) {
+          <li>
+            <button
+              type="button"
+              class="capa"
+              [attr.aria-pressed]="capaAbierta.capa()?.id === capa.id"
+              [attr.aria-busy]="capaAbierta.abriendo() === capa.id"
+              [title]="capa.descripcion || capa.nombre"
+              (click)="alternar(capa)">
+              <span class="nombre">{{ capa.nombre }}</span>
+              <span class="visibilidad">{{ visibilidades[capa.visibilidad] }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+}

@@ -40,4 +40,16 @@ class UsuariosServiceTest {
         assertThat(primero).isEqualTo(segundo);
         assertThat(primero.nombre()).isEqualTo("jperez");
     }
+
+    @Test
+    void identificarDaElIdSinRegistrarAlUsuario() {
+        UsuariosEnMemoria puerto = new UsuariosEnMemoria();
+        UsuariosService servicio = new UsuariosService(puerto);
+
+        assertThat(servicio.idDe("jperez")).isEmpty();
+        assertThat(puerto.registrados).isEmpty();
+
+        servicio.obtener("jperez", List.of());
+        assertThat(servicio.idDe("jperez")).contains(1);
+    }
 }

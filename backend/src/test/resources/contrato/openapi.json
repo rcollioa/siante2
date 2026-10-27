@@ -8,6 +8,51 @@
     "url" : "/"
   } ],
   "paths" : {
+    "/siante2/api/capas/mias" : {
+      "get" : {
+        "operationId" : "listarMisCapas",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CapasResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "capas-controller" ]
+      }
+    },
+    "/siante2/api/capas/{id}" : {
+      "get" : {
+        "operationId" : "verCapa",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Capa"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "capas-controller" ]
+      }
+    },
     "/siante2/api/categorias" : {
       "get" : {
         "operationId" : "listarCategorias",
@@ -187,6 +232,51 @@
   },
   "components" : {
     "schemas" : {
+      "Capa" : {
+        "type" : "object",
+        "properties" : {
+          "descripcion" : {
+            "type" : "string"
+          },
+          "elementos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ElementoCapa"
+            }
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "propia" : {
+            "type" : "boolean"
+          },
+          "tipo" : {
+            "type" : "string",
+            "enum" : [ "VECTORIAL", "URL" ]
+          },
+          "visibilidad" : {
+            "type" : "string",
+            "enum" : [ "PRIVADA", "PUBLICA", "FORMAL", "AREA_DE_DIBUJO" ]
+          }
+        },
+        "required" : [ "descripcion", "elementos", "id", "nombre", "propia", "tipo", "visibilidad" ]
+      },
+      "CapasResponse" : {
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ResumenCapa"
+            }
+          }
+        },
+        "required" : [ "data" ]
+      },
       "Categoria" : {
         "type" : "object",
         "properties" : {
@@ -244,6 +334,88 @@
         },
         "required" : [ "data" ]
       },
+      "ElementoCapa" : {
+        "type" : "object",
+        "properties" : {
+          "descripcion" : {
+            "type" : "string"
+          },
+          "estilo" : {
+            "$ref" : "#/components/schemas/EstiloElemento"
+          },
+          "geometria" : {
+            "$ref" : "#/components/schemas/Geometria"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "metadatos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Metadato"
+            }
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "radio" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        },
+        "required" : [ "descripcion", "estilo", "geometria", "id", "metadatos", "nombre", "radio" ]
+      },
+      "EstiloElemento" : {
+        "type" : "object",
+        "properties" : {
+          "color" : {
+            "type" : "string"
+          },
+          "grosor" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "icono" : {
+            "type" : "string"
+          },
+          "relleno" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "color", "grosor", "icono", "relleno" ]
+      },
+      "Geometria" : {
+        "type" : "object",
+        "properties" : {
+          "coordinates" : {
+            "type" : "array",
+            "items" : { }
+          },
+          "geometries" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Geometria"
+            }
+          },
+          "type" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "coordinates", "geometries", "type" ]
+      },
+      "Metadato" : {
+        "type" : "object",
+        "properties" : {
+          "nombre" : {
+            "type" : "string"
+          },
+          "valor" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "nombre", "valor" ]
+      },
       "Multimedia" : {
         "type" : "object",
         "properties" : {
@@ -268,6 +440,26 @@
           }
         },
         "required" : [ "data" ]
+      },
+      "ResumenCapa" : {
+        "type" : "object",
+        "properties" : {
+          "descripcion" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "visibilidad" : {
+            "type" : "string",
+            "enum" : [ "PRIVADA", "PUBLICA", "FORMAL", "AREA_DE_DIBUJO" ]
+          }
+        },
+        "required" : [ "descripcion", "id", "nombre", "visibilidad" ]
       },
       "Usuario" : {
         "type" : "object",

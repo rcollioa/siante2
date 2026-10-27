@@ -1,6 +1,8 @@
+import Feature from 'ol/Feature';
+import Point from 'ol/geom/Point';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
-import { toLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat } from 'ol/proj';
 import TileSource from 'ol/source/Tile';
 import VectorSource from 'ol/source/Vector';
 import { MapaService } from './mapa.service';
@@ -8,11 +10,13 @@ import { MapaService } from './mapa.service';
 describe('MapaService', () => {
   let servicio: MapaService;
 
-  // Las dos primeras capas son las base; después, el marcador de direcciones y la posición del usuario.
+  // Las dos primeras capas son las base; después, los elementos de la capa abierta, el marcador de direcciones
+  // y la posición del usuario.
   const capas = () => servicio.mapa.getLayers().getArray();
   const visibles = () => capas().slice(0, 2).map((capa) => capa.getVisible());
-  const marcadores = () => (capas()[2] as VectorLayer<VectorSource>).getSource()!.getFeatures();
-  const ubicaciones = () => (capas()[3] as VectorLayer<VectorSource>).getSource()!.getFeatures();
+  const elementos = () => (capas()[2] as VectorLayer<VectorSource>).getSource()!.getFeatures();
+  const marcadores = () => (capas()[3] as VectorLayer<VectorSource>).getSource()!.getFeatures();
+  const ubicaciones = () => (capas()[4] as VectorLayer<VectorSource>).getSource()!.getFeatures();
 
   beforeEach(() => {
     // jsdom no trae ResizeObserver y OpenLayers lo usa al crear el mapa.
@@ -101,6 +105,26 @@ describe('MapaService', () => {
 
     servicio.quitarMarcador();
     expect(marcadores()).toHaveLength(0);
+  });
+
+  it('muestra los elementos de una capa en lugar de los anteriores y acerca el mapa a ellos', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    const punto = (lon: number, lat: number) => new Feature(new Point(fromLonLat([lon, lat])));
+    servicio.mostrarElementos([punto(-70.65, -33.44)]);
+    servicio.elementoSeleccionado.set(elementos()[0]);
+
+    // Sin tamaño (aún no se monta) no se ajusta; al tenerlo, sí, y solo a la última capa abierta.
+    servicio.mostrarElementos([punto(-71.6, -33.0), punto(-71.5, -32.9)]);
+    servicio.mapa.setSize([800, 600]);
+
+    expect(elementos()).toHaveLength(2);
+    expect(servicio.elementoSeleccionado()).toBeNull();
+    const [lon, lat] = toLonLat(servicio.mapa.getView().getCenter()!);
+    expect(lon).toBeCloseTo(-71.55);
+    expect(lat).toBeCloseTo(-32.95, 1);
+
+    servicio.quitarElementos();
+    expect(elementos()).toHaveLength(0);
   });
 
   it('entrega la zona que se está mirando en EPSG:4326', () => {

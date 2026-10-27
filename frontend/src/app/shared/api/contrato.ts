@@ -4,6 +4,38 @@
  */
 
 export interface paths {
+    "/siante2/api/capas/mias": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listarMisCapas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/siante2/api/capas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["verCapa"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/categorias": {
         parameters: {
             query?: never;
@@ -104,6 +136,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Capa: {
+            descripcion: string;
+            elementos: components["schemas"]["ElementoCapa"][];
+            /** Format: int32 */
+            id: number;
+            nombre: string;
+            propia: boolean;
+            /** @enum {string} */
+            tipo: "VECTORIAL" | "URL";
+            /** @enum {string} */
+            visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
+        };
+        CapasResponse: {
+            data: components["schemas"]["ResumenCapa"][];
+        };
         Categoria: {
             descripcion: string;
             /** Format: int32 */
@@ -123,6 +170,33 @@ export interface components {
         DireccionesResponse: {
             data: components["schemas"]["Direccion"][];
         };
+        ElementoCapa: {
+            descripcion: string;
+            estilo: components["schemas"]["EstiloElemento"];
+            geometria: components["schemas"]["Geometria"];
+            /** Format: int32 */
+            id: number;
+            metadatos: components["schemas"]["Metadato"][];
+            nombre: string;
+            /** Format: double */
+            radio: number;
+        };
+        EstiloElemento: {
+            color: string;
+            /** Format: double */
+            grosor: number;
+            icono: string;
+            relleno: string;
+        };
+        Geometria: {
+            coordinates: unknown[];
+            geometries: components["schemas"]["Geometria"][];
+            type: string;
+        };
+        Metadato: {
+            nombre: string;
+            valor: string;
+        };
         Multimedia: {
             descripcion: string;
             /** Format: int32 */
@@ -130,6 +204,14 @@ export interface components {
         };
         MultimediaResponse: {
             data: components["schemas"]["Multimedia"][];
+        };
+        ResumenCapa: {
+            descripcion: string;
+            /** Format: int32 */
+            id: number;
+            nombre: string;
+            /** @enum {string} */
+            visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
         };
         Usuario: {
             apellido: string;
@@ -149,6 +231,48 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listarMisCapas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapasResponse"];
+                };
+            };
+        };
+    };
+    verCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Capa"];
+                };
+            };
+        };
+    };
     listarCategorias: {
         parameters: {
             query?: never;

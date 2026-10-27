@@ -80,6 +80,15 @@
   outline-offset: 2px;
 }
 
+/* La capa abierta, bajo los botones de zoom: arriba van el buscador y abajo la escala y los avisos. */
+.panel-capa {
+  position: absolute;
+  top: 4rem;
+  left: 0.5rem;
+  z-index: 1;
+  width: min(20rem, calc(100cqi - 1rem));
+}
+
 /* Avisos apilados abajo al centro, para que dos a la vez no se tapen; sin avisos no ocupa espacio. */
 .avisos {
   position: absolute;

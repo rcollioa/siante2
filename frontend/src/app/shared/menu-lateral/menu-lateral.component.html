@@ -39,6 +39,25 @@
             <a [routerLink]="seccion.ruta" routerLinkActive="activa" ariaCurrentWhenActive="page" (click)="alNavegar()">
               {{ seccion.nombre }}
             </a>
+          } @else if (seccion.panel) {
+            <button
+              type="button"
+              class="desplegable"
+              [attr.aria-expanded]="desplegadas().has(seccion.nombre)"
+              [attr.aria-controls]="'seccion-' + $index"
+              (click)="alternar(seccion)">
+              {{ seccion.nombre }}
+              <span class="flecha" aria-hidden="true">▾</span>
+            </button>
+            <div class="panel" [id]="'seccion-' + $index" [hidden]="!desplegadas().has(seccion.nombre)">
+              @if (desplegadas().has(seccion.nombre)) {
+                @if (paneles()[seccion.nombre]; as componente) {
+                  <ng-container *ngComponentOutlet="componente" />
+                } @else {
+                  <p class="cargando" role="status">Cargando…</p>
+                }
+              }
+            </div>
           } @else {
             <span class="pendiente" aria-disabled="true">
               {{ seccion.nombre }} <small>Próximamente</small>

@@ -4,6 +4,8 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import { defaults as controlesPorDefecto, ScaleLine } from 'ol/control';
 import { Coordinate } from 'ol/coordinate';
+import { EventsKey } from 'ol/events';
+import { unByKey } from 'ol/Observable';
 import Point from 'ol/geom/Point';
 import VectorLayer from 'ol/layer/Vector';
 import { fromLonLat, toLonLat } from 'ol/proj';
@@ -63,6 +65,9 @@ export class MapaService {
   private readonly capaBaseActual = signal<CapaBase>('mapa');
   readonly capaBase = this.capaBaseActual.asReadonly();
 
+  private readonly elementos = new VectorSource();
+  private readonly capaElementos = new VectorLayer({ source: this.elementos });
+  private ajustePendiente: EventsKey | EventsKey[] | null = null;
   private readonly marcador = new VectorSource();
   private readonly ubicacion = new VectorSource();
   private ubicacionPedida = false;
@@ -76,10 +81,13 @@ export class MapaService {
   readonly ubicando = signal(false);
   /** Las teselas de la capa base no cargan: sin salida a internet o servidor de mapas caído. */
   readonly sinMapaBase = signal(false);
+  /** Elemento de la capa abierta en el que el usuario hizo clic; null si ninguno. */
+  readonly elementoSeleccionado = signal<Feature | null>(null);
 
   readonly mapa = new Map({
     layers: [
       ...Object.values(this.capasBase),
+      this.capaElementos,
       new VectorLayer({ source: this.marcador, style: ESTILO_MARCADOR }),
       new VectorLayer({ source: this.ubicacion, style: ESTILO_UBICACION })
     ],
@@ -102,6 +110,42 @@ export class MapaService {
     }
     if (leerCapaBase() === 'satelital') {
       this.usarCapaBase('satelital');
+    }
+    // Como la herramienta de selección de SIATE: un clic muestra la información del elemento.
+    this.mapa.on('singleclick', ({ pixel }) => {
+      const elemento = this.mapa.forEachFeatureAtPixel(pixel, (feature) => feature as Feature, {
+        layerFilter: (capa) => capa === this.capaElementos,
+        hitTolerance: 4
+      });
+      this.elementoSeleccionado.set(elemento ?? null);
+    });
+  }
+
+  /** Muestra los elementos de una capa en lugar de los anteriores y acerca el mapa para verlos todos. */
+  mostrarElementos(features: Feature[]): void {
+    this.quitarElementos();
+    this.elementos.addFeatures(features);
+    const extension = this.elementos.getExtent();
+    if (features.length === 0 || !extension) {
+      return;
+    }
+    // Más margen arriba: ahí están el buscador y el panel de la capa abierta, que taparían elementos.
+    const ajustar = () =>
+      this.mapa.getView().fit(extension, { padding: [170, 60, 60, 60], maxZoom: ZOOM_DIRECCION, duration: sinMovimiento() ? 0 : 600 });
+    // Abierta desde otra página, el mapa todavía no tiene tamaño: se ajusta al montarse.
+    if (this.mapa.getSize()) {
+      ajustar();
+    } else {
+      this.ajustePendiente = this.mapa.once('change:size', ajustar);
+    }
+  }
+
+  quitarElementos(): void {
+    this.elementos.clear();
+    this.elementoSeleccionado.set(null);
+    if (this.ajustePendiente) {
+      unByKey(this.ajustePendiente);
+      this.ajustePendiente = null;
     }
   }
 
@@ -191,8 +235,7 @@ export class MapaService {
   }
 
   private animarHacia(punto: Coordinate, zoom: number): void {
-    const sinMovimiento = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    this.mapa.getView().animate({ center: punto, zoom, duration: sinMovimiento ? 0 : 600 });
+    this.mapa.getView().animate({ center: punto, zoom, duration: sinMovimiento() ? 0 : 600 });
   }
 
   montar(elemento: HTMLElement): void {
@@ -206,6 +249,11 @@ export class MapaService {
 
 function zoomUbicacion(): number {
   return esPantallaChica() ? ZOOM_UBICACION_PANTALLA_CHICA : ZOOM_UBICACION;
+}
+
+/** El usuario pidió reducir el movimiento: el mapa salta sin animación. */
+function sinMovimiento(): boolean {
+  return globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
 
 // localStorage puede lanzar (navegación privada, sitio bloqueado): la preferencia es opcional.

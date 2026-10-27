@@ -1,27 +1,41 @@
-import { Component, DOCUMENT, inject, signal } from '@angular/core';
+import { NgComponentOutlet } from '@angular/common';
+import { Component, DOCUMENT, inject, signal, Type } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { esPantallaChica } from '../pantalla/pantalla-chica';
 import { SesionService } from '../sesion/sesion.service';
-import { SECCIONES } from './secciones';
+import { MenuLateralService } from './menu-lateral.service';
+import { Seccion, SECCIONES } from './secciones';
 
 @Component({
   selector: 'app-menu-lateral',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, NgComponentOutlet],
   templateUrl: './menu-lateral.component.html',
   styleUrl: './menu-lateral.component.css'
 })
 export class MenuLateralComponent {
   protected readonly sesion = inject(SesionService);
   protected readonly secciones = SECCIONES;
-  // Como en SIATE: empieza abierto en escritorio y cerrado en pantallas chicas.
-  protected readonly abierto = signal(!esPantallaChica());
+  private readonly menu = inject(MenuLateralService);
+  protected readonly abierto = this.menu.abierto;
+  /** Secciones desplegadas y el componente de cada una, ya descargado. */
+  protected readonly desplegadas = signal<ReadonlySet<string>>(new Set());
+  protected readonly paneles = signal<Readonly<Record<string, Type<unknown>>>>({});
   private readonly router = inject(Router);
   private readonly ventana = inject(DOCUMENT).defaultView;
 
   protected alNavegar(): void {
-    if (esPantallaChica()) {
-      this.abierto.set(false);
+    this.menu.alElegir();
+  }
+
+  protected alternar(seccion: Seccion): void {
+    const desplegar = !this.desplegadas().has(seccion.nombre);
+    this.marcar(seccion.nombre, desplegar);
+    if (desplegar && seccion.panel && !this.paneles()[seccion.nombre]) {
+      seccion
+        .panel()
+        .then((componente) => this.paneles.update((paneles) => ({ ...paneles, [seccion.nombre]: componente })))
+        // Sin conexión no se descarga: queda plegada para volver a intentarlo.
+        .catch(() => this.marcar(seccion.nombre, false));
     }
   }
 
@@ -30,5 +44,17 @@ export class MenuLateralComponent {
   protected salir(): void {
     this.sesion.finalizar();
     this.router.navigateByUrl('/salida').then(() => this.ventana?.close());
+  }
+
+  private marcar(nombre: string, desplegada: boolean): void {
+    this.desplegadas.update((actuales) => {
+      const nuevas = new Set(actuales);
+      if (desplegada) {
+        nuevas.add(nombre);
+      } else {
+        nuevas.delete(nombre);
+      }
+      return nuevas;
+    });
   }
 }

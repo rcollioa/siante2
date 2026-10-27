@@ -1,0 +1,42 @@
+@if (servicio.abriendo() !== null) {
+  <p class="panel" role="status">Abriendo la capa…</p>
+} @else if (servicio.error()) {
+  <div class="panel" role="alert">
+    <p class="error">{{ servicio.error() }}</p>
+    <button type="button" class="boton" (click)="servicio.error.set('')">Cerrar</button>
+  </div>
+} @else if (servicio.capa(); as capa) {
+  <section class="panel" aria-labelledby="capa-abierta">
+    <div class="encabezado">
+      <h2 id="capa-abierta">{{ capa.nombre }}</h2>
+      <button type="button" class="cerrar" aria-label="Cerrar la capa" title="Cerrar la capa" (click)="servicio.cerrar()">
+        <span aria-hidden="true">×</span>
+      </button>
+    </div>
+    @if (capa.tipo === 'URL') {
+      <p class="nota">Las capas por URL (WMS, WFS o WMTS) se podrán ver en una próxima versión.</p>
+    } @else if (capa.elementos.length === 0) {
+      <p class="nota">La capa no tiene elementos.</p>
+    } @else if (servicio.elemento(); as elemento) {
+      <h3>{{ elemento.nombre || 'Elemento sin nombre' }}</h3>
+      @if (elemento.descripcion) {
+        <p>{{ elemento.descripcion }}</p>
+      }
+      @if (elemento.metadatos.length > 0) {
+        <dl>
+          @for (dato of elemento.metadatos; track $index) {
+            <div>
+              <dt>{{ dato.nombre }}</dt>
+              <dd>{{ dato.valor }}</dd>
+            </div>
+          }
+        </dl>
+      }
+    } @else {
+      <p class="nota">
+        {{ capa.elementos.length | number }} {{ capa.elementos.length === 1 ? 'elemento' : 'elementos' }}. Haga clic en
+        uno para ver su información.
+      </p>
+    }
+  </section>
+}

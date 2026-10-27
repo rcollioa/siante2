@@ -1,0 +1,117 @@
+package siante2.capas.adapter.out.oracle;
+
+import jakarta.persistence.EntityManagerFactory;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import siante2.ContadorSql;
+import siante2.capas.domain.Capa;
+import siante2.capas.domain.ElementoCapa;
+import siante2.capas.domain.ResumenCapa;
+import siante2.capas.domain.TipoCapa;
+import siante2.capas.domain.Visibilidad;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
+
+/** V_LAYERS y LAYERS_FEATURES en H2, con el JSON_METADATA como CLOB igual que en Oracle. */
+@DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@Import(OracleCapasRepository.class)
+class OracleCapasRepositoryTest {
+
+    private static final int YO = 7;
+    private static final int OTRO = 8;
+
+    @Autowired
+    private OracleCapasRepository repositorio;
+
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    @Autowired
+    private EntityManagerFactory fabrica;
+
+    @BeforeEach
+    void preparar() {
+        jdbc.execute("alter table V_LAYERS alter column JSON_METADATA clob");
+        jdbc.execute("alter table LAYERS_FEATURES alter column JSON_METADATA clob");
+        jdbc.update("delete from V_LAYERS");
+        jdbc.update("delete from LAYERS_FEATURES");
+        capa(1, YO, "Bodegas", "0", "1", "{\"type\":\"FeatureCollection\",\"features\":[]}");
+        capa(2, YO, "Área de un grupo", "3", "1", "");
+        capa(3, YO, "Borrada", "0", "0", "");
+        capa(4, YO, "Servicio IDE", "1", "1", "{\"type\":\"WMS\",\"url\":\"https://ide.cl/wms\"}");
+        capa(5, OTRO, "Ajena privada", "0", "1", "");
+        capa(6, OTRO, "Ajena pública", "1", "1", "");
+        capa(7, OTRO, "Formal", "2", "1", null);
+        elemento(1, 0, "{\"geometry\":{\"type\":\"Point\",\"coordinates\":[-70.65,-33.44]},\"metadata\":{\"name\":\"A\"}}");
+        elemento(1, 1, "{\"geometry\":{\"type\":\"Circle\",\"center\":[-70.6,-33.4],\"radius\":500}}");
+        elemento(1, 2, "{\"geometry\":{\"type\":\"Point\"}}");
+        elemento(6, 0, "{\"geometry\":{\"type\":\"Point\",\"coordinates\":[-71.6,-33.0]}}");
+    }
+
+    @Test
+    void listaLasCapasActivasDelUsuarioSinAreasDeDibujoEnUnaSolaConsulta() {
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        assertThat(repositorio.listarDe(YO)).containsExactly(
+                new ResumenCapa(1, "Bodegas", "Descripción de Bodegas", Visibilidad.PRIVADA),
+                new ResumenCapa(4, "Servicio IDE", "Descripción de Servicio IDE", Visibilidad.PUBLICA));
+        assertThat(sql.sentencias()).isEqualTo(1);
+    }
+
+    @Test
+    void unaCapaPropiaTraeSusElementosYOmiteLosInvalidos() {
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        Capa capa = repositorio.buscarVisible(1, YO).orElseThrow();
+
+        assertThat(capa.propia()).isTrue();
+        assertThat(capa.tipo()).isEqualTo(TipoCapa.VECTORIAL);
+        assertThat(capa.elementos()).extracting(ElementoCapa::id, ElementoCapa::radio)
+                .containsExactly(tuple(100, 0.0), tuple(101, 500.0));
+        assertThat(sql.sentencias()).isEqualTo(2);
+    }
+
+    @Test
+    void lasCapasPublicasYFormalesDeOtrosSeVenPeroNoSonPropias() {
+        assertThat(repositorio.buscarVisible(6, YO)).hasValueSatisfying(capa -> {
+            assertThat(capa.propia()).isFalse();
+            assertThat(capa.elementos()).hasSize(1);
+        });
+        assertThat(repositorio.buscarVisible(7, YO)).hasValueSatisfying(
+                capa -> assertThat(capa.visibilidad()).isEqualTo(Visibilidad.FORMAL));
+    }
+
+    @Test
+    void unaCapaPrivadaAjenaOBorradaNoSaleDeLaBase() {
+        assertThat(repositorio.buscarVisible(5, YO)).isEmpty();
+        assertThat(repositorio.buscarVisible(3, YO)).isEmpty();
+        assertThat(repositorio.buscarVisible(99, YO)).isEmpty();
+    }
+
+    @Test
+    void unaCapaPorUrlNoConsultaElementos() {
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        Capa capa = repositorio.buscarVisible(4, YO).orElseThrow();
+
+        assertThat(capa.tipo()).isEqualTo(TipoCapa.URL);
+        assertThat(capa.elementos()).isEmpty();
+        assertThat(sql.sentencias()).isEqualTo(1);
+    }
+
+    private void capa(int id, int dueno, String nombre, String visibilidad, String estado, String json) {
+        jdbc.update("insert into V_LAYERS (ID, USER_ID, NAME, DESCRIPTION, VISIBILITY, STATUS, JSON_METADATA) "
+                + "values (?, ?, ?, ?, ?, ?, ?)", id, dueno, nombre, "Descripción de " + nombre, visibilidad, estado, json);
+    }
+
+    /** En H2 ID_FEATURE es clave primaria (como en la entidad), así que se numera por capa desde capa × 100. */
+    private void elemento(int capa, int numero, String json) {
+        jdbc.update("insert into LAYERS_FEATURES (ID_LAYER, ID_FEATURE, TYPE, JSON_METADATA) values (?, ?, ?, ?)",
+                capa, numero + capa * 100, "Point", json);
+    }
+}

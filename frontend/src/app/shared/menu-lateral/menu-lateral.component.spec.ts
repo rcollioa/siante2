@@ -1,5 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { SesionService } from '../sesion/sesion.service';
@@ -41,8 +41,37 @@ describe('MenuLateralComponent', () => {
     const pendientes = elemento.querySelectorAll('[aria-disabled="true"]');
 
     expect(enlaces).toEqual(['Inicio', 'Ayuda']);
-    expect(pendientes.length).toBe(6);
-    expect(pendientes[0].textContent).toContain('Mis capas');
+    expect(pendientes.length).toBe(5);
+    expect(pendientes[0].textContent).toContain('Favoritos');
+  });
+
+  it('"Mis capas" se despliega con su lista, que se descarga recién al abrirla', async () => {
+    // MisCapas abre las capas en el mapa, y OpenLayers usa ResizeObserver, que jsdom no trae.
+    vi.stubGlobal('ResizeObserver', class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn(); });
+    const fixture = crear();
+    const elemento: HTMLElement = fixture.nativeElement;
+    const boton = elemento.querySelector<HTMLButtonElement>('button.desplegable')!;
+    expect(boton.textContent).toContain('Mis capas');
+    expect(boton.getAttribute('aria-expanded')).toBe('false');
+    expect(elemento.querySelector('app-mis-capas')).toBeNull();
+
+    boton.click();
+    fixture.detectChanges();
+    expect(boton.getAttribute('aria-expanded')).toBe('true');
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(elemento.querySelector('app-mis-capas')).not.toBeNull();
+    });
+    TestBed.inject(HttpTestingController)
+      .expectOne('/siante2/api/capas/mias')
+      .flush({ data: [{ id: 1, nombre: 'Bodegas', descripcion: '', visibilidad: 'PRIVADA' }] });
+    fixture.detectChanges();
+    expect(elemento.querySelector('app-mis-capas')?.textContent).toContain('Bodegas');
+
+    boton.click();
+    fixture.detectChanges();
+    expect(boton.getAttribute('aria-expanded')).toBe('false');
+    expect(elemento.querySelector('app-mis-capas')).toBeNull();
   });
 
   it('mientras se consulta la sesión reserva la franja del usuario, sin Salir ni datos', () => {
