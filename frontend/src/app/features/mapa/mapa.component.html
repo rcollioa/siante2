@@ -18,6 +18,18 @@
           stroke-linejoin="round" />
       </svg>
     </button>
+    <button
+      type="button"
+      class="accion"
+      aria-label="Ir a mi ubicación"
+      title="Mi ubicación"
+      [attr.aria-busy]="mapaService.ubicando()"
+      (click)="mapaService.irAMiUbicacion()">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M12 2v4 M12 18v4 M2 12h4 M18 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </button>
     @if (manual(); as url) {
       <a class="accion" [href]="url" download="Manual_SIATE.pdf" title="Descargar manual de usuario">
         <span aria-hidden="true">?</span>
@@ -30,10 +42,26 @@
       </a>
     }
   </div>
-  @if (mapaService.sinUbicacion()) {
-    <div class="aviso-ubicacion" role="status">
-      No se pudo obtener tu ubicación.
-      <button type="button" (click)="mapaService.sinUbicacion.set(false)">Cerrar</button>
-    </div>
-  }
+  <div class="avisos" role="status">
+    @if (mapaService.sinMapaBase()) {
+      <div class="aviso">
+        No se pudieron cargar los mapas base. Revise su conexión a internet.
+        <button type="button" (click)="mapaService.sinMapaBase.set(false)">Cerrar</button>
+      </div>
+    }
+    @switch (mapaService.avisoUbicacion()) {
+      @case ('no-disponible') {
+        <div class="aviso">
+          No se pudo obtener su ubicación.
+          <button type="button" (click)="mapaService.avisoUbicacion.set(null)">Cerrar</button>
+        </div>
+      }
+      @case ('sin-permiso') {
+        <div class="aviso">
+          Para ver su ubicación, permita el acceso a la ubicación en el navegador.
+          <button type="button" (click)="mapaService.avisoUbicacion.set(null)">Cerrar</button>
+        </div>
+      }
+    }
+  </div>
 </section>

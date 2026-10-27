@@ -1,5 +1,7 @@
+import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import { toLonLat } from 'ol/proj';
+import TileSource from 'ol/source/Tile';
 import VectorSource from 'ol/source/Vector';
 import { MapaService } from './mapa.service';
 
@@ -15,6 +17,7 @@ describe('MapaService', () => {
   beforeEach(() => {
     // jsdom no trae ResizeObserver y OpenLayers lo usa al crear el mapa.
     vi.stubGlobal('ResizeObserver', class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn(); });
+    localStorage.clear();
     servicio = new MapaService();
   });
 
@@ -32,6 +35,57 @@ describe('MapaService', () => {
 
     servicio.usarCapaBase('mapa');
     expect(visibles()).toEqual([true, false]);
+  });
+
+  it('recuerda la capa base elegida en el siguiente ingreso', () => {
+    servicio.usarCapaBase('satelital');
+
+    const siguienteIngreso = new MapaService();
+
+    expect(siguienteIngreso.capaBase()).toBe('satelital');
+    expect(siguienteIngreso.mapa.getLayers().getArray().slice(0, 2).map((capa) => capa.getVisible())).toEqual([false, true]);
+  });
+
+  it('sin almacenamiento disponible parte con el mapa y no falla', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('bloqueado', 'SecurityError');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('bloqueado', 'SecurityError');
+    });
+
+    const sinAlmacenamiento = new MapaService();
+    sinAlmacenamiento.usarCapaBase('satelital');
+
+    expect(sinAlmacenamiento.capaBase()).toBe('satelital');
+    vi.restoreAllMocks();
+  });
+
+  describe('aviso de mapas base', () => {
+    const fuenteBase = () => (capas()[0] as TileLayer<TileSource>).getSource()!;
+
+    it('avisa cuando fallan 4 teselas seguidas', () => {
+      for (let i = 0; i < 3; i++) {
+        fuenteBase().dispatchEvent('tileloaderror');
+      }
+      expect(servicio.sinMapaBase()).toBe(false);
+
+      fuenteBase().dispatchEvent('tileloaderror');
+      expect(servicio.sinMapaBase()).toBe(true);
+    });
+
+    it('una tesela que carga reinicia la cuenta y quita el aviso', () => {
+      for (let i = 0; i < 4; i++) {
+        fuenteBase().dispatchEvent('tileloaderror');
+      }
+      fuenteBase().dispatchEvent('tileloadend');
+      expect(servicio.sinMapaBase()).toBe(false);
+
+      for (let i = 0; i < 3; i++) {
+        fuenteBase().dispatchEvent('tileloaderror');
+      }
+      expect(servicio.sinMapaBase()).toBe(false);
+    });
   });
 
   it('irA centra el mapa en la dirección y deja un solo marcador', () => {
@@ -107,14 +161,14 @@ describe('MapaService', () => {
       servicio.ubicarUsuario();
       fallar(3);
 
-      expect(servicio.sinUbicacion()).toBe(true);
+      expect(servicio.avisoUbicacion()).toBe('no-disponible');
     });
 
     it('no avisa si el usuario negó el permiso', () => {
       servicio.ubicarUsuario();
       fallar(1);
 
-      expect(servicio.sinUbicacion()).toBe(false);
+      expect(servicio.avisoUbicacion()).toBeNull();
     });
 
     it('sin geolocalización en el navegador no hace nada', () => {
@@ -122,7 +176,60 @@ describe('MapaService', () => {
       servicio.ubicarUsuario();
 
       expect(ubicaciones()).toHaveLength(0);
-      expect(servicio.sinUbicacion()).toBe(false);
+      expect(servicio.avisoUbicacion()).toBeNull();
+    });
+
+    describe('botón Mi ubicación', () => {
+      it('vuelve a la posición ya conocida sin pedirla de nuevo', () => {
+        vi.stubGlobal('matchMedia', () => ({ matches: true }));
+        servicio.ubicarUsuario();
+        responder(-70.6, -33.4);
+        servicio.irA(-71.62, -33.04);
+
+        servicio.irAMiUbicacion();
+
+        expect(getCurrentPosition).toHaveBeenCalledTimes(1);
+        expect(centro()[0]).toBeCloseTo(-70.6);
+        expect(centro()[1]).toBeCloseTo(-33.4);
+      });
+
+      it('si no se conocía, la pide, la marca y centra el mapa', () => {
+        vi.stubGlobal('matchMedia', () => ({ matches: true }));
+        servicio.irAMiUbicacion();
+        expect(servicio.ubicando()).toBe(true);
+
+        responder(-70.6, -33.4);
+
+        expect(servicio.ubicando()).toBe(false);
+        expect(ubicaciones()).toHaveLength(1);
+        expect(centro()[0]).toBeCloseTo(-70.6);
+      });
+
+      it('si falló al abrir, la vuelve a pedir y quita el aviso al obtenerla', () => {
+        servicio.ubicarUsuario();
+        fallar(3);
+        expect(servicio.avisoUbicacion()).toBe('no-disponible');
+
+        servicio.irAMiUbicacion();
+        getCurrentPosition.mock.calls[1][0]({ coords: { longitude: -70.6, latitude: -33.4 } });
+
+        expect(servicio.avisoUbicacion()).toBeNull();
+      });
+
+      it('con el permiso negado explica cómo habilitarlo', () => {
+        servicio.irAMiUbicacion();
+        fallar(1);
+
+        expect(servicio.ubicando()).toBe(false);
+        expect(servicio.avisoUbicacion()).toBe('sin-permiso');
+      });
+
+      it('sin geolocalización en el navegador avisa que no está disponible', () => {
+        Reflect.deleteProperty(navigator, 'geolocation');
+        servicio.irAMiUbicacion();
+
+        expect(servicio.avisoUbicacion()).toBe('no-disponible');
+      });
     });
   });
 });

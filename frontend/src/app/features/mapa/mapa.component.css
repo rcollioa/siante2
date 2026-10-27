@@ -69,29 +69,44 @@
   color: var(--color-primary-ink);
 }
 
+.accion[aria-busy='true'] {
+  cursor: progress;
+  opacity: 0.6;
+}
+
 .accion:focus-visible,
-.aviso-ubicacion button:focus-visible {
+.aviso button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-.aviso-ubicacion {
+/* Avisos apilados abajo al centro, para que dos a la vez no se tapen; sin avisos no ocupa espacio. */
+.avisos {
   position: absolute;
   bottom: 2.5rem;
   left: 50%;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  transform: translateX(-50%);
+}
+
+.aviso {
+  display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
-  transform: translateX(-50%);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
-  white-space: nowrap;
 }
 
-.aviso-ubicacion button {
+.aviso button {
+  flex: none;
   padding: 0.25rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
