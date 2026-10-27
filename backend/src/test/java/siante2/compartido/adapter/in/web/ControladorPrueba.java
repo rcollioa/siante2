@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -67,6 +68,19 @@ class ControladorPrueba {
     @GetMapping("/bug")
     Respuesta bug() {
         throw new IllegalStateException("detalle interno que no debe llegar al cliente");
+    }
+
+    /** El usuario de prueba tiene el grupo PRUEBA (ver UsuarioDePrueba). */
+    @GetMapping("/grupo-prueba")
+    @PreAuthorize("hasAuthority('GRUPO_PRUEBA')")
+    Respuesta grupoPrueba() {
+        return new Respuesta("permitido");
+    }
+
+    @GetMapping("/grupo-otro")
+    @PreAuthorize("hasAuthority('GRUPO_OTRO')")
+    Respuesta grupoOtro() {
+        return new Respuesta("no debe llegar al cliente");
     }
 
     /** Si Tomcat atiende la solicitud en un hilo virtual (ver HilosVirtualesTest). */

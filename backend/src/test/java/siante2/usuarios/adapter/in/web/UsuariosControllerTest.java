@@ -52,4 +52,34 @@ class UsuariosControllerTest {
                         .header("iv-user", "Unauthenticated").header("iv-groups", "Unauthenticated"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void conGruposVaciosComoEnSianteAutenticaAlUsuarioSinGrupos() throws Exception {
+        when(usuarioActual.obtener("jperez", List.of()))
+                .thenReturn(new Usuario(5, "jperez", "Juan", "Pérez", "jperez@contraloria.cl", List.of()));
+
+        mockMvc.perform(get("/siante2/api/usuarios/actual").header("iv-user", "jperez").header("iv-groups", ""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.grupos").isEmpty());
+    }
+
+    @Test
+    void sinCabeceraDeGruposResponde401() throws Exception {
+        mockMvc.perform(get("/siante2/api/usuarios/actual").header("iv-user", "jperez"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void conSaltoDeLineaEnElUsuarioElFirewallDeSpringSecurityResponde400() throws Exception {
+        mockMvc.perform(get("/siante2/api/usuarios/actual")
+                        .header("iv-user", "jperez\n[] [admin] acceso concedido").header("iv-groups", "SIANTE"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void conUsuarioDeMasDe256CaracteresResponde401() throws Exception {
+        mockMvc.perform(get("/siante2/api/usuarios/actual")
+                        .header("iv-user", "a".repeat(257)).header("iv-groups", "SIANTE"))
+                .andExpect(status().isUnauthorized());
+    }
 }

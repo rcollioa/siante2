@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.TransactionException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -30,8 +31,8 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-/** Todo error de la API responde {@link ApiErrorResponse}, también los que arma Spring MVC.
- * Si se agrega Spring Security, sus excepciones necesitan handler aquí o responden 500. */
+/** Todo error de la API responde {@link ApiErrorResponse}, también los que arma Spring MVC. Las excepciones de
+ * Spring Security que llegan al controlador (p. ej. de {@code @PreAuthorize}) necesitan handler aquí o responden 500. */
 @RestControllerAdvice
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
@@ -58,6 +59,15 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         log.warn("{} Causa: {}", exception.getMessage(), String.valueOf(exception.getCause()));
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ApiErrorResponse("EXTERNAL_SERVICE_UNAVAILABLE", exception.getMessage()));
+    }
+
+    /** {@code @PreAuthorize} rechaza dentro del controlador, donde ya no actúa el accessDeniedHandler de
+     * SeguridadConfig; mismo 403 y mensaje que ese handler. */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAccesoDenegado(AccessDeniedException exception) {
+        log.warn("Acceso denegado: {}", exception.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiErrorResponse(codigo(HttpStatus.FORBIDDEN), "No tiene permiso para esta operación."));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

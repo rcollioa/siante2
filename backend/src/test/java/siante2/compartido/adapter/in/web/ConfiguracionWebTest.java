@@ -145,6 +145,21 @@ class ConfiguracionWebTest {
                 .andExpect(noSeCachea());
     }
 
+    @Test
+    void unaFuncionProtegidaPorGrupoAtiendeAQuienTieneElGrupo() throws Exception {
+        mockMvc.perform(get(RUTA + "/grupo-prueba"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valor").value("permitido"));
+    }
+
+    @Test
+    void unaFuncionDeOtroGrupoResponde403ConElMismoFormato() throws Exception {
+        mockMvc.perform(get(RUTA + "/grupo-otro"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("No tiene permiso para esta operación."));
+    }
+
     /** Sin Cache-Control o con no-store (Spring Security lo agrega a las respuestas que no cachea CacheControlAdvice). */
     private static ResultMatcher noSeCachea() {
         return resultado -> {

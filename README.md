@@ -202,13 +202,32 @@ Cada deployment del backend fija `SPRING_PROFILES_ACTIVE` (`dev` o `prod`) y `TZ
 
 ### Identidad
 
-WebSEAL autentica al usuario y el ingress entrega al backend las cabeceras `iv-user` e `iv-groups`, igual que en SIANTE. El ingress debe eliminar esas cabeceras si vienen del navegador. `IdentidadWebSealFilter` las convierte en el usuario de Spring Security (grupos como `GRUPO_<nombre>`) y lo agrega a los logs como `usuario`. Toda la API exige usuario, salvo `/actuator/health` y el contrato OpenAPI; sin usuario responde 401 `{code, message}`.
+WebSEAL autentica al usuario y entrega al backend las cabeceras `iv-user` e `iv-groups`, igual que en SIANTE. WebSEAL y la red los define Ingeniería. La aplicación parte de un supuesto: solo WebSEAL puede llegar al ingress, y por eso confía en esas cabeceras. La seguridad propia se monta sobre esa identidad (ver "Autorización").
+
+`IdentidadWebSealFilter` convierte las cabeceras en el usuario de Spring Security (grupos como `GRUPO_<nombre>`) y lo agrega a los logs como `usuario`. Las reglas son las de `Auth` de SIANTE:
+- las dos cabeceras deben llegar;
+- `Unauthenticated` en cualquiera de ellas no autentica;
+- `iv-groups` vacío es un usuario sin grupos.
+
+Además, no autentica un `iv-user` de más de 256 caracteres, para que no entren usuarios inválidos a `USERS`. Una cabecera con caracteres de control, como un salto de línea que inyectaría líneas falsas en los logs, ya la rechaza con 400 el firewall de Spring Security antes de llegar al filtro. Toda la API exige usuario, salvo `/actuator/health` y el contrato OpenAPI; sin usuario responde 401 `{code, message}`.
 
 `GET /siante2/api/usuarios/actual` devuelve el usuario y lo registra en `USERS` la primera vez, como `/auth` de SIANTE. El frontend lo consulta al entrar (`SesionService`, `sesionGuard`) y, si no hay permiso, muestra `/no-autorizado`.
 
 En el equipo no hay WebSEAL: con el perfil `local`, `SIANTE_USUARIO_LOCAL` en el `.env` define el `iv-user` que se asume. En `dev` y `prod` esa variable se ignora.
 
 Las peticiones que modifican datos llevan protección CSRF por cookie (`XSRF-TOKEN`), que Angular envía solo.
+
+### Autorización
+
+En SIANTE, WebSEAL era el único control. Los endpoints tomaban el usuario de la URL (`/users/:ID/layers`) y no comprobaban de quién era cada recurso. Cada módulo migrado aplica estas reglas:
+
+- **El usuario sale de la identidad, nunca del cliente.** El ID de `USERS` se obtiene de `iv-user`; ninguna ruta ni cuerpo lo recibe. Las rutas hablan de recursos propios (`/capas/mias`, `/favoritos`), no de `/usuarios/{id}/...`.
+- **Dueño en cada escritura.** Editar o borrar una capa, un grupo, un favorito o un punto del catálogo exige que sea del usuario. Si no lo es, responde 404 `NOT_FOUND`, para no revelar que el recurso existe.
+- **Visibilidad en la consulta.** Las capas privadas solo las ve su dueño, y el filtro va en el `where`, no en memoria.
+- **Grupos como roles solo si el negocio lo define.** SIANTE guardaba `iv-groups` pero no lo usaba para permitir nada. Una función que requiera un grupo se protege con `@PreAuthorize("hasAuthority('GRUPO_<nombre>')")`. Va `hasAuthority` y no `hasRole`, porque `hasRole` antepone `ROLE_` y negaría siempre. Sin el grupo responde 403 `FORBIDDEN`.
+- **Endpoints públicos explícitos.** Solo la lectura de los reportes con QR queda abierta, ruta por ruta, en `SeguridadConfig`. Todo lo demás exige usuario.
+- **Auditoría.** Toda escritura deja un log `INFO` con la acción y el ID del recurso; el usuario y la solicitud ya van en cada línea.
+- **Servicios de terceros solo desde el backend y con destino permitido.** Un proxy (por ejemplo `featureinfo` o `GetCapabilities` de WMS) solo consulta servidores de capas registradas, nunca una URL arbitraria que mande el cliente.
 
 ### Perfiles y logs
 

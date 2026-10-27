@@ -9,6 +9,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -17,6 +18,7 @@ import org.springframework.security.web.authentication.preauth.AbstractPreAuthen
 /** Toda la API exige usuario (cabeceras de WebSEAL); salud y contrato quedan abiertos. Sin sesión
  * propia: la identidad llega en cada solicitud. CSRF por cookie, que Angular envía solo. */
 @Configuration
+@EnableMethodSecurity
 public class SeguridadConfig {
 
     @Bean
