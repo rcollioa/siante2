@@ -44,6 +44,7 @@ describe('MenuLateralComponent', () => {
 
     expect(elemento.querySelector('.marca img')?.getAttribute('src')).toBe('assets/img/logo-siante.svg');
     expect(elemento.querySelector('.usuario')?.textContent).toContain('Usuario: Juan Pérez');
+    expect(elemento.querySelector('.fila-usuario')?.textContent).toContain('Salir');
     expect(elemento.querySelector('.usuario a')?.getAttribute('href')).toBe('mailto:jperez@contraloria.cl');
   });
 
