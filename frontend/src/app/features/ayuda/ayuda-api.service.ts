@@ -9,7 +9,7 @@ import { sinPantallaDeCarga } from '../../shared/pantalla-carga/pantalla-carga.i
 export type Multimedia = components['schemas']['Multimedia'];
 type MultimediaResponse = components['schemas']['MultimediaResponse'];
 
-/** Descripciones con que SIANTE guarda sus archivos de ayuda en MULTIMEDIA. */
+/** Descripciones con que SIATE guarda sus archivos de ayuda en MULTIMEDIA. */
 export const ARCHIVOS_AYUDA = {
   manual: 'Manual SIATE',
   visualizarAnexos: 'Gif Visualizar',

@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
-/** Capas que se pueden elegir en la selección por área: vista {@code V_SELECT_AREA} de SIANTE (modelo
+/** Capas que se pueden elegir en la selección por área: vista {@code V_SELECT_AREA} de SIATE (modelo
  * {@code VSelectArea}), solo lectura. Clave inferida (la vista no tiene clave): leer solo con proyecciones. */
 @Entity
 @Immutable

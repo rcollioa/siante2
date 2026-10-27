@@ -1,11 +1,11 @@
 <section class="tarjeta" aria-labelledby="titulo-no-autorizado">
-  <img class="logo" src="assets/img/logo-siante.svg" alt="SIANTE" />
+  <img class="logo" src="assets/img/logo-siate.svg" alt="SIATE" />
   @if (sesion.estado() === 'error') {
     <h1 id="titulo-no-autorizado">No se pudo conectar</h1>
     <p>No fue posible verificar su usuario. Revise su conexión e intente nuevamente.</p>
     <button type="button" (click)="reintentar()">Reintentar</button>
   } @else {
     <h1 id="titulo-no-autorizado">Acceso no autorizado</h1>
-    <p>Su usuario no tiene acceso a SIANTE. Si cree que es un error, contacte a la mesa de ayuda.</p>
+    <p>Su usuario no tiene acceso a SIATE. Si cree que es un error, contacte a la mesa de ayuda.</p>
   }
 </section>

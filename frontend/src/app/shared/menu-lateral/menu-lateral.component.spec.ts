@@ -39,10 +39,10 @@ describe('MenuLateralComponent', () => {
     expect(pendientes[0].textContent).toContain('Mis capas');
   });
 
-  it('muestra el logo, el usuario y su correo en el menú, como SIANTE', () => {
+  it('muestra el logo, el usuario y su correo en el menú, como SIATE', () => {
     const elemento: HTMLElement = crear().nativeElement;
 
-    expect(elemento.querySelector('.marca img')?.getAttribute('src')).toBe('assets/img/logo-siante.svg');
+    expect(elemento.querySelector('.marca img')?.getAttribute('src')).toBe('assets/img/logo-siate.svg');
     expect(elemento.querySelector('.usuario')?.textContent).toContain('Usuario: Juan Pérez');
     expect(elemento.querySelector('.fila-usuario')?.textContent).toContain('Salir');
     expect(elemento.querySelector('.usuario a')?.getAttribute('href')).toBe('mailto:jperez@contraloria.cl');
@@ -76,7 +76,7 @@ describe('MenuLateralComponent', () => {
     expect(boton.getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('Salir finaliza la sesión, lleva a la página de salida e intenta cerrar la ventana, como SIANTE', async () => {
+  it('Salir finaliza la sesión, lleva a la página de salida e intenta cerrar la ventana, como SIATE', async () => {
     const cerrar = vi.spyOn(window, 'close').mockImplementation(() => undefined);
     const fixture = crear();
 

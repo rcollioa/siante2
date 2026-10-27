@@ -33,8 +33,8 @@ class UsuariosServiceTest {
         UsuariosEnMemoria puerto = new UsuariosEnMemoria();
         UsuariosService servicio = new UsuariosService(puerto);
 
-        Usuario primero = servicio.obtener("jperez", List.of("SIANTE"));
-        Usuario segundo = servicio.obtener("jperez", List.of("SIANTE"));
+        Usuario primero = servicio.obtener("jperez", List.of("SIATE"));
+        Usuario segundo = servicio.obtener("jperez", List.of("SIATE"));
 
         assertThat(puerto.registrados).containsExactly("jperez");
         assertThat(primero).isEqualTo(segundo);

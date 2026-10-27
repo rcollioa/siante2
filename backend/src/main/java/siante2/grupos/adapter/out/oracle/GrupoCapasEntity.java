@@ -6,7 +6,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.Immutable;
 
-/** Grupo de capas: tabla {@code LAYERS_GROUPS} de SIANTE (modelo {@code LayersGroups}), solo lectura. */
+/** Grupo de capas: tabla {@code LAYERS_GROUPS} de SIATE (modelo {@code LayersGroups}), solo lectura. */
 @Entity
 @Immutable
 @Table(name = "LAYERS_GROUPS")

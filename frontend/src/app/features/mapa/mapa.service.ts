@@ -25,7 +25,7 @@ const ESTILO_MARCADOR = new Style({
   image: new Circle({ radius: 8, fill: new Fill({ color: '#b3261e' }), stroke: new Stroke({ color: '#ffffff', width: 3 }) })
 });
 
-// El punto naranjo de SIANTE para la posición del usuario, con su misma leyenda.
+// El punto naranjo de SIATE para la posición del usuario, con su misma leyenda.
 const ESTILO_UBICACION = new Style({
   image: new Circle({
     radius: 8,
@@ -86,7 +86,7 @@ export class MapaService {
     this.marcador.clear();
   }
 
-  /** Como SIANTE al abrir el mapa: lo centra en la posición del usuario y la marca. Pide la posición una sola vez. */
+  /** Como SIATE al abrir el mapa: lo centra en la posición del usuario y la marca. Pide la posición una sola vez. */
   ubicarUsuario(): void {
     const geolocalizacion = globalThis.navigator?.geolocation;
     if (this.ubicacionPedida || !geolocalizacion) {

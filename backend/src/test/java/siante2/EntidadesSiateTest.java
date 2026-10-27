@@ -12,12 +12,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Las entidades usan exactamente las tablas y columnas de los modelos de SIANTE
+/** Las entidades usan exactamente las tablas y columnas de los modelos de SIATE
  * ({@code backend/src/siante/model}); se excluyen a propósito FILE_BASE64 y SPATIAL_OBJECT. */
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-class EntidadesSianteTest {
+class EntidadesSiateTest {
 
-    private static final Map<String, List<String>> COLUMNAS_SIANTE = Map.ofEntries(
+    private static final Map<String, List<String>> COLUMNAS_SIATE = Map.ofEntries(
             Map.entry("CATEGORIES", List.of("ID", "NAME", "DESCRIPTION", "STATUS")),
             Map.entry("USERS", List.of("ID", "NAME", "LAST_NAME", "EMAIL", "AREA", "IV_USER", "IV_GROUP")),
             Map.entry("LAYERS", List.of("ID", "OWNER", "NAME", "ORIGIN", "STATUS", "JSON_METADATA", "DESCRIPTION",
@@ -52,7 +52,7 @@ class EntidadesSianteTest {
     private JdbcTemplate jdbc;
 
     static Stream<Arguments> tablas() {
-        return COLUMNAS_SIANTE.entrySet().stream().map(e -> Arguments.of(e.getKey(), e.getValue()));
+        return COLUMNAS_SIATE.entrySet().stream().map(e -> Arguments.of(e.getKey(), e.getValue()));
     }
 
     @ParameterizedTest(name = "{0}")

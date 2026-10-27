@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.util.Objects;
 import org.hibernate.annotations.Immutable;
 
-/** Elementos de capa filtrados por tipo para la intersección: vista {@code V_LF_TYPE_FILTER} de SIANTE (modelo
+/** Elementos de capa filtrados por tipo para la intersección: vista {@code V_LF_TYPE_FILTER} de SIATE (modelo
  * {@code VLfTypeFilter}), solo lectura. Sin {@code SPATIAL_OBJECT}: la geometría se lee como GML con consulta nativa. */
 @Entity
 @Immutable
@@ -39,7 +39,7 @@ public class VistaElementoFiltradoEntity {
         return jsonMetadata;
     }
 
-    /** Clave inferida del modelo de SIANTE (la vista no tiene clave): leer solo con proyecciones. */
+    /** Clave inferida del modelo de SIATE (la vista no tiene clave): leer solo con proyecciones. */
     public static class Clave implements Serializable {
 
         private Integer idFeature;

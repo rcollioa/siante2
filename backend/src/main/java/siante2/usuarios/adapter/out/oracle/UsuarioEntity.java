@@ -7,7 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
-/** Tabla {@code USERS} de SIANTE (modelo {@code User}). Se puede dar de alta, no modificar (@Immutable);
+/** Tabla {@code USERS} de SIATE (modelo {@code User}). Se puede dar de alta, no modificar (@Immutable);
  * el ID lo pone el trigger de la base y Hibernate lo recupera con RETURNING (IDENTITY). */
 @Entity
 @Immutable
@@ -33,7 +33,7 @@ public class UsuarioEntity {
     protected UsuarioEntity() {
     }
 
-    /** Mismas columnas que el alta de {@code Auth} en SIANTE: el nombre parte siendo el iv-user. */
+    /** Mismas columnas que el alta de {@code Auth} en SIATE: el nombre parte siendo el iv-user. */
     UsuarioEntity(String ivUser, String grupos) {
         this.name = ivUser;
         this.ivUser = ivUser;

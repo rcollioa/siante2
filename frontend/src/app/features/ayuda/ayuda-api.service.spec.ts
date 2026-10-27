@@ -15,7 +15,7 @@ describe('AyudaApiService', () => {
 
   afterEach(() => http.verify());
 
-  it('urlManual entrega la URL del archivo del manual de SIANTE', () => {
+  it('urlManual entrega la URL del archivo del manual de SIATE', () => {
     let url: string | null | undefined;
     servicio.urlManual().subscribe((recibida) => (url = recibida));
 

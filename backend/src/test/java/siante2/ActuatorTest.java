@@ -23,7 +23,7 @@ class ActuatorTest {
         mockMvc.perform(get("/actuator/health/liveness")).andExpect(status().isOk());
         mockMvc.perform(get("/actuator/info"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.app.nombre").value("SIANTE"))
+                .andExpect(jsonPath("$.app.nombre").value("SIATE"))
                 .andExpect(jsonPath("$.build.version").exists());
     }
 

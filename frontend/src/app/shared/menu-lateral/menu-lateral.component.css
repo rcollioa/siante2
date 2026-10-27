@@ -3,7 +3,7 @@
   flex: none;
 }
 
-/* Panel de SIANTE: 340 px a todo el alto, con el logo y el usuario arriba. */
+/* Panel de SIATE: 340 px a todo el alto, con el logo y el usuario arriba. */
 .menu {
   display: flex;
   flex-direction: column;
@@ -62,7 +62,7 @@
   overflow-y: auto;
 }
 
-/* Franja oscura con bordes de marca, como el usuario en SIANTE. */
+/* Franja oscura con bordes de marca, como el usuario en SIATE. */
 .usuario {
   display: flex;
   flex-direction: column;
@@ -80,7 +80,7 @@
   color: inherit;
 }
 
-/* Como SIANTE: Salir a la derecha del nombre, en la misma fila. */
+/* Como SIATE: Salir a la derecha del nombre, en la misma fila. */
 .fila-usuario {
   display: flex;
   align-items: center;
@@ -149,7 +149,7 @@ a:focus-visible,
   font-size: 0.75rem;
 }
 
-/* En pantallas chicas el menú abierto se pone encima del mapa a todo el ancho, como en SIANTE. */
+/* En pantallas chicas el menú abierto se pone encima del mapa a todo el ancho, como en SIATE. */
 @media (max-width: 48rem) {
   .menu.abierto {
     position: absolute;

@@ -38,15 +38,15 @@ class OracleUsuariosRepositoryTest {
 
     @Test
     void registraConLasColumnasDeSianteYLoEncuentraPorIvUser() {
-        repositorio.registrar("jperez", List.of("SIANTE", "CGR"));
+        repositorio.registrar("jperez", List.of("SIATE", "CGR"));
 
-        Usuario usuario = repositorio.buscarPorIvUser("jperez", List.of("SIANTE")).orElseThrow();
+        Usuario usuario = repositorio.buscarPorIvUser("jperez", List.of("SIATE")).orElseThrow();
 
         assertThat(usuario.nombre()).isEqualTo("jperez");
         assertThat(usuario.apellido()).isEmpty();
         assertThat(usuario.email()).isEmpty();
         assertThat(jdbc.queryForObject("select IV_GROUP from USERS where IV_USER = 'jperez'", String.class))
-                .isEqualTo("SIANTE,CGR");
+                .isEqualTo("SIATE,CGR");
     }
 
     @Test

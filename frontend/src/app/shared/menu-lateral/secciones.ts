@@ -1,4 +1,4 @@
-/** Secciones del menú de SIANTE. Sin `ruta` todavía no están migradas y se muestran como "Próximamente". */
+/** Secciones del menú de SIATE. Sin `ruta` todavía no están migradas y se muestran como "Próximamente". */
 export interface Seccion {
   nombre: string;
   ruta?: string;

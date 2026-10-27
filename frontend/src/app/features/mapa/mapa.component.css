@@ -15,7 +15,7 @@
   inset: 0;
 }
 
-/* Como en SIANTE: el buscador centrado arriba y, a su izquierda, los botones de satélite y manual. */
+/* Como en SIATE: el buscador centrado arriba y, a su izquierda, los botones de satélite y manual. */
 .buscador {
   position: absolute;
   top: 0.5rem;
@@ -32,7 +32,7 @@
   gap: 0.5rem;
 }
 
-/* Con el mapa angosto los botones bajan a la esquina inferior derecha, como SIANTE en pantallas chicas. */
+/* Con el mapa angosto los botones bajan a la esquina inferior derecha, como SIATE en pantallas chicas. */
 @container (max-width: 44rem) {
   .acciones {
     top: auto;

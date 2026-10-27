@@ -6,7 +6,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.Immutable;
 
-/** Elemento (feature) de una capa: tabla {@code LAYERS_FEATURES} de SIANTE (modelo {@code LayerFeature}), solo lectura.
+/** Elemento (feature) de una capa: tabla {@code LAYERS_FEATURES} de SIATE (modelo {@code LayerFeature}), solo lectura.
  * Sin {@code SPATIAL_OBJECT}: la geometría se lee como GML con consulta nativa. */
 @Entity
 @Immutable

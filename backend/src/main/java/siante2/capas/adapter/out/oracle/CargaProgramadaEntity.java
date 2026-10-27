@@ -5,8 +5,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
-/** Carga de elementos pendiente de una capa: tabla {@code SCHEDULER_DATA} de SIANTE (modelo {@code SchedulerSpatial}),
- * solo lectura. SIANTE la llena con la metadata que supera 1.800.000 caracteres. */
+/** Carga de elementos pendiente de una capa: tabla {@code SCHEDULER_DATA} de SIATE (modelo {@code SchedulerSpatial}),
+ * solo lectura. SIATE la llena con la metadata que supera 1.800.000 caracteres. */
 @Entity
 @Immutable
 @Table(name = "SCHEDULER_DATA")

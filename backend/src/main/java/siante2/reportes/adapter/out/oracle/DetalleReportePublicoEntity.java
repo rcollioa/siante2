@@ -7,7 +7,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.Immutable;
 
-/** Capa incluida en un reporte público de grupo: tabla {@code PUBLIC_REPORTS_DETAILS} de SIANTE (modelo {@code PublicReportsDetails}), solo lectura. */
+/** Capa incluida en un reporte público de grupo: tabla {@code PUBLIC_REPORTS_DETAILS} de SIATE (modelo {@code PublicReportsDetails}), solo lectura. */
 @Entity
 @Immutable
 @Table(name = "PUBLIC_REPORTS_DETAILS")

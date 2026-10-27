@@ -15,7 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** Autentica con las cabeceras {@code iv-user}/{@code iv-groups} que pone WebSEAL, como {@code Auth} de SIANTE.
+/** Autentica con las cabeceras {@code iv-user}/{@code iv-groups} que pone WebSEAL, como {@code Auth} de SIATE.
  * Ingeniería garantiza que solo WebSEAL llega a la app; {@code usuarioLocal} solo se usa con el perfil local. */
 public class IdentidadWebSealFilter extends OncePerRequestFilter {
 
@@ -72,7 +72,7 @@ public class IdentidadWebSealFilter extends OncePerRequestFilter {
         return valor == null || valor.isBlank() || SIN_AUTENTICAR.equals(valor.trim()) ? null : valor.trim();
     }
 
-    /** Como {@code Auth} de SIANTE: la cabecera debe llegar, pero vacía es un usuario sin grupos. */
+    /** Como {@code Auth} de SIATE: la cabecera debe llegar, pero vacía es un usuario sin grupos. */
     private static String grupos(String valor) {
         return valor == null || SIN_AUTENTICAR.equals(valor.trim()) ? null : valor.trim();
     }

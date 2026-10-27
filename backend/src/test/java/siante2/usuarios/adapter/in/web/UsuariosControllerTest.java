@@ -30,11 +30,11 @@ class UsuariosControllerTest {
 
     @Test
     void devuelveElUsuarioDeLasCabecerasDeWebSeal() throws Exception {
-        when(usuarioActual.obtener("jperez", List.of("SIANTE", "CGR")))
-                .thenReturn(new Usuario(5, "jperez", "Juan", "Pérez", "jperez@contraloria.cl", List.of("SIANTE", "CGR")));
+        when(usuarioActual.obtener("jperez", List.of("SIATE", "CGR")))
+                .thenReturn(new Usuario(5, "jperez", "Juan", "Pérez", "jperez@contraloria.cl", List.of("SIATE", "CGR")));
 
         mockMvc.perform(get("/siante2/api/usuarios/actual")
-                        .header("iv-user", "jperez").header("iv-groups", "SIANTE, CGR"))
+                        .header("iv-user", "jperez").header("iv-groups", "SIATE, CGR"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.nombre").value("Juan"))
@@ -84,14 +84,14 @@ class UsuariosControllerTest {
     @Test
     void conSaltoDeLineaEnElUsuarioElFirewallDeSpringSecurityResponde400() throws Exception {
         mockMvc.perform(get("/siante2/api/usuarios/actual")
-                        .header("iv-user", "jperez\n[] [admin] acceso concedido").header("iv-groups", "SIANTE"))
+                        .header("iv-user", "jperez\n[] [admin] acceso concedido").header("iv-groups", "SIATE"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void conUsuarioDeMasDe256CaracteresResponde401() throws Exception {
         mockMvc.perform(get("/siante2/api/usuarios/actual")
-                        .header("iv-user", "a".repeat(257)).header("iv-groups", "SIANTE"))
+                        .header("iv-user", "a".repeat(257)).header("iv-groups", "SIATE"))
                 .andExpect(status().isUnauthorized());
     }
 }

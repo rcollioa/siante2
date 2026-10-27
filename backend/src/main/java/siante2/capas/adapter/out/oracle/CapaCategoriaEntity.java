@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
-/** Categoría asignada a una capa: tabla {@code LAYERS_CATEGORIES} de SIANTE (modelo {@code LayersCategories}), solo lectura. */
+/** Categoría asignada a una capa: tabla {@code LAYERS_CATEGORIES} de SIATE (modelo {@code LayersCategories}), solo lectura. */
 @Entity
 @Immutable
 @Table(name = "LAYERS_CATEGORIES")

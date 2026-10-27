@@ -9,7 +9,7 @@ import java.util.Objects;
 import org.hibernate.annotations.Immutable;
 
 /** Distancia entre cada elemento de una capa base y cada uno de una capa de comparación: vista
- * {@code V_MEASURE_DISTANCE} de SIANTE (modelo {@code VMeasureDistance}), solo lectura. */
+ * {@code V_MEASURE_DISTANCE} de SIATE (modelo {@code VMeasureDistance}), solo lectura. */
 @Entity
 @Immutable
 @Table(name = "V_MEASURE_DISTANCE")
@@ -63,7 +63,7 @@ public class VistaDistanciaElementosEntity {
         return distance;
     }
 
-    /** Clave inferida del modelo de SIANTE (la vista no tiene clave): leer solo con proyecciones. */
+    /** Clave inferida del modelo de SIATE (la vista no tiene clave): leer solo con proyecciones. */
     public static class Clave implements Serializable {
 
         private Integer idFeatureBase;

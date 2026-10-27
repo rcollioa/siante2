@@ -1,4 +1,4 @@
-/* Como en SIANTE no hay cabecera: el logo y el usuario van en el menú lateral y el mapa ocupa el resto. */
+/* Como en SIATE no hay cabecera: el logo y el usuario van en el menú lateral y el mapa ocupa el resto. */
 .shell {
   position: relative;
   display: flex;

@@ -4,7 +4,7 @@ import XYZ from 'ol/source/XYZ';
 
 export type CapaBase = 'mapa' | 'satelital';
 
-/** Capas base del mapa, las mismas de SIANTE; solo una visible a la vez. */
+/** Capas base del mapa, las mismas de SIATE; solo una visible a la vez. */
 export function crearCapasBase(): Record<CapaBase, TileLayer> {
   return {
     mapa: new TileLayer({ source: new OSM() }),

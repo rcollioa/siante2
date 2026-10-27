@@ -9,7 +9,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.Immutable;
 
-/** Archivo multimedia (manual, GIF de ayuda): tabla {@code MULTIMEDIA} de SIANTE (modelo {@code Multimedia}), solo
+/** Archivo multimedia (manual, GIF de ayuda): tabla {@code MULTIMEDIA} de SIATE (modelo {@code Multimedia}), solo
  * lectura. {@code ARCHIVO} solo lo lee la consulta que lo pide; los listados usan proyecciones. */
 @Entity
 @Immutable

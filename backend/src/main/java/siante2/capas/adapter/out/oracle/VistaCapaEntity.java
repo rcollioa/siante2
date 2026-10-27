@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
-/** Vista de capas con su dueño y categoría: tabla {@code V_LAYERS} de SIANTE (modelo {@code VLayers}), solo lectura. */
+/** Vista de capas con su dueño y categoría: tabla {@code V_LAYERS} de SIATE (modelo {@code VLayers}), solo lectura. */
 @Entity
 @Immutable
 @Table(name = "V_LAYERS")

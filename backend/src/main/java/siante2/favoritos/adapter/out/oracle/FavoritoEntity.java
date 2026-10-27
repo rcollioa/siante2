@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import org.hibernate.annotations.Immutable;
 
-/** Favorito de un usuario: tabla {@code FAVORITES} de SIANTE (modelo {@code Favourites}), solo lectura. */
+/** Favorito de un usuario: tabla {@code FAVORITES} de SIATE (modelo {@code Favourites}), solo lectura. */
 @Entity
 @Immutable
 @Table(name = "FAVORITES")
@@ -39,7 +39,7 @@ public class FavoritoEntity {
         return createdDate;
     }
 
-    /** Clave compuesta: la tabla de SIANTE no tiene ID propio. */
+    /** Clave compuesta: la tabla de SIATE no tiene ID propio. */
     public static class Clave implements Serializable {
 
         private Integer userId;

@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import siante2.usuarios.application.port.in.ObtenerUsuarioActualUseCase;
 import siante2.usuarios.domain.Usuario;
 
-/** Reemplaza a {@code GET /siante/api/auth} de SIANTE. */
+/** Reemplaza a {@code GET /siante/api/auth} de SIATE. */
 @RestController
 @RequestMapping("/usuarios")
 public class UsuariosController {

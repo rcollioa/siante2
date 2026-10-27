@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import siante2.direcciones.application.port.in.BuscarDireccionesUseCase;
 import siante2.direcciones.domain.Direccion;
 
-/** Reemplaza la llamada directa del navegador a Nominatim que hacía SIANTE (control Geocoder del mapa). */
+/** Reemplaza la llamada directa del navegador a Nominatim que hacía SIATE (control Geocoder del mapa). */
 @RestController
 @RequestMapping("/direcciones")
 public class DireccionesController {

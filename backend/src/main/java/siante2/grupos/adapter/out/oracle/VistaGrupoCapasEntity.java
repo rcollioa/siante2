@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
-/** Vista de grupos con su cantidad de capas: tabla {@code V_LAYERS_GROUPS} de SIANTE (modelo {@code VLayersGroups}), solo lectura. */
+/** Vista de grupos con su cantidad de capas: tabla {@code V_LAYERS_GROUPS} de SIATE (modelo {@code VLayersGroups}), solo lectura. */
 @Entity
 @Immutable
 @Table(name = "V_LAYERS_GROUPS")

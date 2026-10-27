@@ -14,7 +14,7 @@ import { SECCIONES } from './secciones';
 export class MenuLateralComponent {
   protected readonly sesion = inject(SesionService);
   protected readonly secciones = SECCIONES;
-  // Como en SIANTE: empieza abierto en escritorio y cerrado en pantallas chicas.
+  // Como en SIATE: empieza abierto en escritorio y cerrado en pantallas chicas.
   protected readonly abierto = signal(!esPantallaChica());
   private readonly router = inject(Router);
   private readonly ventana = inject(DOCUMENT).defaultView;
@@ -25,7 +25,7 @@ export class MenuLateralComponent {
     }
   }
 
-  /** Como SIANTE, cierra la ventana. El navegador lo impide si no la abrió un script o ya tiene historial;
+  /** Como SIATE, cierra la ventana. El navegador lo impide si no la abrió un script o ya tiene historial;
    * entonces queda a la vista la página de salida. No toca la sesión de WebSEAL, que es de otro sistema. */
   protected salir(): void {
     this.sesion.finalizar();

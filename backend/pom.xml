@@ -162,7 +162,7 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.15</version>
-				<!-- Entidades JPA (solo mapeo, lo verifica EntidadesSianteTest) y la clase de arranque. -->
+				<!-- Entidades JPA (solo mapeo, lo verifica EntidadesSiateTest) y la clase de arranque. -->
 				<configuration>
 					<excludes>
 						<exclude>**/*Entity.class</exclude>

@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
-/** Capa: tabla {@code LAYERS} de SIANTE (modelo {@code Layer}), solo lectura.
+/** Capa: tabla {@code LAYERS} de SIATE (modelo {@code Layer}), solo lectura.
  * Sin {@code FILE_BASE64}: el archivo original se lee aparte, solo cuando se necesita. */
 @Entity
 @Immutable

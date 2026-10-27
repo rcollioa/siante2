@@ -18,7 +18,7 @@ public class OpenApiConfig {
     @Bean
     OpenAPI contratoApi() {
         return new OpenAPI()
-                .info(new Info().title("SIANTE API").version("1"))
+                .info(new Info().title("SIATE API").version("1"))
                 .servers(List.of(new Server().url("/")));
     }
 

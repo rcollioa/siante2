@@ -13,7 +13,7 @@ import siante2.OracleFreeDePrueba;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Alta por JPA en USERS con ID asignado por trigger y secuencia, como en SIANTE. */
+/** Alta por JPA en USERS con ID asignado por trigger y secuencia, como en SIATE. */
 @Tag("oracle")
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -41,12 +41,12 @@ class OracleUsuariosRepositoryOracleTest {
     void registraConJpaYRecibeElIdDelTrigger() {
         OracleUsuariosRepository repositorio = new OracleUsuariosRepository(jpa);
 
-        repositorio.registrar("jperez", List.of("SIANTE", "CGR"));
+        repositorio.registrar("jperez", List.of("SIATE", "CGR"));
 
-        var usuario = repositorio.buscarPorIvUser("jperez", List.of("SIANTE")).orElseThrow();
+        var usuario = repositorio.buscarPorIvUser("jperez", List.of("SIATE")).orElseThrow();
         assertThat(usuario.id()).isGreaterThanOrEqualTo(500);
         assertThat(usuario.nombre()).isEqualTo("jperez");
         assertThat(jdbc.queryForObject("select IV_GROUP from USERS where ID = ?", String.class, usuario.id()))
-                .isEqualTo("SIANTE,CGR");
+                .isEqualTo("SIATE,CGR");
     }
 }

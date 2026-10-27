@@ -77,7 +77,7 @@ describe('MapaService', () => {
       expect(servicio.mapa.getView().getZoom()).toBe(12);
     });
 
-    it('en pantallas chicas parte con zoom 7, como SIANTE', () => {
+    it('en pantallas chicas parte con zoom 7, como SIATE', () => {
       vi.stubGlobal('matchMedia', (consulta: string) => ({ matches: consulta === '(max-width: 48rem)' }));
       servicio.ubicarUsuario();
       responder(-70.6, -33.4);

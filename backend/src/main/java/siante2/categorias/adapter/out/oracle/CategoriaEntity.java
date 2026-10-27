@@ -5,14 +5,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
-/** Tabla {@code CATEGORIES} de SIANTE (modelo {@code Category}). Solo lectura mientras
- * SIANTE siga escribiendo en la misma base. */
+/** Tabla {@code CATEGORIES} de SIATE (modelo {@code Category}). Solo lectura mientras
+ * SIATE siga escribiendo en la misma base. */
 @Entity
 @Immutable
 @Table(name = "CATEGORIES")
 public class CategoriaEntity {
 
-    /** Valor de {@code STATUS} para registros activos ({@code REGISTER_STATUS_ACTIVE} en SIANTE). */
+    /** Valor de {@code STATUS} para registros activos ({@code REGISTER_STATUS_ACTIVE} en SIATE). */
     public static final String ACTIVA = "1";
 
     @Id

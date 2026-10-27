@@ -6,7 +6,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.Immutable;
 
-/** Reporte público (QR) de una capa o grupo: tabla {@code PUBLIC_REPORTS} de SIANTE (modelo {@code PublicReports}), solo lectura. */
+/** Reporte público (QR) de una capa o grupo: tabla {@code PUBLIC_REPORTS} de SIATE (modelo {@code PublicReports}), solo lectura. */
 @Entity
 @Immutable
 @Table(name = "PUBLIC_REPORTS")

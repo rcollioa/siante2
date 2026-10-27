@@ -7,7 +7,7 @@ public record ArchivoMultimedia(String nombre, String tipoContenido, byte[] cont
     private static final String GIF = "image/gif";
     private static final String PNG = "image/png";
 
-    /** El tipo sale de los primeros bytes (SIANTE no lo guarda); el nombre, de la descripción. */
+    /** El tipo sale de los primeros bytes (SIATE no lo guarda); el nombre, de la descripción. */
     public static ArchivoMultimedia desde(String descripcion, byte[] contenido) {
         String tipo;
         String extension;

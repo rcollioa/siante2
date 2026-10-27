@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
-/** Catálogo de puntos para importar: tabla {@code POINTS_CATALOG} de SIANTE (modelo {@code PointsCatalog}), solo lectura. */
+/** Catálogo de puntos para importar: tabla {@code POINTS_CATALOG} de SIATE (modelo {@code PointsCatalog}), solo lectura. */
 @Entity
 @Immutable
 @Table(name = "POINTS_CATALOG")

@@ -16,7 +16,7 @@
   box-shadow: var(--shadow-md);
 }
 
-/* Sin cabecera, el logo de SIANTE va en la tarjeta, como en su página de usuario no autorizado. */
+/* Sin cabecera, el logo de SIATE va en la tarjeta, como en su página de usuario no autorizado. */
 .logo {
   display: block;
   height: 3.5rem;

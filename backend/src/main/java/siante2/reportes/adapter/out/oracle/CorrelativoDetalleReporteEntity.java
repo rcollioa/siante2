@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
-/** Vista {@code NEXTVAL_PUBLIC_REPORTS_DETAILS} de SIANTE (modelo {@code NextValPublicReportsDetails}): cada lectura entrega el
+/** Vista {@code NEXTVAL_PUBLIC_REPORTS_DETAILS} de SIATE (modelo {@code NextValPublicReportsDetails}): cada lectura entrega el
  * siguiente correlativo de detalles de reportes públicos (X_PUREDET). */
 @Entity
 @Immutable

@@ -18,7 +18,7 @@ import siante2.multimedia.application.port.in.ObtenerArchivoMultimediaUseCase;
 import siante2.multimedia.domain.ArchivoMultimedia;
 import siante2.multimedia.domain.Multimedia;
 
-/** Reemplaza a {@code GET /siante/api/multimedia/getAll} de SIANTE, que entregaba todos los archivos en base64. */
+/** Reemplaza a {@code GET /siante/api/multimedia/getAll} de SIATE, que entregaba todos los archivos en base64. */
 @RestController
 @Catalogo
 @RequestMapping("/multimedia")

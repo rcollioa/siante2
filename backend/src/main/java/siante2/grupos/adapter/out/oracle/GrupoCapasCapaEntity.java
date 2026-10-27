@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import org.hibernate.annotations.Immutable;
 
-/** Capa que pertenece a un grupo: tabla {@code LAYERS_GROUPS_LAYERS} de SIANTE (modelo {@code LayersGroupsLayers}), solo lectura. */
+/** Capa que pertenece a un grupo: tabla {@code LAYERS_GROUPS_LAYERS} de SIATE (modelo {@code LayersGroupsLayers}), solo lectura. */
 @Entity
 @Immutable
 @Table(name = "LAYERS_GROUPS_LAYERS")
@@ -39,7 +39,7 @@ public class GrupoCapasCapaEntity {
         return createdDate;
     }
 
-    /** Clave compuesta: la tabla de SIANTE no tiene ID propio. */
+    /** Clave compuesta: la tabla de SIATE no tiene ID propio. */
     public static class Clave implements Serializable {
 
         private Integer layerId;

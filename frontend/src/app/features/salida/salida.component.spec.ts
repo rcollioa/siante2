@@ -9,7 +9,7 @@ describe('SalidaComponent', () => {
     fixture.detectChanges();
     const elemento: HTMLElement = fixture.nativeElement;
 
-    expect(elemento.querySelector('h1')?.textContent).toBe('Ha salido de SIANTE');
+    expect(elemento.querySelector('h1')?.textContent).toBe('Ha salido de SIATE');
     expect(elemento.querySelector('a.volver')?.getAttribute('href')).toBe('/mapa');
   });
 });

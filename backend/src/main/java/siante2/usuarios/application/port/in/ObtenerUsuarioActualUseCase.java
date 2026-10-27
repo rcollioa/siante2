@@ -5,6 +5,6 @@ import siante2.usuarios.domain.Usuario;
 
 public interface ObtenerUsuarioActualUseCase {
 
-    /** Usuario autenticado; lo registra en {@code USERS} la primera vez, como {@code Auth} de SIANTE. */
+    /** Usuario autenticado; lo registra en {@code USERS} la primera vez, como {@code Auth} de SIATE. */
     Usuario obtener(String ivUser, List<String> grupos);
 }
