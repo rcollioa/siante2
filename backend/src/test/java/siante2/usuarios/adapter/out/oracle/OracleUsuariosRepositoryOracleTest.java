@@ -30,8 +30,8 @@ class OracleUsuariosRepositoryOracleTest {
     void prepararEsquemaDeSiante() {
         if (jdbc.queryForObject("select count(*) from user_tables where table_name = 'USERS'", Integer.class) == 0) {
             jdbc.execute("create sequence SEQ_USERS start with 500");
-            jdbc.execute("create table USERS (ID number primary key, NAME varchar2(100), LAST_NAME varchar2(100),"
-                    + " EMAIL varchar2(100), AREA varchar2(100), IV_USER varchar2(100), IV_GROUP varchar2(400))");
+            jdbc.execute("create table USERS (ID number primary key, NAME varchar2(50), LAST_NAME varchar2(50),"
+                    + " EMAIL varchar2(100), AREA varchar2(50), IV_USER varchar2(20), IV_GROUP varchar2(1000))");
             jdbc.execute("create or replace trigger TRG_USERS before insert on USERS for each row"
                     + " begin :new.ID := SEQ_USERS.nextval; end;");
         }

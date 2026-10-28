@@ -89,9 +89,9 @@ class UsuariosControllerTest {
     }
 
     @Test
-    void conUsuarioDeMasDe256CaracteresResponde401() throws Exception {
+    void conUsuarioMasLargoQueUsersIvUserResponde401() throws Exception {
         mockMvc.perform(get("/siante2/api/usuarios/actual")
-                        .header("iv-user", "a".repeat(257)).header("iv-groups", "SIATE"))
+                        .header("iv-user", "a".repeat(21)).header("iv-groups", "SIATE"))
                 .andExpect(status().isUnauthorized());
     }
 }

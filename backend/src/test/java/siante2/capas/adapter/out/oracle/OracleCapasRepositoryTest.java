@@ -109,7 +109,7 @@ class OracleCapasRepositoryTest {
                 + "values (?, ?, ?, ?, ?, ?, ?)", id, dueno, nombre, "Descripción de " + nombre, visibilidad, estado, json);
     }
 
-    /** En H2 ID_FEATURE es clave primaria (como en la entidad), así que se numera por capa desde capa × 100. */
+    /** Numerados desde capa × 100 para distinguirlos en las aserciones (la clave real es ID_FEATURE + ID_LAYER). */
     private void elemento(int capa, int numero, String json) {
         jdbc.update("insert into LAYERS_FEATURES (ID_LAYER, ID_FEATURE, TYPE, JSON_METADATA) values (?, ?, ?, ?)",
                 capa, numero + capa * 100, "Point", json);

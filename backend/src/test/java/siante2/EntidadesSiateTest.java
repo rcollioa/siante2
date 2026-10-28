@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class EntidadesSiateTest {
 
-    private static final Map<String, List<String>> COLUMNAS_SIATE = Map.ofEntries(
+    static final Map<String, List<String>> COLUMNAS_SIATE = Map.ofEntries(
             Map.entry("CATEGORIES", List.of("ID", "NAME", "DESCRIPTION", "STATUS")),
             Map.entry("USERS", List.of("ID", "NAME", "LAST_NAME", "EMAIL", "AREA", "IV_USER", "IV_GROUP")),
             Map.entry("LAYERS", List.of("ID", "OWNER", "NAME", "ORIGIN", "STATUS", "JSON_METADATA", "DESCRIPTION",
@@ -48,8 +48,29 @@ class EntidadesSiateTest {
             Map.entry("MULTIMEDIA", List.of("CREADO", "F_CREACION", "MODIFICADO", "F_MODIFICACION", "DESCRIPCION",
                     "X_MULTIMEDIA", "ARCHIVO")));
 
+    /** Claves primarias de las tablas en Oracle (diccionario del esquema SIANTE, docs/modelo-datos.md). Si la
+     * entidad declara otra, Hibernate mezcla o descarta filas sin aviso. Las vistas no tienen clave y quedan fuera. */
+    static final Map<String, List<String>> CLAVES_ORACLE = Map.ofEntries(
+            Map.entry("CATEGORIES", List.of("ID")),
+            Map.entry("USERS", List.of("ID")),
+            Map.entry("LAYERS", List.of("ID")),
+            Map.entry("LAYERS_CATEGORIES", List.of("LAYER_ID", "CATEGORY_ID")),
+            Map.entry("LAYERS_FEATURES", List.of("ID_FEATURE", "ID_LAYER")),
+            Map.entry("POINTS_CATALOG", List.of("ID")),
+            Map.entry("SCHEDULER_DATA", List.of("ID")),
+            Map.entry("FAVORITES", List.of("USER_ID", "L_GROUP_ID")),
+            Map.entry("LAYERS_GROUPS", List.of("ID")),
+            Map.entry("LAYERS_GROUPS_LAYERS", List.of("LAYER_ID", "L_GROUP_ID")),
+            Map.entry("PUBLIC_REPORTS", List.of("X_PURE")),
+            Map.entry("PUBLIC_REPORTS_DETAILS", List.of("X_PUREDET")),
+            Map.entry("MULTIMEDIA", List.of("X_MULTIMEDIA")));
+
     @Autowired
     private JdbcTemplate jdbc;
+
+    static Stream<Arguments> clavesOracle() {
+        return CLAVES_ORACLE.entrySet().stream().map(e -> Arguments.of(e.getKey(), e.getValue()));
+    }
 
     static Stream<Arguments> tablas() {
         return COLUMNAS_SIATE.entrySet().stream().map(e -> Arguments.of(e.getKey(), e.getValue()));
@@ -63,5 +84,18 @@ class EntidadesSiateTest {
                 String.class, tabla);
 
         assertThat(creadas).as("columnas de %s", tabla).containsExactlyInAnyOrderElementsOf(columnas);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("clavesOracle")
+    void laClavePrimariaEsLaDeOracle(String tabla, List<String> clave) {
+        List<String> creada = jdbc.queryForList("""
+                select k.COLUMN_NAME from INFORMATION_SCHEMA.TABLE_CONSTRAINTS t
+                join INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+                  on k.CONSTRAINT_SCHEMA = t.CONSTRAINT_SCHEMA and k.CONSTRAINT_NAME = t.CONSTRAINT_NAME
+                where t.TABLE_SCHEMA = 'PUBLIC' and t.TABLE_NAME = ? and t.CONSTRAINT_TYPE = 'PRIMARY KEY'""",
+                String.class, tabla);
+
+        assertThat(creada).as("clave primaria de %s", tabla).containsExactlyInAnyOrderElementsOf(clave);
     }
 }

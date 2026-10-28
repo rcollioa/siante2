@@ -23,9 +23,9 @@ public class IdentidadWebSealFilter extends OncePerRequestFilter {
     public static final String CABECERA_GRUPOS = "iv-groups";
     public static final String CLAVE_MDC = "usuario";
     private static final String SIN_AUTENTICAR = "Unauthenticated";
-    /** Un iv-user más largo no viene de WebSEAL y no se registra. Los caracteres de control ya los rechaza el
-     * firewall de Spring Security con 400, antes de llegar aquí. */
-    private static final int LARGO_MAXIMO_USUARIO = 256;
+    /** El largo de {@code USERS.IV_USER} ({@code VARCHAR2(20)}): uno más largo no se podría registrar. Los
+     * caracteres de control ya los rechaza el firewall de Spring Security con 400, antes de llegar aquí. */
+    private static final int LARGO_MAXIMO_USUARIO = 20;
     private static final Logger log = LoggerFactory.getLogger(IdentidadWebSealFilter.class);
 
     private final String usuarioLocal;
