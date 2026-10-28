@@ -16,7 +16,7 @@
 	<properties>
 		<java.version>25</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<tests.excluidos>oracle</tests.excluidos>
+		<tests.excluidos>oracle,postgres</tests.excluidos>
 		<!-- Lo completa JaCoCo (prepare-agent); vacío si se omite. -->
 		<argLine></argLine>
 		<tests.incluidos></tests.incluidos>
@@ -107,6 +107,28 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers-junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- Prueba de concepto con PostgreSQL/PostGIS (tests @Tag("postgres"), docs/modelo-datos.md): solo en
+		     los tests, la aplicación sigue en Oracle. Flyway carga el esquema espejo de Oracle. -->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<!-- Base en memoria para los tests (src/test/resources/application.properties): corren sin
@@ -216,14 +238,21 @@
 		</plugins>
 	</build>
 
-	<!-- Los tests @Tag("oracle") levantan Oracle Free con Docker: fuera del build normal y de la imagen.
-	     Se corren con: mvnw test -Poracle -->
+	<!-- Los tests @Tag("oracle") y @Tag("postgres") levantan la base con Docker: fuera del build normal y de la
+	     imagen. Se corren con: mvnw test -Poracle  /  mvnw test -Ppostgres -->
 	<profiles>
 		<profile>
 			<id>oracle</id>
 			<properties>
 				<tests.excluidos></tests.excluidos>
 				<tests.incluidos>oracle</tests.incluidos>
+			</properties>
+		</profile>
+		<profile>
+			<id>postgres</id>
+			<properties>
+				<tests.excluidos></tests.excluidos>
+				<tests.incluidos>postgres</tests.incluidos>
 			</properties>
 		</profile>
 	</profiles>
