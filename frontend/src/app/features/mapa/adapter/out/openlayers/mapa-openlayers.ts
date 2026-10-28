@@ -11,8 +11,11 @@ import VectorLayer from 'ol/layer/Vector';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import VectorSource from 'ol/source/Vector';
 import { Circle, Fill, Stroke, Style, Text as Texto } from 'ol/style';
-import { esPantallaChica } from '../../shared/pantalla/pantalla-chica';
-import { CapaBase, crearCapasBase } from './capas-base';
+import { esPantallaChica } from '../../../../../shared/pantalla/pantalla-chica';
+import { MapaPort } from '../../../application/port/out/mapa.port';
+import { AvisoUbicacion, CapaBase, ElementoMapa, ZonaVisible } from '../../../domain/mapa';
+import { crearCapasBase } from './capas-base';
+import { aFeatures, ELEMENTO } from './elementos-openlayers';
 
 const CENTRO_CHILE = fromLonLat([-70.65, -33.45]);
 const ZOOM_DIRECCION = 17;
@@ -26,16 +29,6 @@ const OPCIONES_UBICACION: PositionOptions = { enableHighAccuracy: false, timeout
 const FALLAS_PARA_AVISAR = 4;
 /** Preferencia de cada usuario en su navegador; si el almacenamiento no está disponible, parte con el mapa. */
 const CLAVE_CAPA_BASE = 'siante2.capaBase';
-
-/** Por qué no se muestra la posición del usuario. */
-export type AvisoUbicacion = 'no-disponible' | 'sin-permiso';
-
-/** Centro (EPSG:4326) y zoom del mapa. */
-export interface ZonaVisible {
-  latitud: number;
-  longitud: number;
-  zoom: number;
-}
 
 // El canvas no lee variables CSS: mismos valores que --color-danger y --color-surface.
 const ESTILO_MARCADOR = new Style({
@@ -58,9 +51,9 @@ const ESTILO_UBICACION = new Style({
   })
 });
 
-/** Instancia única del mapa; las funcionalidades agregan sus capas e interacciones aquí. */
+/** Instancia única del mapa con OpenLayers; el resto de la aplicación llega a él por MapaPort. */
 @Injectable({ providedIn: 'root' })
-export class MapaService {
+export class MapaOpenLayers extends MapaPort {
   private readonly capasBase = crearCapasBase();
   private readonly capaBaseActual = signal<CapaBase>('mapa');
   readonly capaBase = this.capaBaseActual.asReadonly();
@@ -75,14 +68,10 @@ export class MapaService {
   private posicionUsuario: Coordinate | null = null;
   private teselasFallidasSeguidas = 0;
 
-  /** Por qué no aparece la posición del usuario, para avisarle; null si no hay nada que avisar. */
   readonly avisoUbicacion = signal<AvisoUbicacion | null>(null);
-  /** Esperando la posición que pidió el usuario con "Mi ubicación". */
   readonly ubicando = signal(false);
-  /** Las teselas de la capa base no cargan: sin salida a internet o servidor de mapas caído. */
   readonly sinMapaBase = signal(false);
-  /** Elemento de la capa abierta en el que el usuario hizo clic; null si ninguno. */
-  readonly elementoSeleccionado = signal<Feature | null>(null);
+  readonly elementoSeleccionado = signal<ElementoMapa | null>(null);
 
   readonly mapa = new Map({
     layers: [
@@ -96,6 +85,7 @@ export class MapaService {
   });
 
   constructor() {
+    super();
     for (const capa of Object.values(this.capasBase)) {
       const fuente = capa.getSource();
       fuente?.on('tileloadend', () => {
@@ -117,13 +107,13 @@ export class MapaService {
         layerFilter: (capa) => capa === this.capaElementos,
         hitTolerance: 4
       });
-      this.elementoSeleccionado.set(elemento ?? null);
+      this.elementoSeleccionado.set((elemento?.get(ELEMENTO) as ElementoMapa | undefined) ?? null);
     });
   }
 
-  /** Muestra los elementos de una capa en lugar de los anteriores y acerca el mapa para verlos todos. */
-  mostrarElementos(features: Feature[]): void {
+  mostrarElementos(elementos: readonly ElementoMapa[]): void {
     this.quitarElementos();
+    const features = aFeatures(elementos);
     this.elementos.addFeatures(features);
     const extension = this.elementos.getExtent();
     if (features.length === 0 || !extension) {
@@ -158,7 +148,15 @@ export class MapaService {
     guardarCapaBase(capa);
   }
 
-  /** Centra el mapa en el punto (EPSG:4326) y lo marca; sin animación si el usuario reduce el movimiento. */
+  descartarAvisoMapaBase(): void {
+    this.sinMapaBase.set(false);
+  }
+
+  descartarAvisoUbicacion(): void {
+    this.avisoUbicacion.set(null);
+  }
+
+  /** Sin animación si el usuario reduce el movimiento. */
   irA(longitud: number, latitud: number): void {
     const punto = fromLonLat([longitud, latitud]);
     this.direccionElegida = true;
@@ -171,7 +169,6 @@ export class MapaService {
     this.marcador.clear();
   }
 
-  /** Lo que se está mirando: las sugerencias de direcciones cercanas aparecen primero. */
   zonaVisible(): ZonaVisible {
     const vista = this.mapa.getView();
     const [longitud, latitud] = toLonLat(vista.getCenter() ?? CENTRO_CHILE);

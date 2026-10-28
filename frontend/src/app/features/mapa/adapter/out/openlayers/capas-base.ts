@@ -1,8 +1,7 @@
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
 import XYZ from 'ol/source/XYZ';
-
-export type CapaBase = 'mapa' | 'satelital';
+import { CapaBase } from '../../../domain/mapa';
 
 /** Capas base del mapa, las mismas de SIATE; solo una visible a la vez. */
 export function crearCapasBase(): Record<CapaBase, TileLayer> {

@@ -2,9 +2,10 @@ import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
-import { MenuLateralService } from '../../shared/menu-lateral/menu-lateral.service';
-import { CapaAbiertaService } from './capa-abierta.service';
-import { CapasApiService, ResumenCapa } from './capas-api.service';
+import { MenuLateralService } from '../../../../../shared/menu-lateral/menu-lateral.service';
+import { CapaAbierta } from '../../../application/capa-abierta';
+import { CapasRepositorio } from '../../../application/port/out/capas.repositorio';
+import { ResumenCapa } from '../../../domain/capa';
 import { MisCapasComponent } from './mis-capas.component';
 
 describe('MisCapasComponent', () => {
@@ -28,8 +29,9 @@ describe('MisCapasComponent', () => {
       imports: [MisCapasComponent],
       providers: [
         provideRouter([{ path: '**', children: [] }]),
-        { provide: CapasApiService, useValue: { listarMias } },
-        { provide: CapaAbiertaService, useValue: capaAbierta },
+        // MisCapas real con un doble del repositorio: la pantalla y su caso de uso juntos, sin HTTP.
+        { provide: CapasRepositorio, useValue: { listarMias } },
+        { provide: CapaAbierta, useValue: capaAbierta },
         { provide: MenuLateralService, useValue: menu }
       ]
     });

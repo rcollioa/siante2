@@ -2,6 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { proveerCapas } from '../../features/capas/capas.providers';
+import { proveerMapa } from '../../features/mapa/mapa.providers';
 import { SesionService } from '../sesion/sesion.service';
 import { MenuLateralComponent } from './menu-lateral.component';
 
@@ -16,7 +18,7 @@ describe('MenuLateralComponent', () => {
   function crear(conUsuario = true): ComponentFixture<MenuLateralComponent> {
     TestBed.configureTestingModule({
       imports: [MenuLateralComponent],
-      providers: [provideRouter([{ path: '**', children: [] }]), provideHttpClient(), provideHttpClientTesting()]
+      providers: [provideRouter([{ path: '**', children: [] }]), provideHttpClient(), provideHttpClientTesting(), ...proveerMapa(), ...proveerCapas()]
     });
     const sesion = TestBed.inject(SesionService);
     if (conUsuario) {

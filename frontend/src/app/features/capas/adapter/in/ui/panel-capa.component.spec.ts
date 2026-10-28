@@ -2,14 +2,14 @@ import { LOCALE_ID, signal } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localeEsCl from '@angular/common/locales/es-CL';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { CapaAbiertaService } from './capa-abierta.service';
-import { Capa, ElementoCapa } from './capas-api.service';
+import { CapaAbierta } from '../../../application/capa-abierta';
+import { Capa, ElementoCapa } from '../../../domain/capa';
 import { PanelCapaComponent } from './panel-capa.component';
 
 describe('PanelCapaComponent', () => {
   const elemento: ElementoCapa = {
     id: 0,
-    geometria: { type: 'Point', coordinates: [-70.65, -33.44], geometries: [] },
+    geometria: { type: 'Point', coordinates: [-70.65, -33.44] },
     radio: 0,
     nombre: 'Bodega central',
     descripcion: 'Junto al río',
@@ -31,7 +31,8 @@ describe('PanelCapaComponent', () => {
     abriendo: signal<number | null>(null),
     error: signal(''),
     elemento: signal<ElementoCapa | null>(null),
-    cerrar: vi.fn()
+    cerrar: vi.fn(),
+    descartarError: vi.fn()
   };
   let fixture: ComponentFixture<PanelCapaComponent>;
   const texto = () => (fixture.nativeElement as HTMLElement).textContent?.replace(/\s+/g, ' ').trim() ?? '';
@@ -44,7 +45,7 @@ describe('PanelCapaComponent', () => {
     servicio.elemento.set(null);
     TestBed.configureTestingModule({
       imports: [PanelCapaComponent],
-      providers: [{ provide: CapaAbiertaService, useValue: servicio }, { provide: LOCALE_ID, useValue: 'es-CL' }]
+      providers: [{ provide: CapaAbierta, useValue: servicio }, { provide: LOCALE_ID, useValue: 'es-CL' }]
     });
     fixture = TestBed.createComponent(PanelCapaComponent);
   });
@@ -94,6 +95,6 @@ describe('PanelCapaComponent', () => {
     expect(texto()).toContain('No se pudo abrir la capa.');
 
     fixture.nativeElement.querySelector('button.boton').click();
-    expect(servicio.error()).toBe('');
+    expect(servicio.descartarError).toHaveBeenCalled();
   });
 });

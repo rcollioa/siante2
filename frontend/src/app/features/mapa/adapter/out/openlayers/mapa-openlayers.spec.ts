@@ -1,14 +1,14 @@
-import Feature from 'ol/Feature';
-import Point from 'ol/geom/Point';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
-import { fromLonLat, toLonLat } from 'ol/proj';
+import { toLonLat } from 'ol/proj';
 import TileSource from 'ol/source/Tile';
 import VectorSource from 'ol/source/Vector';
-import { MapaService } from './mapa.service';
+import { ElementoMapa } from '../../../domain/mapa';
+import { ELEMENTO } from './elementos-openlayers';
+import { MapaOpenLayers } from './mapa-openlayers';
 
-describe('MapaService', () => {
-  let servicio: MapaService;
+describe('MapaOpenLayers', () => {
+  let servicio: MapaOpenLayers;
 
   // Las dos primeras capas son las base; después, los elementos de la capa abierta, el marcador de direcciones
   // y la posición del usuario.
@@ -22,7 +22,7 @@ describe('MapaService', () => {
     // jsdom no trae ResizeObserver y OpenLayers lo usa al crear el mapa.
     vi.stubGlobal('ResizeObserver', class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn(); });
     localStorage.clear();
-    servicio = new MapaService();
+    servicio = new MapaOpenLayers();
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -44,7 +44,7 @@ describe('MapaService', () => {
   it('recuerda la capa base elegida en el siguiente ingreso', () => {
     servicio.usarCapaBase('satelital');
 
-    const siguienteIngreso = new MapaService();
+    const siguienteIngreso = new MapaOpenLayers();
 
     expect(siguienteIngreso.capaBase()).toBe('satelital');
     expect(siguienteIngreso.mapa.getLayers().getArray().slice(0, 2).map((capa) => capa.getVisible())).toEqual([false, true]);
@@ -58,7 +58,7 @@ describe('MapaService', () => {
       throw new DOMException('bloqueado', 'SecurityError');
     });
 
-    const sinAlmacenamiento = new MapaService();
+    const sinAlmacenamiento = new MapaOpenLayers();
     sinAlmacenamiento.usarCapaBase('satelital');
 
     expect(sinAlmacenamiento.capaBase()).toBe('satelital');
@@ -76,6 +76,9 @@ describe('MapaService', () => {
 
       fuenteBase().dispatchEvent('tileloaderror');
       expect(servicio.sinMapaBase()).toBe(true);
+
+      servicio.descartarAvisoMapaBase();
+      expect(servicio.sinMapaBase()).toBe(false);
     });
 
     it('una tesela que carga reinicia la cuenta y quita el aviso', () => {
@@ -109,9 +112,16 @@ describe('MapaService', () => {
 
   it('muestra los elementos de una capa en lugar de los anteriores y acerca el mapa a ellos', () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true }));
-    const punto = (lon: number, lat: number) => new Feature(new Point(fromLonLat([lon, lat])));
-    servicio.mostrarElementos([punto(-70.65, -33.44)]);
-    servicio.elementoSeleccionado.set(elementos()[0]);
+    const punto = (lon: number, lat: number): ElementoMapa => ({
+      geometria: { type: 'Point', coordinates: [lon, lat] },
+      radio: 0,
+      estilo: { color: '', grosor: 0, relleno: '', icono: '' }
+    });
+    const bodega = punto(-70.65, -33.44);
+    servicio.mostrarElementos([bodega]);
+    // Al hacer clic se entrega el mismo elemento que se mostró.
+    expect(elementos()[0].get(ELEMENTO)).toBe(bodega);
+    servicio.elementoSeleccionado.set(bodega);
 
     // Sin tamaño (aún no se monta) no se ajusta; al tenerlo, sí, y solo a la última capa abierta.
     servicio.mostrarElementos([punto(-71.6, -33.0), punto(-71.5, -32.9)]);
@@ -198,6 +208,9 @@ describe('MapaService', () => {
       fallar(3);
 
       expect(servicio.avisoUbicacion()).toBe('no-disponible');
+
+      servicio.descartarAvisoUbicacion();
+      expect(servicio.avisoUbicacion()).toBeNull();
     });
 
     it('no avisa si el usuario negó el permiso', () => {

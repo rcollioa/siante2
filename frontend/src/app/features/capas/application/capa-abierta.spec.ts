@@ -1,17 +1,16 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import Feature from 'ol/Feature';
 import { Observable, of, Subject, throwError } from 'rxjs';
-import { MapaService } from '../mapa/mapa.service';
-import { CapaAbiertaService } from './capa-abierta.service';
-import { Capa, CapasApiService } from './capas-api.service';
-import { ELEMENTO } from './elementos-openlayers';
+import { MapaPort } from '../../mapa/application/port/out/mapa.port';
+import { ElementoMapa } from '../../mapa/domain/mapa';
+import { Capa, CapaNoEncontrada, ElementoCapa } from '../domain/capa';
+import { CapaAbierta } from './capa-abierta';
+import { CapasRepositorio } from './port/out/capas.repositorio';
 
-describe('CapaAbiertaService', () => {
-  const elemento = {
+describe('CapaAbierta', () => {
+  const elemento: ElementoCapa = {
     id: 0,
-    geometria: { type: 'Point', coordinates: [-70.65, -33.44], geometries: [] },
+    geometria: { type: 'Point', coordinates: [-70.65, -33.44] },
     radio: 0,
     nombre: 'Bodega',
     descripcion: '',
@@ -29,8 +28,9 @@ describe('CapaAbiertaService', () => {
     ...cambios
   });
   let ver: ReturnType<typeof vi.fn<(id: number) => Observable<Capa>>>;
-  const mapa = { mostrarElementos: vi.fn(), quitarElementos: vi.fn(), elementoSeleccionado: signal<Feature | null>(null) };
-  let servicio: CapaAbiertaService;
+  // Dobles en memoria de los puertos: sin HTTP ni OpenLayers.
+  const mapa = { mostrarElementos: vi.fn(), quitarElementos: vi.fn(), elementoSeleccionado: signal<ElementoMapa | null>(null) };
+  let servicio: CapaAbierta;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,11 +38,11 @@ describe('CapaAbiertaService', () => {
     ver = vi.fn(() => of(capa()));
     TestBed.configureTestingModule({
       providers: [
-        { provide: CapasApiService, useValue: { ver } },
-        { provide: MapaService, useValue: mapa }
+        { provide: CapasRepositorio, useValue: { ver } },
+        { provide: MapaPort, useValue: mapa }
       ]
     });
-    servicio = TestBed.inject(CapaAbiertaService);
+    servicio = TestBed.inject(CapaAbierta);
   });
 
   it('abre la capa y muestra sus elementos en el mapa', () => {
@@ -50,8 +50,7 @@ describe('CapaAbiertaService', () => {
 
     expect(servicio.capa()?.nombre).toBe('Bodegas');
     expect(servicio.abriendo()).toBeNull();
-    const [features] = mapa.mostrarElementos.mock.calls[0] as [Feature[]];
-    expect(features.map((f) => f.get(ELEMENTO))).toEqual([elemento]);
+    expect(mapa.mostrarElementos).toHaveBeenCalledWith([elemento]);
   });
 
   it('indica qué capa se está abriendo mientras llega', () => {
@@ -75,27 +74,27 @@ describe('CapaAbiertaService', () => {
   });
 
   it('el elemento en que se hizo clic se muestra con su información', () => {
-    const feature = new Feature();
-    feature.set(ELEMENTO, elemento);
-
-    mapa.elementoSeleccionado.set(feature);
+    mapa.elementoSeleccionado.set(elemento);
 
     expect(servicio.elemento()).toBe(elemento);
   });
 
   it('si la capa ya no existe lo avisa y deja la que estaba abierta', () => {
     servicio.abrir(1);
-    ver.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+    ver.mockReturnValue(throwError(() => new CapaNoEncontrada(2)));
 
     servicio.abrir(2);
 
     expect(servicio.error()).toBe('La capa ya no existe o no tiene permiso para verla.');
     expect(servicio.capa()?.id).toBe(1);
     expect(mapa.mostrarElementos).toHaveBeenCalledTimes(1);
+
+    servicio.descartarError();
+    expect(servicio.error()).toBe('');
   });
 
   it('otros errores invitan a intentar de nuevo', () => {
-    ver.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 503 })));
+    ver.mockReturnValue(throwError(() => new Error('sin conexión')));
 
     servicio.abrir(1);
 

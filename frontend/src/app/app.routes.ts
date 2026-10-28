@@ -8,7 +8,7 @@ export const routes: Routes = [
 	{
 		path: 'mapa',
 		canActivate: [sesionGuard],
-		loadComponent: () => import('./features/mapa/mapa.component').then((m) => m.MapaComponent)
+		loadComponent: () => import('./features/mapa/adapter/in/ui/mapa.component').then((m) => m.MapaComponent)
 	},
 	{
 		path: 'ayuda',

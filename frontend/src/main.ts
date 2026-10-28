@@ -11,6 +11,8 @@ import { pantallaCargaInterceptor } from './app/shared/pantalla-carga/pantalla-c
 import { tiempoLimiteInterceptor } from './app/shared/errores/tiempo-limite.interceptor';
 import { reintentoInterceptor } from './app/shared/errores/reintento.interceptor';
 import { refrescoCacheInterceptor } from './app/shared/cache/refresco-cache.interceptor';
+import { proveerMapa } from './app/features/mapa/mapa.providers';
+import { proveerCapas } from './app/features/capas/capas.providers';
 
 // Números con formato chileno: 3.001 en vez de 3,001.
 registerLocaleData(localeEsCl, 'es-CL');
@@ -25,6 +27,9 @@ bootstrapApplication(AppComponent, {
     provideHttpClient(withInterceptors([
       pantallaCargaInterceptor, reintentoInterceptor, tiempoLimiteInterceptor, refrescoCacheInterceptor
     ])),
-    { provide: RouteReuseStrategy, useClass: GrupoRouteReuseStrategy }
+    { provide: RouteReuseStrategy, useClass: GrupoRouteReuseStrategy },
+    // Qué adaptador implementa cada puerto (arquitectura hexagonal, ver README).
+    ...proveerMapa(),
+    ...proveerCapas()
   ]
 }).catch((err) => console.error(err));

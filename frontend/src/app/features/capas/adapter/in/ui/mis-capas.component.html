@@ -1,17 +1,17 @@
-@switch (estado()) {
+@switch (misCapas.estado()) {
   @case ('cargando') {
     <p class="aviso" role="status">Cargando sus capas…</p>
   }
   @case ('error') {
     <p class="aviso error" role="alert">No se pudieron cargar sus capas.</p>
-    <button type="button" class="reintentar" (click)="cargar()">Reintentar</button>
+    <button type="button" class="reintentar" (click)="misCapas.cargar()">Reintentar</button>
   }
   @default {
-    @if (capas().length === 0) {
+    @if (misCapas.capas().length === 0) {
       <p class="aviso">Aún no tiene capas.</p>
     } @else {
       <ul>
-        @for (capa of capas(); track capa.id) {
+        @for (capa of misCapas.capas(); track capa.id) {
           <li>
             <button
               type="button"

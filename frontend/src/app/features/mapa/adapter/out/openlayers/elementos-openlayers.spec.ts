@@ -3,25 +3,21 @@ import Point from 'ol/geom/Point';
 import Polygon from 'ol/geom/Polygon';
 import { toLonLat } from 'ol/proj';
 import { Circle as Punto, Icon, Style } from 'ol/style';
-import { ElementoCapa } from './capas-api.service';
+import { ElementoMapa } from '../../../domain/mapa';
 import { aFeatures, ELEMENTO } from './elementos-openlayers';
 
 describe('aFeatures', () => {
   const sinEstilo = { color: '', grosor: 0, relleno: '', icono: '' };
-  const elemento = (cambios: Partial<ElementoCapa>): ElementoCapa => ({
-    id: 0,
-    geometria: { type: 'Point', coordinates: [-70.65, -33.44], geometries: [] },
+  const elemento = (cambios: Partial<ElementoMapa>): ElementoMapa => ({
+    geometria: { type: 'Point', coordinates: [-70.65, -33.44] },
     radio: 0,
-    nombre: '',
-    descripcion: '',
     estilo: sinEstilo,
-    metadatos: [],
     ...cambios
   });
-  const estilo = (indice: number, elementos: ElementoCapa[]) => aFeatures(elementos)[indice].getStyle() as Style;
+  const estilo = (indice: number, elementos: ElementoMapa[]) => aFeatures(elementos)[indice].getStyle() as Style;
 
   it('lleva cada elemento al mapa en EPSG:3857 y guarda el elemento para mostrar su información', () => {
-    const marcador = elemento({ nombre: 'Contraloría' });
+    const marcador = elemento({});
     const [feature] = aFeatures([marcador]);
 
     const [lon, lat] = toLonLat((feature.getGeometry() as Point).getCoordinates());
@@ -40,8 +36,7 @@ describe('aFeatures', () => {
   it('usa el estilo guardado y, si falta, el de la aplicación', () => {
     const poligono = {
       type: 'Polygon',
-      coordinates: [[[-70, -33], [-70.1, -33], [-70.1, -33.1], [-70, -33]]],
-      geometries: []
+      coordinates: [[[-70, -33], [-70.1, -33], [-70.1, -33.1], [-70, -33]]]
     };
     const elementos = [
       elemento({ geometria: poligono, estilo: { color: '#ff0000', grosor: 4, relleno: 'rgba(0, 0, 0, 0.5)', icono: '' } }),
@@ -67,7 +62,7 @@ describe('aFeatures', () => {
   });
 
   it('omite los elementos que no se pueden dibujar', () => {
-    const roto = elemento({ geometria: { type: 'Desconocido', coordinates: [], geometries: [] } });
+    const roto = elemento({ geometria: { type: 'Desconocido', coordinates: [] } });
 
     expect(aFeatures([roto, elemento({})])).toHaveLength(1);
   });

@@ -57,8 +57,14 @@ backend/src/main/java/siante2/
 frontend/src/app/
   app.component.*              shell: cabecera, router-outlet, pantalla de carga
   app.routes.ts
-  features/mapa/               mapa base (OpenLayers): capas base y MapaService
-  features/categorias/         servicio de API y panel de categorías sobre el mapa
+  features/<modulo>/           con negocio o mapa, hexagonal como el backend (ver "Frontend hexagonal"):
+    domain/                    tipos y reglas en TypeScript puro
+    application/               casos de uso (estado con signals) y port/out/ (abstract class)
+    adapter/in/ui/             componentes
+    adapter/out/http|openlayers/  implementaciones de los puertos
+    <modulo>.providers.ts      qué adaptador implementa cada puerto; se registra en main.ts
+  features/mapa/               mapa base: MapaPort y su adaptador de OpenLayers (capas base, elementos, ubicación)
+  features/categorias/         servicio de API de categorías
   features/ayuda/              políticas de uso, manual (PDF) y guías animadas desde /multimedia
   features/direcciones/        buscador de direcciones sobre el mapa (geocodificación en el backend)
   features/capas/              "Mis capas": lista en el menú, capa abierta en el mapa e información de sus elementos
@@ -81,7 +87,7 @@ El backend se organiza por módulo: todo lo de un módulo queda en su paquete y 
 6. Controlador: `adapter/in/web/InformesController.java` con `@RequestMapping("/informes")`, sin el prefijo de la API. Los listados van envueltos en `{ "data": [...] }` y el nombre del método es el `operationId` del contrato (`listarInformes`, no `listar`). Solo si los datos son iguales para todos y casi no cambian, el controlador lleva `@Catalogo`; los datos de cada usuario o que se editan quedan sin anotación, así se revalidan y una edición se ve al instante.
 7. Tests: el controlador con `@WebMvcTest` y `@MockitoBean` del caso de uso; el adaptador con `@DataJpaTest` sobre H2; el servicio con un doble en memoria del puerto de salida cuando tenga lógica.
 8. Contrato: regenerar `contrato/openapi.json` (ver Tests) y revisar el diff.
-9. Frontend: `npm run api:tipos` para regenerar `shared/api/contrato.ts` desde el contrato; luego `features/informes/informes-api.service.ts`, que usa esos tipos, `API_PREFIJO` y `CacheConsultas`, más el componente, registrado en `app.routes.ts` (ver `features/categorias`).
+9. Frontend: `npm run api:tipos` para regenerar `shared/api/contrato.ts` desde el contrato. Luego, en `features/informes/` (ver `features/capas` y "Frontend hexagonal"): el dominio, el puerto `InformesRepositorio`, el caso de uso, el adaptador `adapter/out/http/informes-http.ts` (con esos tipos, `API_PREFIJO` y, si es un catálogo, `CacheConsultas`), `informes.providers.ts` registrado en `main.ts` y el componente en `adapter/in/ui/`, registrado en `app.routes.ts`.
 
 ### Reglas de arquitectura
 
@@ -91,6 +97,25 @@ El backend se organiza por módulo: todo lo de un módulo queda en su paquete y 
 - `application` no conoce adaptadores; los controladores (`adapter/in`) no usan repositorios ni entidades.
 - Las entidades JPA viven y se usan solo en `adapter/out/oracle`; los repositorios de Spring Data no son `public`.
 - Un módulo usa de otro solo su dominio y sus puertos; `compartido` lo usan todos y no conoce a ninguno; sin ciclos entre módulos.
+
+### Frontend hexagonal
+
+`mapa` y `capas` siguen la misma forma que el backend, y todo módulo nuevo con negocio o mapa también (favoritos, grupos, reportes). Los módulos sin reglas propias (`ayuda`, `direcciones`, `no-autorizado`, `salida`) siguen planos hasta que las tengan.
+
+- **Puertos como `abstract class`**: en Angular sirven de interfaz y de token de inyección (`CapasRepositorio`, `MapaPort`). Cada módulo los conecta en `<modulo>.providers.ts` (`proveerCapas()`), que `main.ts` registra; las pruebas de integración usan la misma función.
+- **El dominio no conoce el contrato**: el adaptador HTTP entrega los DTO como tipos del dominio, así que si el contrato deja de calzar no compila, y traduce los errores (un 404 es `CapaNoEncontrada`).
+- **El mapa es un puerto**: `MapaPort` recibe elementos del dominio (`ElementoMapa`) y solo `mapa/adapter/out/openlayers` usa OpenLayers.
+- **Casos de uso con signals de solo lectura**: el estado cambia solo por sus métodos (`abrir`, `cerrar`, `descartarError`). Se prueban con dobles en memoria de los puertos, sin HTTP ni mapa.
+- **Componentes `OnPush`**, sin `standalone: true` (es el valor por defecto desde Angular 19).
+
+ESLint (`no-restricted-imports` en `eslint.config.js`) verifica en cada build, y el Dockerfile corre el lint:
+
+| Capa | No puede importar |
+|---|---|
+| `domain` | Angular, RxJS, OpenLayers, el contrato, `application` ni adaptadores |
+| `application` | `@angular/common/http`, OpenLayers, el contrato ni adaptadores |
+| `adapter/in` | adaptadores de salida, `@angular/common/http`, OpenLayers ni el contrato |
+| cualquier otro archivo | adaptadores de salida (salvo `<modulo>.providers.ts`) |
 
 ### Prácticas de JPA / Hibernate (7.4, la versión la fija Spring Boot)
 

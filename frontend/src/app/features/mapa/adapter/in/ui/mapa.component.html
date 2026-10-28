@@ -7,8 +7,8 @@
       type="button"
       class="accion"
       aria-label="Vista satelital"
-      [attr.aria-pressed]="mapaService.capaBase() === 'satelital'"
-      [title]="mapaService.capaBase() === 'satelital' ? 'Mapa modo mapa' : 'Mapa modo satélite'"
+      [attr.aria-pressed]="mapa.capaBase() === 'satelital'"
+      [title]="mapa.capaBase() === 'satelital' ? 'Mapa modo mapa' : 'Mapa modo satélite'"
       (click)="alternarCapaBase()">
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
         <path
@@ -24,8 +24,8 @@
       class="accion"
       aria-label="Ir a mi ubicación"
       title="Mi ubicación"
-      [attr.aria-busy]="mapaService.ubicando()"
-      (click)="mapaService.irAMiUbicacion()">
+      [attr.aria-busy]="mapa.ubicando()"
+      (click)="mapa.irAMiUbicacion()">
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
         <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2" />
         <path d="M12 2v4 M12 18v4 M2 12h4 M18 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -44,23 +44,23 @@
     }
   </div>
   <div class="avisos" role="status">
-    @if (mapaService.sinMapaBase()) {
+    @if (mapa.sinMapaBase()) {
       <div class="aviso">
         No se pudieron cargar los mapas base. Revise su conexión a internet.
-        <button type="button" (click)="mapaService.sinMapaBase.set(false)">Cerrar</button>
+        <button type="button" (click)="mapa.descartarAvisoMapaBase()">Cerrar</button>
       </div>
     }
-    @switch (mapaService.avisoUbicacion()) {
+    @switch (mapa.avisoUbicacion()) {
       @case ('no-disponible') {
         <div class="aviso">
           No se pudo obtener su ubicación.
-          <button type="button" (click)="mapaService.avisoUbicacion.set(null)">Cerrar</button>
+          <button type="button" (click)="mapa.descartarAvisoUbicacion()">Cerrar</button>
         </div>
       }
       @case ('sin-permiso') {
         <div class="aviso">
           Para ver su ubicación, permita el acceso a la ubicación en el navegador.
-          <button type="button" (click)="mapaService.avisoUbicacion.set(null)">Cerrar</button>
+          <button type="button" (click)="mapa.descartarAvisoUbicacion()">Cerrar</button>
         </div>
       }
     }

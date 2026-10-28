@@ -1,7 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Observable, of, throwError } from 'rxjs';
-import { MapaService, ZonaVisible } from '../mapa/mapa.service';
+import { MapaPort } from '../mapa/application/port/out/mapa.port';
+import { ZonaVisible } from '../mapa/domain/mapa';
 import { BuscadorDireccionesComponent, ESPERA_SUGERENCIAS_MS } from './buscador-direcciones.component';
 import { Direccion, DireccionesApiService } from './direcciones-api.service';
 
@@ -24,7 +25,7 @@ describe('BuscadorDireccionesComponent', () => {
       imports: [BuscadorDireccionesComponent],
       providers: [
         { provide: DireccionesApiService, useValue: { buscar, sugerir } },
-        { provide: MapaService, useValue: mapa }
+        { provide: MapaPort, useValue: mapa }
       ]
     });
     fixture = TestBed.createComponent(BuscadorDireccionesComponent);

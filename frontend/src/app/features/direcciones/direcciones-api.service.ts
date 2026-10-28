@@ -5,7 +5,7 @@ import { API_PREFIJO } from '../../shared/api/api-prefijo';
 import { components } from '../../shared/api/contrato';
 import { CacheConsultas, TTL_DATOS_MS } from '../../shared/cache/cache-consultas';
 import { sinPantallaDeCarga } from '../../shared/pantalla-carga/pantalla-carga.interceptor';
-import { ZonaVisible } from '../mapa/mapa.service';
+import { ZonaVisible } from '../mapa/domain/mapa';
 
 export type Direccion = components['schemas']['Direccion'];
 type DireccionesResponse = components['schemas']['DireccionesResponse'];

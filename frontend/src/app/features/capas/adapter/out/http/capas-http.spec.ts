@@ -1,15 +1,16 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { CapasApiService } from './capas-api.service';
+import { CapaNoEncontrada } from '../../../domain/capa';
+import { CapasHttp } from './capas-http';
 
-describe('CapasApiService', () => {
-  let servicio: CapasApiService;
+describe('CapasHttp', () => {
+  let servicio: CapasHttp;
   let http: HttpTestingController;
 
   beforeEach(() => {
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
-    servicio = TestBed.inject(CapasApiService);
+    servicio = TestBed.inject(CapasHttp);
     http = TestBed.inject(HttpTestingController);
   });
 
@@ -29,5 +30,22 @@ describe('CapasApiService', () => {
   it('pide una capa por su ID', () => {
     servicio.ver(5).subscribe();
     http.expectOne('/siante2/api/capas/5').flush({});
+  });
+
+  it('un 404 es CapaNoEncontrada, sin que la aplicación conozca HTTP', () => {
+    let error: unknown;
+    servicio.ver(5).subscribe({ error: (e: unknown) => (error = e) });
+    http.expectOne('/siante2/api/capas/5').flush({}, { status: 404, statusText: 'Not Found' });
+
+    expect(error).toBeInstanceOf(CapaNoEncontrada);
+    expect((error as CapaNoEncontrada).id).toBe(5);
+  });
+
+  it('los demás errores llegan tal cual', () => {
+    let error: unknown;
+    servicio.ver(5).subscribe({ error: (e: unknown) => (error = e) });
+    http.expectOne('/siante2/api/capas/5').flush({}, { status: 503, statusText: 'Service Unavailable' });
+
+    expect(error).not.toBeInstanceOf(CapaNoEncontrada);
   });
 });

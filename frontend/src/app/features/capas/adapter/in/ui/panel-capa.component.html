@@ -3,7 +3,7 @@
 } @else if (servicio.error()) {
   <div class="panel" role="alert">
     <p class="error">{{ servicio.error() }}</p>
-    <button type="button" class="boton" (click)="servicio.error.set('')">Cerrar</button>
+    <button type="button" class="boton" (click)="servicio.descartarError()">Cerrar</button>
   </div>
 } @else if (servicio.capa(); as capa) {
   <section class="panel" aria-labelledby="capa-abierta">

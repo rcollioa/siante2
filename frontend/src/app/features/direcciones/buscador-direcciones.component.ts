@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, debounce, Observable, of, Subject, switchMap, timer } from 'rxjs';
-import { MapaService } from '../mapa/mapa.service';
+import { MapaPort } from '../mapa/application/port/out/mapa.port';
 import { Direccion, DireccionesApiService } from './direcciones-api.service';
 
 type Estado = 'inicial' | 'sugerencias' | 'sin-sugerencias' | 'buscando' | 'listo' | 'error';
@@ -21,7 +21,7 @@ export const ESPERA_SUGERENCIAS_MS = 400;
 })
 export class BuscadorDireccionesComponent {
   private readonly api = inject(DireccionesApiService);
-  private readonly mapa = inject(MapaService);
+  private readonly mapa = inject(MapaPort);
   /** Texto a sugerir; null cancela la sugerencia pendiente (al buscar, elegir o cerrar). */
   private readonly escrito = new Subject<string | null>();
 

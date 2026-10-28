@@ -12,7 +12,7 @@ export const SECCIONES: Seccion[] = [
   { nombre: 'Inicio', ruta: '/mapa' },
   {
     nombre: 'Mis capas',
-    panel: () => import('../../features/capas/mis-capas.component').then((m) => m.MisCapasComponent)
+    panel: () => import('../../features/capas/adapter/in/ui/mis-capas.component').then((m) => m.MisCapasComponent)
   },
   { nombre: 'Favoritos' },
   { nombre: 'Capas formales' },

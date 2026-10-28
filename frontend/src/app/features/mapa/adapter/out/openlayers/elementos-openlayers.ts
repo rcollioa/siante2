@@ -9,9 +9,9 @@ import Point from 'ol/geom/Point';
 import Polygon from 'ol/geom/Polygon';
 import { fromLonLat } from 'ol/proj';
 import { Circle as Punto, Fill, Icon, Stroke, Style } from 'ol/style';
-import { ElementoCapa } from './capas-api.service';
+import { ElementoMapa } from '../../../domain/mapa';
 
-/** Propiedad de cada Feature con su elemento, para mostrar su información al seleccionarlo. */
+/** Propiedad de cada Feature con su elemento, para entregarlo tal cual al seleccionarlo. */
 export const ELEMENTO = 'elemento';
 
 // El canvas no lee variables CSS: mismos valores que --color-primary y --color-surface.
@@ -20,7 +20,7 @@ const RELLENO = 'rgba(76, 111, 237, 0.2)';
 const BLANCO = '#ffffff';
 
 /** Un elemento que no se puede dibujar se omite: el resto de la capa se muestra igual. */
-export function aFeatures(elementos: ElementoCapa[]): Feature[] {
+export function aFeatures(elementos: readonly ElementoMapa[]): Feature[] {
   return elementos.flatMap((elemento) => {
     try {
       const feature = new Feature(geometria(elemento));
@@ -34,7 +34,7 @@ export function aFeatures(elementos: ElementoCapa[]): Feature[] {
 }
 
 /** GeoJSON (EPSG:4326) a la proyección del mapa, sin ol/format/GeoJSON, que pediría los tipos de geojson. */
-function geometria({ geometria, radio }: ElementoCapa): Geometry {
+function geometria({ geometria, radio }: ElementoMapa): Geometry {
   const coordenadas = geometria.coordinates as never;
   // Los círculos de SIATE: centro en EPSG:4326 y radio en unidades del mapa (EPSG:3857).
   if (radio > 0 && geometria.type === 'Point') {
@@ -63,7 +63,7 @@ function enGrados(tipo: string, coordenadas: never): Geometry {
 }
 
 /** El estilo que guardó SIATE; lo que no definió, con los colores de la aplicación. */
-function estilo({ geometria, radio, estilo: guardado }: ElementoCapa): Style {
+function estilo({ geometria, radio, estilo: guardado }: ElementoMapa): Style {
   const color = guardado.color || COLOR;
   const esPunto = radio === 0 && (geometria.type === 'Point' || geometria.type === 'MultiPoint');
   if (esPunto) {
