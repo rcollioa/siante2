@@ -1,3 +1,4 @@
+import LayerGroup from 'ol/layer/Group';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import { toLonLat } from 'ol/proj';
@@ -10,11 +11,12 @@ import { MapaOpenLayers } from './mapa-openlayers';
 describe('MapaOpenLayers', () => {
   let servicio: MapaOpenLayers;
 
-  // Las dos primeras capas son las base; después, los elementos de la capa abierta, el marcador de direcciones
+  // Las dos primeras capas son las base; después, el grupo con las capas abiertas, el marcador de direcciones
   // y la posición del usuario.
   const capas = () => servicio.mapa.getLayers().getArray();
   const visibles = () => capas().slice(0, 2).map((capa) => capa.getVisible());
-  const elementos = () => (capas()[2] as VectorLayer<VectorSource>).getSource()!.getFeatures();
+  const abiertas = () => (capas()[2] as LayerGroup).getLayers().getArray() as VectorLayer<VectorSource>[];
+  const elementos = (indice: number) => abiertas()[indice].getSource()!.getFeatures();
   const marcadores = () => (capas()[3] as VectorLayer<VectorSource>).getSource()!.getFeatures();
   const ubicaciones = () => (capas()[4] as VectorLayer<VectorSource>).getSource()!.getFeatures();
 
@@ -110,31 +112,76 @@ describe('MapaOpenLayers', () => {
     expect(marcadores()).toHaveLength(0);
   });
 
-  it('muestra los elementos de una capa en lugar de los anteriores y acerca el mapa a ellos', () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+  describe('capas abiertas', () => {
     const punto = (lon: number, lat: number): ElementoMapa => ({
       geometria: { type: 'Point', coordinates: [lon, lat] },
       radio: 0,
       estilo: { color: '', grosor: 0, relleno: '', icono: '' }
     });
-    const bodega = punto(-70.65, -33.44);
-    servicio.mostrarElementos([bodega]);
-    // Al hacer clic se entrega el mismo elemento que se mostró.
-    expect(elementos()[0].get(ELEMENTO)).toBe(bodega);
-    servicio.elementoSeleccionado.set(bodega);
 
-    // Sin tamaño (aún no se monta) no se ajusta; al tenerlo, sí, y solo a la última capa abierta.
-    servicio.mostrarElementos([punto(-71.6, -33.0), punto(-71.5, -32.9)]);
-    servicio.mapa.setSize([800, 600]);
+    beforeEach(() => vi.stubGlobal('matchMedia', () => ({ matches: true })));
 
-    expect(elementos()).toHaveLength(2);
-    expect(servicio.elementoSeleccionado()).toBeNull();
-    const [lon, lat] = toLonLat(servicio.mapa.getView().getCenter()!);
-    expect(lon).toBeCloseTo(-71.55);
-    expect(lat).toBeCloseTo(-32.95, 1);
+    it('muestra cada capa en su propia capa del mapa, la última encima', () => {
+      const bodega = punto(-70.65, -33.44);
+      servicio.mostrarCapa(1, [bodega]);
+      servicio.mostrarCapa(2, [punto(-71.6, -33.0), punto(-71.5, -32.9)]);
 
-    servicio.quitarElementos();
-    expect(elementos()).toHaveLength(0);
+      expect(abiertas()).toHaveLength(2);
+      expect(elementos(1)).toHaveLength(2);
+      // Al hacer clic se entrega el mismo elemento que se mostró, con su capa.
+      expect(elementos(0)[0].get(ELEMENTO)).toBe(bodega);
+      expect(elementos(0)[0].get('capa')).toBe(1);
+    });
+
+    it('mostrar de nuevo una capa reemplaza sus elementos, sin agregar otra', () => {
+      servicio.mostrarCapa(1, [punto(-70.65, -33.44)]);
+      servicio.mostrarCapa(1, [punto(-71.6, -33.0), punto(-71.5, -32.9)]);
+
+      expect(abiertas()).toHaveLength(1);
+      expect(elementos(0)).toHaveLength(2);
+    });
+
+    it('acerca el mapa a los elementos de una capa; sin tamaño, al montarse', () => {
+      servicio.mostrarCapa(1, [punto(-71.6, -33.0), punto(-71.5, -32.9)]);
+
+      servicio.acercarA(1);
+      servicio.mapa.setSize([800, 600]);
+
+      const [lon, lat] = toLonLat(servicio.mapa.getView().getCenter()!);
+      expect(lon).toBeCloseTo(-71.55);
+      expect(lat).toBeCloseTo(-32.95, 1);
+    });
+
+    it('una capa sin elementos no mueve el mapa', () => {
+      servicio.mostrarCapa(1, []);
+      servicio.mapa.setSize([800, 600]);
+
+      servicio.acercarA(1);
+
+      expect(servicio.mapa.getView().getZoom()).toBe(4);
+    });
+
+    it('ocultar o quitar una capa deselecciona su elemento, pero no el de otra', () => {
+      const bodega = punto(-70.65, -33.44);
+      servicio.mostrarCapa(1, [bodega]);
+      servicio.mostrarCapa(2, [punto(-71.6, -33.0)]);
+      servicio.elementoSeleccionado.set({ capa: 1, elemento: bodega });
+
+      servicio.cambiarVisibilidad(2, false);
+      expect(servicio.elementoSeleccionado()).not.toBeNull();
+      expect(abiertas()[1].getVisible()).toBe(false);
+
+      servicio.cambiarVisibilidad(1, false);
+      expect(servicio.elementoSeleccionado()).toBeNull();
+
+      servicio.elementoSeleccionado.set({ capa: 1, elemento: bodega });
+      servicio.quitarCapa(1);
+      expect(servicio.elementoSeleccionado()).toBeNull();
+      expect(abiertas()).toHaveLength(1);
+
+      servicio.deseleccionar();
+      expect(servicio.elementoSeleccionado()).toBeNull();
+    });
   });
 
   it('entrega la zona que se está mirando en EPSG:4326', () => {

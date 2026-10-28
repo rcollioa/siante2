@@ -12,17 +12,49 @@
     } @else {
       <ul>
         @for (capa of misCapas.capas(); track capa.id) {
-          <li>
+          @let abierta = abiertasPorId().get(capa.id);
+          <li class="fila">
             <button
               type="button"
               class="capa"
-              [attr.aria-pressed]="capaAbierta.capa()?.id === capa.id"
-              [attr.aria-busy]="capaAbierta.abriendo() === capa.id"
+              [attr.aria-pressed]="abierta !== undefined"
+              [attr.aria-busy]="capasAbiertas.abriendo().has(capa.id)"
               [title]="capa.descripcion || capa.nombre"
               (click)="alternar(capa)">
               <span class="nombre">{{ capa.nombre }}</span>
               <span class="visibilidad">{{ visibilidades[capa.visibilidad] }}</span>
             </button>
+            @if (abierta) {
+              <span class="acciones">
+                <button
+                  type="button"
+                  class="accion"
+                  [attr.aria-label]="'Mostrar ' + capa.nombre + ' en el mapa'"
+                  [attr.aria-pressed]="abierta.visible"
+                  [title]="abierta.visible ? 'Ocultar' : 'Mostrar'"
+                  (click)="capasAbiertas.alternarVisibilidad(capa.id)">
+                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" />
+                    @if (abierta.visible) {
+                      <circle cx="12" cy="12" r="3" fill="currentColor" />
+                    } @else {
+                      <path d="M4 4l16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    }
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="accion"
+                  [attr.aria-label]="'Acercar a ' + capa.nombre"
+                  title="Acercar"
+                  (click)="acercar(capa)">
+                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+                    <circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2" />
+                    <path d="M15.5 15.5L20 20 M11 8v6 M8 11h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </button>
+              </span>
+            }
           </li>
         }
       </ul>

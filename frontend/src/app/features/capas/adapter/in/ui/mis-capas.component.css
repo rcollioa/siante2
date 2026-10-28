@@ -4,12 +4,20 @@ ul {
   list-style: none;
 }
 
+/* Una capa y, si está abierta, sus acciones a la derecha. */
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
 .capa {
   display: flex;
+  flex: 1;
+  min-width: 0;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
-  width: 100%;
   padding: 0.45rem 0.75rem;
   border: 0;
   border-radius: var(--radius-sm);
@@ -36,7 +44,32 @@ ul {
   opacity: 0.6;
 }
 
+.acciones {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.125rem;
+}
+
+.accion {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.accion:hover {
+  background: var(--color-hover);
+  color: var(--color-ink);
+}
+
 .capa:focus-visible,
+.accion:focus-visible,
 .reintentar:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;

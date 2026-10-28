@@ -1,8 +1,8 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { CapaAbierta } from '../../../application/capa-abierta';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { CapasAbiertas } from '../../../application/capas-abiertas';
 
-/** Sobre el mapa: la capa abierta, para cerrarla, y la información del elemento elegido con un clic. */
+/** Sobre el mapa: la información del elemento elegido con un clic y su capa, o cómo elegir uno. */
 @Component({
   selector: 'app-panel-capa',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -11,5 +11,12 @@ import { CapaAbierta } from '../../../application/capa-abierta';
   styleUrl: './panel-capa.component.css'
 })
 export class PanelCapaComponent {
-  protected readonly servicio = inject(CapaAbierta);
+  protected readonly servicio = inject(CapasAbiertas);
+  protected readonly elementosVisibles = computed(() =>
+    this.servicio
+      .abiertas()
+      .filter(({ visible }) => visible)
+      .reduce((total, { capa }) => total + capa.elementos.length, 0)
+  );
+  protected readonly hayPorUrl = computed(() => this.servicio.abiertas().some(({ capa }) => capa.tipo === 'URL'));
 }

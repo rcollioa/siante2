@@ -2,7 +2,7 @@ import { LOCALE_ID, signal } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localeEsCl from '@angular/common/locales/es-CL';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { CapaAbierta } from '../../../application/capa-abierta';
+import { CapaEnMapa, CapasAbiertas, ElementoElegido } from '../../../application/capas-abiertas';
 import { Capa, ElementoCapa } from '../../../domain/capa';
 import { PanelCapaComponent } from './panel-capa.component';
 
@@ -27,11 +27,11 @@ describe('PanelCapaComponent', () => {
     ...cambios
   });
   const servicio = {
-    capa: signal<Capa | null>(null),
-    abriendo: signal<number | null>(null),
+    abiertas: signal<CapaEnMapa[]>([]),
+    abriendo: signal<ReadonlySet<number>>(new Set()),
     error: signal(''),
-    elemento: signal<ElementoCapa | null>(null),
-    cerrar: vi.fn(),
+    elegido: signal<ElementoElegido | null>(null),
+    deseleccionar: vi.fn(),
     descartarError: vi.fn()
   };
   let fixture: ComponentFixture<PanelCapaComponent>;
@@ -39,57 +39,69 @@ describe('PanelCapaComponent', () => {
 
   beforeEach(() => {
     registerLocaleData(localeEsCl, 'es-CL');
-    servicio.capa.set(null);
-    servicio.abriendo.set(null);
+    vi.clearAllMocks();
+    servicio.abiertas.set([]);
+    servicio.abriendo.set(new Set());
     servicio.error.set('');
-    servicio.elemento.set(null);
+    servicio.elegido.set(null);
     TestBed.configureTestingModule({
       imports: [PanelCapaComponent],
-      providers: [{ provide: CapaAbierta, useValue: servicio }, { provide: LOCALE_ID, useValue: 'es-CL' }]
+      providers: [{ provide: CapasAbiertas, useValue: servicio }, { provide: LOCALE_ID, useValue: 'es-CL' }]
     });
     fixture = TestBed.createComponent(PanelCapaComponent);
   });
 
-  it('sin capa abierta no muestra nada', () => {
+  it('sin capas abiertas no muestra nada', () => {
     fixture.detectChanges();
     expect(texto()).toBe('');
   });
 
-  it('muestra la capa abierta con su cantidad de elementos y permite cerrarla', () => {
-    servicio.capa.set(capa());
+  it('cuenta solo los elementos de las capas visibles e invita a elegir uno', () => {
+    servicio.abiertas.set([
+      { capa: capa(), visible: true },
+      { capa: capa({ id: 2, elementos: [elemento] }), visible: false }
+    ]);
     fixture.detectChanges();
 
-    expect(texto()).toContain('Bodegas');
-    expect(texto()).toContain('1.234 elementos. Haga clic en uno para ver su información.');
-    fixture.nativeElement.querySelector('button.cerrar').click();
-    expect(servicio.cerrar).toHaveBeenCalled();
+    expect(texto()).toBe('1.234 elementos visibles. Haga clic en uno para ver su información.');
   });
 
-  it('muestra la información del elemento en que se hizo clic', () => {
-    servicio.capa.set(capa());
-    servicio.elemento.set(elemento);
+  it('con todas las capas ocultas lo dice', () => {
+    servicio.abiertas.set([{ capa: capa(), visible: false }]);
+    fixture.detectChanges();
+
+    expect(texto()).toBe('Las capas abiertas no tienen elementos a la vista.');
+  });
+
+  it('muestra la información del elemento en que se hizo clic, con su capa, y permite cerrarla', () => {
+    servicio.abiertas.set([{ capa: capa(), visible: true }]);
+    servicio.elegido.set({ capa: capa(), elemento });
     fixture.detectChanges();
 
     const panel: HTMLElement = fixture.nativeElement;
-    expect(panel.querySelector('h3')?.textContent).toBe('Bodega central');
+    expect(panel.querySelector('.nota')?.textContent).toBe('Bodegas');
+    expect(panel.querySelector('h2')?.textContent).toBe('Bodega central');
     expect(texto()).toContain('Junto al río');
     expect(panel.querySelector('dt')?.textContent).toBe('Dirección');
     expect(panel.querySelector('dd')?.textContent).toBe('Teatinos 56');
+
+    panel.querySelector<HTMLButtonElement>('button.cerrar')!.click();
+    expect(servicio.deseleccionar).toHaveBeenCalled();
   });
 
   it('avisa que las capas por URL todavía no se pueden ver', () => {
-    servicio.capa.set(capa({ tipo: 'URL', elementos: [] }));
+    servicio.abiertas.set([{ capa: capa({ tipo: 'URL', elementos: [] }), visible: true }]);
     fixture.detectChanges();
 
-    expect(texto()).toContain('Las capas por URL (WMS, WFS o WMTS) se podrán ver en una próxima versión.');
+    expect(texto()).toBe('Las capas por URL (WMS, WFS o WMTS) se podrán ver en una próxima versión.');
   });
 
   it('mientras abre y si falla lo dice', () => {
-    servicio.abriendo.set(1);
+    servicio.abriendo.set(new Set([1, 2]));
     fixture.detectChanges();
-    expect(texto()).toBe('Abriendo la capa…');
+    expect(texto()).toBe('Abriendo las capas…');
 
-    servicio.abriendo.set(null);
+    servicio.abriendo.set(new Set());
     servicio.error.set('No se pudo abrir la capa. Intente nuevamente.');
     fixture.detectChanges();
     expect(texto()).toContain('No se pudo abrir la capa.');

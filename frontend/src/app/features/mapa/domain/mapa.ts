@@ -32,3 +32,9 @@ export interface ElementoMapa {
   radio: number;
   estilo: EstiloElemento;
 }
+
+/** El elemento en que el usuario hizo clic (el mismo objeto que se entregó) y la capa del mapa que lo muestra. */
+export interface ElementoSeleccionado {
+  capa: number;
+  elemento: ElementoMapa;
+}

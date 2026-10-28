@@ -1,19 +1,20 @@
 import { Injectable, signal } from '@angular/core';
 import Feature from 'ol/Feature';
-import Map from 'ol/Map';
+import MapaOl from 'ol/Map';
 import View from 'ol/View';
 import { defaults as controlesPorDefecto, ScaleLine } from 'ol/control';
 import { Coordinate } from 'ol/coordinate';
 import { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import Point from 'ol/geom/Point';
+import LayerGroup from 'ol/layer/Group';
 import VectorLayer from 'ol/layer/Vector';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import VectorSource from 'ol/source/Vector';
 import { Circle, Fill, Stroke, Style, Text as Texto } from 'ol/style';
 import { esPantallaChica } from '../../../../../shared/pantalla/pantalla-chica';
 import { MapaPort } from '../../../application/port/out/mapa.port';
-import { AvisoUbicacion, CapaBase, ElementoMapa, ZonaVisible } from '../../../domain/mapa';
+import { AvisoUbicacion, CapaBase, ElementoMapa, ElementoSeleccionado, ZonaVisible } from '../../../domain/mapa';
 import { crearCapasBase } from './capas-base';
 import { aFeatures, ELEMENTO } from './elementos-openlayers';
 
@@ -25,6 +26,8 @@ const PERMISO_DENEGADO = 1; // GeolocationPositionError.PERMISSION_DENIED
 // En equipos de oficina no hay GPS que aproveche alta precisión: la red responde en segundos y una posición
 // de los últimos 10 minutos sirve para centrar el mapa, así el siguiente ingreso es inmediato.
 const OPCIONES_UBICACION: PositionOptions = { enableHighAccuracy: false, timeout: 10_000, maximumAge: 10 * 60_000 };
+/** Propiedad de cada Feature y de cada capa de OpenLayers con el ID de su capa. */
+const CAPA = 'capa';
 /** Teselas fallidas seguidas antes de avisar: una suelta (borde del mundo, servidor lento) no es un corte. */
 const FALLAS_PARA_AVISAR = 4;
 /** Preferencia de cada usuario en su navegador; si el almacenamiento no está disponible, parte con el mapa. */
@@ -58,8 +61,9 @@ export class MapaOpenLayers extends MapaPort {
   private readonly capaBaseActual = signal<CapaBase>('mapa');
   readonly capaBase = this.capaBaseActual.asReadonly();
 
-  private readonly elementos = new VectorSource();
-  private readonly capaElementos = new VectorLayer({ source: this.elementos });
+  /** Una capa de OpenLayers por cada capa abierta, en el orden en que se abrieron (la última, encima). */
+  private readonly grupoCapas = new LayerGroup();
+  private readonly capas = new Map<number, VectorLayer<VectorSource>>();
   private ajustePendiente: EventsKey | EventsKey[] | null = null;
   private readonly marcador = new VectorSource();
   private readonly ubicacion = new VectorSource();
@@ -71,12 +75,12 @@ export class MapaOpenLayers extends MapaPort {
   readonly avisoUbicacion = signal<AvisoUbicacion | null>(null);
   readonly ubicando = signal(false);
   readonly sinMapaBase = signal(false);
-  readonly elementoSeleccionado = signal<ElementoMapa | null>(null);
+  readonly elementoSeleccionado = signal<ElementoSeleccionado | null>(null);
 
-  readonly mapa = new Map({
+  readonly mapa = new MapaOl({
     layers: [
       ...Object.values(this.capasBase),
-      this.capaElementos,
+      this.grupoCapas,
       new VectorLayer({ source: this.marcador, style: ESTILO_MARCADOR }),
       new VectorLayer({ source: this.ubicacion, style: ESTILO_UBICACION })
     ],
@@ -103,22 +107,57 @@ export class MapaOpenLayers extends MapaPort {
     }
     // Como la herramienta de selección de SIATE: un clic muestra la información del elemento.
     this.mapa.on('singleclick', ({ pixel }) => {
-      const elemento = this.mapa.forEachFeatureAtPixel(pixel, (feature) => feature as Feature, {
-        layerFilter: (capa) => capa === this.capaElementos,
+      // Solo cuentan las capas abiertas y visibles: OpenLayers no busca en las que no dibuja.
+      const feature = this.mapa.forEachFeatureAtPixel(pixel, (encontrada) => encontrada as Feature, {
+        layerFilter: (capa) => capa.get(CAPA) !== undefined,
         hitTolerance: 4
       });
-      this.elementoSeleccionado.set((elemento?.get(ELEMENTO) as ElementoMapa | undefined) ?? null);
+      this.elementoSeleccionado.set(
+        feature ? { capa: feature.get(CAPA) as number, elemento: feature.get(ELEMENTO) as ElementoMapa } : null
+      );
     });
   }
 
-  mostrarElementos(elementos: readonly ElementoMapa[]): void {
-    this.quitarElementos();
+  mostrarCapa(id: number, elementos: readonly ElementoMapa[]): void {
     const features = aFeatures(elementos);
-    this.elementos.addFeatures(features);
-    const extension = this.elementos.getExtent();
-    if (features.length === 0 || !extension) {
+    features.forEach((feature) => feature.set(CAPA, id));
+    const existente = this.capas.get(id);
+    if (existente) {
+      this.deseleccionarDe(id);
+      existente.getSource()?.clear();
+      existente.getSource()?.addFeatures(features);
       return;
     }
+    const capa = new VectorLayer({ source: new VectorSource({ features }), properties: { [CAPA]: id } });
+    this.capas.set(id, capa);
+    this.grupoCapas.getLayers().push(capa);
+  }
+
+  quitarCapa(id: number): void {
+    const capa = this.capas.get(id);
+    if (!capa) {
+      return;
+    }
+    this.grupoCapas.getLayers().remove(capa);
+    this.capas.delete(id);
+    this.deseleccionarDe(id);
+    this.cancelarAjuste();
+  }
+
+  cambiarVisibilidad(id: number, visible: boolean): void {
+    this.capas.get(id)?.setVisible(visible);
+    if (!visible) {
+      this.deseleccionarDe(id);
+    }
+  }
+
+  acercarA(id: number): void {
+    const fuente = this.capas.get(id)?.getSource();
+    const extension = fuente && !fuente.isEmpty() ? fuente.getExtent() : null;
+    if (!extension) {
+      return;
+    }
+    this.cancelarAjuste();
     // Más margen arriba: ahí están el buscador y el panel de la capa abierta, que taparían elementos.
     const ajustar = () =>
       this.mapa.getView().fit(extension, { padding: [170, 60, 60, 60], maxZoom: ZOOM_DIRECCION, duration: sinMovimiento() ? 0 : 600 });
@@ -130,9 +169,17 @@ export class MapaOpenLayers extends MapaPort {
     }
   }
 
-  quitarElementos(): void {
-    this.elementos.clear();
+  deseleccionar(): void {
     this.elementoSeleccionado.set(null);
+  }
+
+  private deseleccionarDe(capa: number): void {
+    if (this.elementoSeleccionado()?.capa === capa) {
+      this.elementoSeleccionado.set(null);
+    }
+  }
+
+  private cancelarAjuste(): void {
     if (this.ajustePendiente) {
       unByKey(this.ajustePendiente);
       this.ajustePendiente = null;
