@@ -17,7 +17,7 @@ Qué trae ya resuelto:
 | Caché | `CacheControlAdvice`: siempre `private` (ningún proxy guarda datos de un usuario); los controladores `@Catalogo` se guardan en el navegador `app.cache.max-age` y el resto se revalida (`no-cache` + ETag de `EtagApiFilter`, 304 si no cambió). Caffeine con `@Cacheable` para catálogos (`categorias`, `multimedia`), vigencia `SIANTE_CACHE_SERVIDOR` (1 h por defecto) | `CacheConsultas` en memoria, `?refrescar` en la URL |
 | CORS | `CorsConfig` (`APP_CORS_ALLOWED_ORIGINS`) | — |
 | Carga | — | Pantalla de carga global automática (`pantallaCargaInterceptor`) |
-| Salud | Actuator: `/actuator/health/liveness` y `/readiness` | nginx: `/health` |
+| Salud | Actuator en su propio puerto (8081, `MANAGEMENT_SERVER_PORT`): `/actuator/health/liveness` y `/readiness`. Solo lo usan las sondas de k8s; ni el Service ni el ingress lo publican | nginx: `/health` |
 | Endurecimiento | Imagen JRE, usuario 10001 sin privilegios | nginx sin root; CSP y cabeceras de seguridad (`nginx-cabeceras-seguridad.conf`); fuentes servidas desde la app, sin Google Fonts |
 | Dependencias | Dependabot semanal (`.github/dependabot.yml`) | Dependabot semanal |
 | Calidad | Tests con `@WebMvcTest`, contexto completo contra H2, JPQL compilado en el build, contrato OpenAPI versionado | Vitest, ESLint con reglas de accesibilidad |
@@ -223,7 +223,7 @@ WebSEAL autentica al usuario y entrega al backend las cabeceras `iv-user` e `iv-
 - `Unauthenticated` en cualquiera de ellas no autentica;
 - `iv-groups` vacío es un usuario sin grupos.
 
-Además, no autentica un `iv-user` de más de 256 caracteres, para que no entren usuarios inválidos a `USERS`. Una cabecera con caracteres de control, como un salto de línea que inyectaría líneas falsas en los logs, ya la rechaza con 400 el firewall de Spring Security antes de llegar al filtro. Toda la API exige usuario, salvo `/actuator/health` y el contrato OpenAPI; sin usuario responde 401 `{code, message}`.
+Además, no autentica un `iv-user` de más de 256 caracteres, para que no entren usuarios inválidos a `USERS`. Una cabecera con caracteres de control, como un salto de línea que inyectaría líneas falsas en los logs, ya la rechaza con 400 el firewall de Spring Security antes de llegar al filtro. Toda la API exige usuario, salvo el contrato OpenAPI. En el puerto de Actuator, la salud y la info no piden usuario y las métricas sí; sin usuario responde 401 `{code, message}`.
 
 `GET /siante2/api/usuarios/actual` devuelve el usuario y lo registra en `USERS` la primera vez, como `/auth` de SIATE. El frontend lo consulta al entrar (`SesionService`, `sesionGuard`) y, si no hay permiso, muestra `/no-autorizado`.
 

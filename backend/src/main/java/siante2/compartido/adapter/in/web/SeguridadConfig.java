@@ -3,6 +3,7 @@ package siante2.compartido.adapter.in.web;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -31,7 +32,8 @@ public class SeguridadConfig {
                 .csrf(csrf -> csrf.spa())
                 .addFilterBefore(new IdentidadWebSealFilter(soloLocal), AbstractPreAuthenticatedProcessingFilter.class)
                 .authorizeHttpRequests(a -> a
-                        .requestMatchers("/actuator/health/**", "/actuator/info", "/error", prefijo + "/openapi").permitAll()
+                        .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
+                        .requestMatchers("/error", prefijo + "/openapi").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) -> error(res, HttpStatus.UNAUTHORIZED,

@@ -6,6 +6,8 @@ services:
     container_name: siante2-backend
     ports:
       - "${SIANTE_PUERTO_BACKEND:-8080}:8080"
+      # Actuator (salud, info, métricas) en local.
+      - "${SIANTE_PUERTO_ADMIN:-8081}:8081"
     env_file:
       - .env
 

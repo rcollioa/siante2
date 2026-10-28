@@ -16,7 +16,8 @@ ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75"
 # Usuario sin privilegios con uid fijo (runAsNonRoot); la app solo lee app.jar y escribe en /tmp.
 RUN useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin app
 USER 10001
-EXPOSE 8080
+# 8080: la API. 8081: Actuator, solo para las sondas de k8s.
+EXPOSE 8080 8081
 # JAVA_OPTS (ConfigMap en k8s) manda sobre MaxRAMPercentage.
 # `exec` deja a Java como proceso 1 para que reciba el SIGTERM de k8s.
 CMD ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
