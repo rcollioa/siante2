@@ -1,8 +1,9 @@
 # Multi-stage build: compila Angular y sirve los estáticos con Nginx
-FROM node:22.23.4-alpine AS build
+FROM node:26.12.1-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm install --no-audit --no-fund
+# npm ci: instala exactamente lo del package-lock.json, igual en cada build.
+RUN npm ci --no-audit --no-fund
 COPY . .
 # Lint (ESLint) y tests unitarios (Vitest, sin navegador): si alguno falla, la imagen no se construye, igual que el
 # backend con Maven. NG_CLI_ANALYTICS evita la pregunta de telemetría del CLI de Angular.

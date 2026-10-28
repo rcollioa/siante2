@@ -158,7 +158,7 @@ En k8s, el pod necesita salida a internet hacia los dos servidores. Lo que escri
 
 - Java: JDK 25 LTS. Maven 3.9.16 mediante el wrapper incluido (`mvnw`). En la imagen se ejecuta con SapMachine 25.0.5 (JRE).
 - Spring Boot: 4.1, con Tomcat embebido. Driver Oracle `ojdbc11` en la versión que fija Spring Boot.
-- Node.js: 22.23.4 LTS (`frontend/.nvmrc`), solo para compilar; en producción el frontend lo sirve nginx 1.30.
+- Node.js: 26.12.1 LTS (`frontend/.nvmrc`), solo para compilar; en producción el frontend lo sirve nginx 1.30.
 - Angular: 22.
 
 Las imágenes base de los Dockerfile van con versión exacta: actualizar una es un cambio visible en git. Ante un boletín de seguridad (CPU de Oracle, Node.js), subir esas versiones y reconstruir.

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": ">=22.22.3 <23"
+    "node": ">=26.12.1 <27"
   },
   "scripts": {
     "start": "ng serve --host 0.0.0.0 --port 4200",
@@ -31,7 +31,7 @@
     "@angular/compiler": "^22.0.0",
     "@angular/compiler-cli": "^22.0.0",
     "@eslint/js": "^10.0.1",
-    "@types/node": "^22.20.3",
+    "@types/node": "^26.6.5",
     "angular-eslint": "22.6.0",
     "eslint": "^10.12.0",
     "jsdom": "^27.4.0",
