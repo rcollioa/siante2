@@ -11,9 +11,4 @@ public class ServicioExternoNoDisponibleException extends RuntimeException {
     public ServicioExternoNoDisponibleException(String message) {
         super(message);
     }
-
-    /** Respondió, pero no lo que se esperaba (p. ej. un servidor de mapas sin imagen). */
-    public ServicioExternoNoDisponibleException(String message) {
-        super(message);
-    }
 }
