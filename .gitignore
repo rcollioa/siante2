@@ -14,3 +14,8 @@ frontend/.angular/
 docs/plan-migracion.md
 CLAUDE.md
 /Manual_SIATE*.pdf
+# Migración Oracle → PostgreSQL: trabajo local, fuera del repositorio por ahora.
+/.github/postgres-migrations/
+/docs/postgresql/carga-datos-oracle.md
+/docs/postgresql/carga/
+/docs/postgresql/verificar-esquema-siate.sql
