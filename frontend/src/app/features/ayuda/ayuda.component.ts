@@ -1,11 +1,11 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ARCHIVOS_AYUDA, AyudaApiService, Multimedia } from './ayuda-api.service';
 
 type Estado = 'cargando' | 'listo' | 'error';
 
 @Component({
   selector: 'app-ayuda',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ayuda.component.html',
   styleUrl: './ayuda.component.css'
 })

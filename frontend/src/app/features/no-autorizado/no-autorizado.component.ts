@@ -1,10 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { SesionService } from '../../shared/sesion/sesion.service';
 
 @Component({
   selector: 'app-no-autorizado',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './no-autorizado.component.html',
   styleUrl: './no-autorizado.component.css'
 })

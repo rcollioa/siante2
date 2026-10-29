@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { GuardsCheckEnd, NavigationCancel, NavigationError, Router, RouterOutlet } from '@angular/router';
 import { first, map } from 'rxjs';
@@ -8,7 +8,7 @@ import { SesionService } from './shared/sesion/sesion.service';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, PantallaCargaComponent, MenuLateralComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'

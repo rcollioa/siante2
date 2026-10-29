@@ -36,6 +36,26 @@ describe('MenuLateralComponent', () => {
     vi.stubGlobal('matchMedia', (consulta: string) => ({ matches: consulta === '(max-width: 48rem)' }));
   }
 
+  it('muestra al pie la versión del backend, y nada si no llega', () => {
+    const fixture = crear();
+    const http = TestBed.inject(HttpTestingController);
+
+    http.expectOne('/siante2/api/version').flush({ version: '1.2.0', compilada: '2026-10-29T17:28:03Z' });
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.version')?.textContent).toMatch(
+      /SIATE · versión 1\.2\.0\s+del \d{2}\/10\/2026 \d{2}:\d{2}/
+    );
+  });
+
+  it('sin versión no muestra el pie', () => {
+    const fixture = crear();
+
+    TestBed.inject(HttpTestingController).expectOne('/siante2/api/version').flush(null, { status: 503, statusText: 'No' });
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.version')).toBeNull();
+  });
+
   it('enlaza las secciones migradas y marca las demás como próximamente', () => {
     const elemento: HTMLElement = crear().nativeElement;
 

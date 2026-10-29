@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, debounce, Observable, of, Subject, switchMap, timer } from 'rxjs';
 import { MapaPort } from '../mapa/application/port/out/mapa.port';
@@ -15,7 +15,7 @@ export const ESPERA_SUGERENCIAS_MS = 400;
  * elegir una sugerencia hace la búsqueda completa (Nominatim). Combobox de WAI-ARIA: el foco queda en el campo. */
 @Component({
   selector: 'app-buscador-direcciones',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './buscador-direcciones.component.html',
   styleUrl: './buscador-direcciones.component.css'
 })

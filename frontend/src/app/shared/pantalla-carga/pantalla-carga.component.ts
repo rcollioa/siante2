@@ -1,9 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { PantallaCargaService } from './pantalla-carga.service';
 
 @Component({
   selector: 'app-pantalla-carga',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pantalla-carga.component.html',
   styleUrl: './pantalla-carga.component.css'
 })

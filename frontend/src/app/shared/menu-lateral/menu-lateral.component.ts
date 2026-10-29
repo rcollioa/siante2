@@ -1,14 +1,17 @@
-import { NgComponentOutlet } from '@angular/common';
-import { Component, DOCUMENT, inject, signal, Type } from '@angular/core';
+import { DatePipe, NgComponentOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DOCUMENT, inject, signal, Type } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { catchError, of } from 'rxjs';
 import { SesionService } from '../sesion/sesion.service';
+import { VersionApiService } from '../version/version-api.service';
 import { MenuLateralService } from './menu-lateral.service';
 import { Seccion, SECCIONES } from './secciones';
 
 @Component({
   selector: 'app-menu-lateral',
-  standalone: true,
-  imports: [RouterLink, RouterLinkActive, NgComponentOutlet],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterLink, RouterLinkActive, NgComponentOutlet, DatePipe],
   templateUrl: './menu-lateral.component.html',
   styleUrl: './menu-lateral.component.css'
 })
@@ -20,6 +23,10 @@ export class MenuLateralComponent {
   /** Secciones desplegadas y el componente de cada una, ya descargado. */
   protected readonly desplegadas = signal<ReadonlySet<string>>(new Set());
   protected readonly paneles = signal<Readonly<Record<string, Type<unknown>>>>({});
+  /** Al pie del menú, como la página /version de SIATE. Si no llega, no se muestra: no es imprescindible. */
+  protected readonly version = toSignal(inject(VersionApiService).obtener().pipe(catchError(() => of(null))), {
+    initialValue: null
+  });
   private readonly router = inject(Router);
   private readonly ventana = inject(DOCUMENT).defaultView;
 

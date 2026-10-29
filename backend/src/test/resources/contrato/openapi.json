@@ -228,6 +228,24 @@
         },
         "tags" : [ "usuarios-controller" ]
       }
+    },
+    "/siante2/api/version" : {
+      "get" : {
+        "operationId" : "obtenerVersion",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Version"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "version-controller" ]
+      }
     }
   },
   "components" : {
@@ -488,6 +506,19 @@
           }
         },
         "required" : [ "apellido", "email", "grupos", "id", "ivUser", "nombre" ]
+      },
+      "Version" : {
+        "type" : "object",
+        "properties" : {
+          "compilada" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "compilada", "version" ]
       }
     }
   }
