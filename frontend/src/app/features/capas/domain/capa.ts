@@ -33,6 +33,32 @@ export interface ElementoCapa extends ElementoMapa {
   metadatos: Metadato[];
 }
 
+/** Pestañas del catálogo de SIATE. */
+export type SeccionCatalogo = 'PUBLICAS' | 'MIAS' | 'FORMALES';
+
+export const SECCIONES_CATALOGO: Record<SeccionCatalogo, string> = {
+  PUBLICAS: 'Todas',
+  MIAS: 'Usuario',
+  FORMALES: 'Capas formales'
+};
+
+/** Una capa en el catálogo: para buscarla y elegirla. */
+export interface CapaCatalogo extends ResumenCapa {
+  categoria: string;
+  dueno: string;
+  favorita: boolean;
+}
+
+/** Como el buscador del catálogo de SIATE, pero sin importar tildes ni mayúsculas: "rios" encuentra "Ríos". */
+export function coincide(capa: CapaCatalogo, texto: string): boolean {
+  const buscado = sinTildes(texto.trim());
+  return buscado === '' || [capa.nombre, capa.descripcion, capa.categoria, capa.dueno].some((campo) => sinTildes(campo).includes(buscado));
+}
+
+function sinTildes(texto: string): string {
+  return texto.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+}
+
 export interface Capa extends ResumenCapa {
   propia: boolean;
   tipo: TipoCapa;

@@ -60,11 +60,13 @@ describe('MenuLateralComponent', () => {
     const elemento: HTMLElement = crear().nativeElement;
 
     const enlaces = Array.from(elemento.querySelectorAll('ul a')).map((a) => a.textContent?.trim());
+    const desplegables = Array.from(elemento.querySelectorAll('button.desplegable')).map((b) => b.textContent?.replace('▾', '').trim());
     const pendientes = elemento.querySelectorAll('[aria-disabled="true"]');
 
     expect(enlaces).toEqual(['Inicio', 'Ayuda']);
-    expect(pendientes.length).toBe(5);
-    expect(pendientes[0].textContent).toContain('Favoritos');
+    expect(desplegables).toEqual(['Mis capas', 'Favoritos', 'Capas formales']);
+    expect(pendientes.length).toBe(3);
+    expect(pendientes[0].textContent).toContain('Grupos de capas');
   });
 
   it('"Mis capas" se despliega con su lista, que se descarga recién al abrirla', async () => {

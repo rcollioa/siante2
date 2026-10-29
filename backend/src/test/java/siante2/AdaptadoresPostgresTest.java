@@ -11,7 +11,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import siante2.capas.application.port.out.CapasReadPort;
 import siante2.capas.domain.Capa;
+import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.ElementoCapa;
+import siante2.capas.domain.ResumenCapa;
+import siante2.capas.domain.SeccionCatalogo;
 import siante2.capas.domain.TipoCapa;
 import siante2.categorias.application.port.out.CategoriasReadPort;
 import siante2.categorias.domain.Categoria;
@@ -19,6 +22,7 @@ import siante2.multimedia.application.port.out.MultimediaReadPort;
 import siante2.usuarios.application.port.out.UsuariosPort;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 /** Los adaptadores de hoy, escritos para Oracle, sobre PostgreSQL sin cambios: lo que falla aquí es lo que hay que
  * adaptar para pasar de base (docs/modelo-datos.md). Los datos se cargan como los guarda SIATE. */
@@ -47,7 +51,8 @@ class AdaptadoresPostgresTest {
 
     @BeforeEach
     void limpiar() {
-        jdbc.execute("truncate users, categories, layers, layers_features, multimedia restart identity cascade");
+        jdbc.execute("truncate users, categories, layers, layers_features, layers_groups, layers_groups_layers, favorites,"
+                + " multimedia restart identity cascade");
     }
 
     @Test
@@ -85,6 +90,24 @@ class AdaptadoresPostgresTest {
         assertThat(capa.tipo()).isEqualTo(TipoCapa.VECTORIAL);
         assertThat(capa.elementos()).extracting(ElementoCapa::nombre).containsExactly("Bodega");
         assertThat(capas.buscarVisible(2, 7).orElseThrow().tipo()).isEqualTo(TipoCapa.URL);
+    }
+
+    @Test
+    void listaLasFavoritasYElCatalogoConLasClavesForaneasDeOracle() {
+        jdbc.update("insert into users (id, iv_user, name, last_name) values (1, 'siante', 'SIANTE', ''), (7, 'jperez', 'Juan', 'Pérez')");
+        jdbc.update("insert into categories (id, name) values (12, 'Salud')");
+        jdbc.update("insert into layers (id, owner, name, status, visibility, category_id) values"
+                + " (3, 7, 'Ríos', '1', '1', 12), (5, 1, 'Hospitales', '1', '2', 12)");
+        // El favorito apunta a un grupo y las capas salen de layers_groups_layers, que en PostgreSQL exige que existan.
+        jdbc.update("insert into layers_groups (id, owner) values (10, 7), (11, 1)");
+        jdbc.update("insert into layers_groups_layers (l_group_id, layer_id) values (10, 3), (11, 5)");
+        jdbc.update("insert into favorites (user_id, l_group_id) values (7, 10), (7, 11)");
+
+        assertThat(capas.listarFavoritasDe(7)).extracting(ResumenCapa::nombre).containsExactlyInAnyOrder("Ríos", "Hospitales");
+        assertThat(capas.catalogo(SeccionCatalogo.PUBLICAS, 7))
+                .extracting(CapaCatalogo::nombre, CapaCatalogo::dueno, CapaCatalogo::categoria, CapaCatalogo::favorita)
+                .containsExactly(tuple("Ríos", "Juan Pérez", "Salud", true));
+        assertThat(capas.catalogo(SeccionCatalogo.FORMALES, 7)).extracting(CapaCatalogo::nombre).containsExactly("Hospitales");
     }
 
     @Test

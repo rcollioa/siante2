@@ -27,4 +27,44 @@ interface VistaCapaJpaRepository extends Repository<VistaCapaEntity, Integer> {
             where c.id = :capa and c.status = :activa and (c.userId = :usuario or c.visibility in :deTodos)
             limit 1""")
     Optional<FilaCapaVisible> buscarVisible(int capa, int usuario, String activa, Collection<String> deTodos);
+
+    /** Como SIATE: el favorito apunta a un grupo ({@code FAVORITES.L_GROUP_ID}) y sus capas salen de
+     * {@code LAYERS_GROUPS_LAYERS}. Además, solo las que el usuario todavía puede ver. */
+    @Query("""
+            select new siante2.capas.adapter.out.oracle.FilaResumenCapa(
+                c.id, coalesce(c.name, ''), coalesce(c.description, ''), coalesce(c.visibility, '0'))
+            from VistaCapaEntity c
+            where c.status = :activa and coalesce(c.visibility, '0') <> :areaDeDibujo
+              and (c.userId = :usuario or c.visibility in :deTodos)
+              and c.id in (select gl.layerId from GrupoCapasCapaEntity gl, FavoritoEntity f
+                         where gl.lGroupId = f.lGroupId and f.userId = :usuario)
+            order by c.id""")
+    List<FilaResumenCapa> buscarFavoritasDe(int usuario, String activa, String areaDeDibujo, Collection<String> deTodos);
+
+    /** Pestaña "Todas" del catálogo: las capas públicas de cualquier usuario. */
+    @Query("""
+            select new siante2.capas.adapter.out.oracle.FilaCapaCatalogo(
+                c.id, coalesce(c.name, ''), coalesce(c.description, ''), coalesce(c.visibility, '0'),
+                coalesce(c.categoryName, ''), coalesce(c.userName, ''), coalesce(c.userLastName, ''),
+                case when c.id in (select gl.layerId from GrupoCapasCapaEntity gl, FavoritoEntity f
+                         where gl.lGroupId = f.lGroupId and f.userId = :usuario) then true else false end)
+            from VistaCapaEntity c
+            where c.status = :activa and c.visibility = :publica
+            order by c.id""")
+    List<FilaCapaCatalogo> catalogoPublico(int usuario, String activa, String publica);
+
+    /** Pestañas "Usuario" (dueño = usuario) y "Capas formales" (dueño = usuario de sistema de SIATE). De otro dueño,
+     * solo las públicas o formales: una capa privada ajena no sale de la base. */
+    @Query("""
+            select new siante2.capas.adapter.out.oracle.FilaCapaCatalogo(
+                c.id, coalesce(c.name, ''), coalesce(c.description, ''), coalesce(c.visibility, '0'),
+                coalesce(c.categoryName, ''), coalesce(c.userName, ''), coalesce(c.userLastName, ''),
+                case when c.id in (select gl.layerId from GrupoCapasCapaEntity gl, FavoritoEntity f
+                         where gl.lGroupId = f.lGroupId and f.userId = :usuario) then true else false end)
+            from VistaCapaEntity c
+            where c.userId = :dueno and c.status = :activa and coalesce(c.visibility, '0') <> :areaDeDibujo
+              and (c.userId = :usuario or c.visibility in :deTodos)
+            order by c.id""")
+    List<FilaCapaCatalogo> catalogoDe(int dueno, int usuario, String activa, String areaDeDibujo,
+                                      Collection<String> deTodos);
 }

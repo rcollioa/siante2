@@ -1,0 +1,100 @@
+<dialog #dialogo class="catalogo" aria-labelledby="titulo-catalogo">
+  <div class="encabezado">
+    <h2 id="titulo-catalogo">Catálogo de capas</h2>
+    <button type="button" class="cerrar" aria-label="Cerrar el catálogo" title="Cerrar" (click)="cerrar()">
+      <span aria-hidden="true">×</span>
+    </button>
+  </div>
+
+  <div #pestanas class="pestanas" role="tablist" aria-label="Pestañas del catálogo">
+    @for (seccion of secciones; track seccion) {
+      <button
+        type="button"
+        role="tab"
+        class="pestana"
+        [id]="'pestana-' + seccion"
+        aria-controls="panel-catalogo"
+        [attr.aria-selected]="catalogo.seccion() === seccion"
+        [tabIndex]="catalogo.seccion() === seccion ? 0 : -1"
+        (click)="catalogo.mostrar(seccion)"
+        (keydown)="moverPestana($event)">
+        {{ nombres[seccion] }}
+      </button>
+    }
+  </div>
+
+  <div id="panel-catalogo" class="contenido" role="tabpanel" [attr.aria-labelledby]="'pestana-' + catalogo.seccion()">
+    <label class="buscador">
+      <span>Buscar</span>
+      <input type="search" placeholder="Nombre, categoría o dueño" [value]="catalogo.texto()" (input)="buscar($event)" />
+    </label>
+
+    @switch (catalogo.estado()) {
+      @case ('cargando') {
+        <p class="aviso" role="status">Cargando el catálogo…</p>
+      }
+      @case ('error') {
+        <p class="aviso error" role="alert">No se pudo cargar el catálogo.</p>
+        <button type="button" class="boton" (click)="catalogo.cargar()">Reintentar</button>
+      }
+      @default {
+        <p class="aviso" role="status">
+          @if (catalogo.texto().trim()) {
+            {{ catalogo.capas().length }} de {{ catalogo.total() }} capas
+          } @else {
+            {{ catalogo.total() }} {{ catalogo.total() === 1 ? 'capa' : 'capas' }}
+          }
+        </p>
+        @if (visibles().length > 0) {
+          <div class="tabla">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Nombre</th>
+                  <th scope="col">Categoría</th>
+                  <th scope="col">Dueño</th>
+                  <th scope="col">Favorita</th>
+                  <th scope="col"><span class="solo-lectores">Acciones</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (capa of visibles(); track capa.id) {
+                  <tr>
+                    <td>
+                      <span class="nombre">{{ capa.nombre }}</span>
+                      @if (capa.descripcion) {
+                        <span class="descripcion">{{ capa.descripcion }}</span>
+                      }
+                    </td>
+                    <td>{{ capa.categoria || '—' }}</td>
+                    <td>{{ capa.dueno || '—' }}</td>
+                    <td>
+                      @if (capa.favorita) {
+                        <span class="favorita"><span aria-hidden="true">★</span> Sí</span>
+                      } @else {
+                        <span class="nota">No</span>
+                      }
+                    </td>
+                    <td>
+                      <button type="button" class="boton" [attr.aria-label]="'Ver ' + capa.nombre + ' en el mapa'" (click)="ver(capa)">
+                        Ver en el mapa
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (catalogo.capas().length > maximo) {
+            <p class="nota">Se muestran las primeras {{ maximo }}. Use el buscador para encontrar las demás.</p>
+          }
+        } @else {
+          <p class="aviso">
+            {{ catalogo.texto().trim() ? 'No hay capas que coincidan con la búsqueda.' : 'Esta pestaña no tiene capas.' }}
+          </p>
+        }
+      }
+    }
+    <p class="nota">Marcar o quitar favoritas desde el catálogo estará disponible en una próxima versión.</p>
+  </div>
+</dialog>

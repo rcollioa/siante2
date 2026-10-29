@@ -7,13 +7,17 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import siante2.capas.application.port.in.ListarFavoritasUseCase;
 import siante2.capas.application.port.in.ListarMisCapasUseCase;
 import siante2.capas.application.port.in.VerCapaUseCase;
+import siante2.capas.application.port.in.VerCatalogoUseCase;
 import siante2.capas.domain.Capa;
+import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.EstiloElemento;
 import siante2.capas.domain.Metadato;
 import siante2.capas.domain.ResumenCapa;
+import siante2.capas.domain.SeccionCatalogo;
 import siante2.capas.domain.TipoCapa;
 import siante2.capas.domain.Visibilidad;
 import siante2.compartido.adapter.in.web.UsuarioDePrueba;
@@ -41,6 +45,42 @@ class CapasControllerTest {
 
     @MockitoBean
     private VerCapaUseCase ver;
+
+    @MockitoBean
+    private ListarFavoritasUseCase favoritas;
+
+    @MockitoBean
+    private VerCatalogoUseCase catalogo;
+
+    @Test
+    void listaLasFavoritasDelUsuarioDeWebSeal() throws Exception {
+        when(favoritas.listarFavoritas("prueba")).thenReturn(List.of(new ResumenCapa(3, "Hospitales", "", Visibilidad.FORMAL)));
+
+        mockMvc.perform(get(RUTA + "/favoritas"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", startsWith("no-cache")))
+                .andExpect(jsonPath("$.data[0].nombre").value("Hospitales"))
+                .andExpect(jsonPath("$.data[0].visibilidad").value("FORMAL"));
+    }
+
+    @Test
+    void entregaUnaPestanaDelCatalogo() throws Exception {
+        when(catalogo.verCatalogo(SeccionCatalogo.FORMALES, "prueba")).thenReturn(List.of(
+                new CapaCatalogo(3, "Hospitales", "MINSAL", Visibilidad.FORMAL, "Salud", "SIANTE", true)));
+
+        mockMvc.perform(get(RUTA + "/catalogo").param("seccion", "FORMALES"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].categoria").value("Salud"))
+                .andExpect(jsonPath("$.data[0].dueno").value("SIANTE"))
+                .andExpect(jsonPath("$.data[0].favorita").value(true));
+    }
+
+    @Test
+    void unaPestanaDesconocidaDelCatalogoResponde400() throws Exception {
+        mockMvc.perform(get(RUTA + "/catalogo").param("seccion", "TODAS"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
 
     @Test
     void listaLasCapasDelUsuarioDeWebSealYNoSeGuardanEnElNavegador() throws Exception {

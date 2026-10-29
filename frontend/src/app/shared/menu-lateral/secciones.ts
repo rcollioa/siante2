@@ -14,8 +14,14 @@ export const SECCIONES: Seccion[] = [
     nombre: 'Mis capas',
     panel: () => import('../../features/capas/adapter/in/ui/mis-capas.component').then((m) => m.MisCapasComponent)
   },
-  { nombre: 'Favoritos' },
-  { nombre: 'Capas formales' },
+  {
+    nombre: 'Favoritos',
+    panel: () => import('../../features/capas/adapter/in/ui/favoritas.component').then((m) => m.FavoritasComponent)
+  },
+  {
+    nombre: 'Capas formales',
+    panel: () => import('../../features/capas/adapter/in/ui/favoritas.component').then((m) => m.CapasFormalesComponent)
+  },
   { nombre: 'Grupos de capas' },
   { nombre: 'Mis reportes compartidos' },
   { nombre: 'Mis reportes compartidos (grupos de capas)' },

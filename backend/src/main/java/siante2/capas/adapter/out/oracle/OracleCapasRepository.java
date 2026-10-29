@@ -6,12 +6,15 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import siante2.capas.application.port.out.CapasReadPort;
 import siante2.capas.domain.Capa;
+import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.ResumenCapa;
+import siante2.capas.domain.SeccionCatalogo;
 import siante2.capas.domain.TipoCapa;
 import siante2.capas.domain.Visibilidad;
 
@@ -30,12 +33,20 @@ class OracleCapasRepository implements CapasReadPort {
     /** SIATE guarda una capa por URL como {@code {"type":"WMS","url":...}}. */
     private static final Pattern POR_URL = Pattern.compile("\"type\"\\s*:\\s*\"(WMS|WFS|WMTS)\"", Pattern.CASE_INSENSITIVE);
 
+    /** Visibilidades que ve cualquier usuario, además de las propias. */
+    private static final List<String> DE_TODOS = List.of(PUBLICA, FORMAL);
+
     private final VistaCapaJpaRepository vista;
     private final ElementoCapaJpaRepository elementos;
+    private final int usuarioCapasFormales;
 
-    OracleCapasRepository(VistaCapaJpaRepository vista, ElementoCapaJpaRepository elementos) {
+    /** @param usuarioCapasFormales ID en USERS del usuario de sistema "SIANTE", dueño de las capas formales
+     *     ({@code Config.IDSIANTE} del frontend de SIATE). */
+    OracleCapasRepository(VistaCapaJpaRepository vista, ElementoCapaJpaRepository elementos,
+                          @Value("${app.capas.usuario-formales:1}") int usuarioCapasFormales) {
         this.vista = vista;
         this.elementos = elementos;
+        this.usuarioCapasFormales = usuarioCapasFormales;
     }
 
     @Override
@@ -47,7 +58,7 @@ class OracleCapasRepository implements CapasReadPort {
 
     @Override
     public Optional<Capa> buscarVisible(int capaId, int usuarioId) {
-        return vista.buscarVisible(capaId, usuarioId, ACTIVA, List.of(PUBLICA, FORMAL)).map(f -> {
+        return vista.buscarVisible(capaId, usuarioId, ACTIVA, DE_TODOS).map(f -> {
             TipoCapa tipo = f.inicioJson() != null && POR_URL.matcher(f.inicioJson()).find() ? TipoCapa.URL : TipoCapa.VECTORIAL;
             return new Capa(f.id(), f.nombre(), f.descripcion(), visibilidad(f.visibilidad()),
                     Objects.equals(f.dueno(), usuarioId), tipo, tipo == TipoCapa.URL ? List.of() : elementosDe(capaId));
@@ -66,6 +77,26 @@ class OracleCapasRepository implements CapasReadPort {
                     capaId, filas.size() - leidos.size(), filas.size());
         }
         return leidos;
+    }
+
+    @Override
+    public List<ResumenCapa> listarFavoritasDe(int usuarioId) {
+        return vista.buscarFavoritasDe(usuarioId, ACTIVA, AREA_DE_DIBUJO, DE_TODOS).stream()
+                .map(f -> new ResumenCapa(f.id(), f.nombre(), f.descripcion(), visibilidad(f.visibilidad())))
+                .toList();
+    }
+
+    @Override
+    public List<CapaCatalogo> catalogo(SeccionCatalogo seccion, int usuarioId) {
+        List<FilaCapaCatalogo> filas = switch (seccion) {
+            case PUBLICAS -> vista.catalogoPublico(usuarioId, ACTIVA, PUBLICA);
+            case MIAS -> vista.catalogoDe(usuarioId, usuarioId, ACTIVA, AREA_DE_DIBUJO, DE_TODOS);
+            case FORMALES -> vista.catalogoDe(usuarioCapasFormales, usuarioId, ACTIVA, AREA_DE_DIBUJO, DE_TODOS);
+        };
+        return filas.stream()
+                .map(f -> new CapaCatalogo(f.id(), f.nombre(), f.descripcion(), visibilidad(f.visibilidad()),
+                        f.categoria(), (f.nombreDueno() + " " + f.apellidoDueno()).trim(), Boolean.TRUE.equals(f.favorita())))
+                .toList();
     }
 
     private static Visibilidad visibilidad(String codigo) {

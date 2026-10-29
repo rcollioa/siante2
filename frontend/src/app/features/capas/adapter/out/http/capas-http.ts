@@ -5,10 +5,11 @@ import { API_PREFIJO } from '../../../../../shared/api/api-prefijo';
 import { components } from '../../../../../shared/api/contrato';
 import { sinPantallaDeCarga } from '../../../../../shared/pantalla-carga/pantalla-carga.interceptor';
 import { CapasRepositorio } from '../../../application/port/out/capas.repositorio';
-import { Capa, CapaNoEncontrada, ResumenCapa } from '../../../domain/capa';
+import { Capa, CapaCatalogo, CapaNoEncontrada, ResumenCapa, SeccionCatalogo } from '../../../domain/capa';
 
 type CapaDto = components['schemas']['Capa'];
 type CapasResponse = components['schemas']['CapasResponse'];
+type CatalogoResponse = components['schemas']['CatalogoResponse'];
 
 /** Sin CacheConsultas: las capas de cada usuario cambian (también desde SIATE) y el ETag ya evita volver a
  * descargarlas si siguen iguales. Los DTO del contrato se entregan como dominio sin conversión: si el contrato
@@ -21,6 +22,19 @@ export class CapasHttp extends CapasRepositorio {
     return this.http
       .get<CapasResponse>(`${API_PREFIJO}/capas/mias`, { context: sinPantallaDeCarga() })
       .pipe(map((respuesta): ResumenCapa[] => respuesta.data));
+  }
+
+  listarFavoritas(): Observable<ResumenCapa[]> {
+    return this.http
+      .get<CapasResponse>(`${API_PREFIJO}/capas/favoritas`, { context: sinPantallaDeCarga() })
+      .pipe(map((respuesta): ResumenCapa[] => respuesta.data));
+  }
+
+  /** Sin pantalla de carga: el catálogo muestra su propio aviso mientras llega. */
+  catalogo(seccion: SeccionCatalogo): Observable<CapaCatalogo[]> {
+    return this.http
+      .get<CatalogoResponse>(`${API_PREFIJO}/capas/catalogo`, { params: { seccion }, context: sinPantallaDeCarga() })
+      .pipe(map((respuesta): CapaCatalogo[] => respuesta.data));
   }
 
   /** Con pantalla de carga: una capa grande puede tardar varios segundos, como en SIATE. */

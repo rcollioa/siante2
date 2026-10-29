@@ -4,6 +4,38 @@
  */
 
 export interface paths {
+    "/siante2/api/capas/catalogo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["verCatalogoDeCapas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/siante2/api/capas/favoritas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listarCapasFavoritas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/capas/mias": {
         parameters: {
             query?: never;
@@ -164,8 +196,22 @@ export interface components {
             /** @enum {string} */
             visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
         };
+        CapaCatalogo: {
+            categoria: string;
+            descripcion: string;
+            dueno: string;
+            favorita: boolean;
+            /** Format: int32 */
+            id: number;
+            nombre: string;
+            /** @enum {string} */
+            visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
+        };
         CapasResponse: {
             data: components["schemas"]["ResumenCapa"][];
+        };
+        CatalogoResponse: {
+            data: components["schemas"]["CapaCatalogo"][];
         };
         Categoria: {
             descripcion: string;
@@ -252,6 +298,48 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    verCatalogoDeCapas: {
+        parameters: {
+            query: {
+                seccion: "PUBLICAS" | "MIAS" | "FORMALES";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogoResponse"];
+                };
+            };
+        };
+    };
+    listarCapasFavoritas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapasResponse"];
+                };
+            };
+        };
+    };
     listarMisCapas: {
         parameters: {
             query?: never;

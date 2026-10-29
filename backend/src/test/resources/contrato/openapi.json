@@ -8,6 +8,51 @@
     "url" : "/"
   } ],
   "paths" : {
+    "/siante2/api/capas/catalogo" : {
+      "get" : {
+        "operationId" : "verCatalogoDeCapas",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "seccion",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PUBLICAS", "MIAS", "FORMALES" ]
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CatalogoResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "capas-controller" ]
+      }
+    },
+    "/siante2/api/capas/favoritas" : {
+      "get" : {
+        "operationId" : "listarCapasFavoritas",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CapasResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "capas-controller" ]
+      }
+    },
     "/siante2/api/capas/mias" : {
       "get" : {
         "operationId" : "listarMisCapas",
@@ -283,6 +328,35 @@
         },
         "required" : [ "descripcion", "elementos", "id", "nombre", "propia", "tipo", "visibilidad" ]
       },
+      "CapaCatalogo" : {
+        "type" : "object",
+        "properties" : {
+          "categoria" : {
+            "type" : "string"
+          },
+          "descripcion" : {
+            "type" : "string"
+          },
+          "dueno" : {
+            "type" : "string"
+          },
+          "favorita" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "visibilidad" : {
+            "type" : "string",
+            "enum" : [ "PRIVADA", "PUBLICA", "FORMAL", "AREA_DE_DIBUJO" ]
+          }
+        },
+        "required" : [ "categoria", "descripcion", "dueno", "favorita", "id", "nombre", "visibilidad" ]
+      },
       "CapasResponse" : {
         "type" : "object",
         "properties" : {
@@ -290,6 +364,18 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/ResumenCapa"
+            }
+          }
+        },
+        "required" : [ "data" ]
+      },
+      "CatalogoResponse" : {
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CapaCatalogo"
             }
           }
         },
