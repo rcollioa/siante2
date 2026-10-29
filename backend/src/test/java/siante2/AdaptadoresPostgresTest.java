@@ -23,8 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Los adaptadores de hoy, escritos para Oracle, sobre PostgreSQL sin cambios: lo que falla aquí es lo que hay que
  * adaptar para pasar de base (docs/modelo-datos.md). Los datos se cargan como los guarda SIATE. */
 @Tag("postgres")
-@SpringBootTest(properties = {PostgisDePrueba.FLYWAY, PostgisDePrueba.MIGRACIONES})
-@Import(PostgisDePrueba.class)
+@SpringBootTest(properties = {PostgresDePrueba.FLYWAY, PostgresDePrueba.MIGRACIONES})
+@Import(PostgresDePrueba.class)
 class AdaptadoresPostgresTest {
 
     private static final String PUNTO = "{\"geometry\":{\"type\":\"Point\",\"coordinates\":[-70.65,-33.44]},"
@@ -76,9 +76,9 @@ class AdaptadoresPostgresTest {
                 + " (1, 7, 'Bodegas', '1', '0', '{\"type\":\"FeatureCollection\",\"features\":[]}'),"
                 + " (2, 7, 'Servicio IDE', '1', '1', '{\"type\":\"WMS\",\"url\":\"https://ide.cl/wms\"}')");
         // Mismo ID_FEATURE en dos capas: SIATE los numera dentro de cada una.
-        jdbc.update("insert into layers_features (id_feature, id_layer, type, spatial_object, json_metadata) values"
-                + " (0, 1, 'Point', ST_SetSRID(ST_MakePoint(-70.65, -33.44), 4326), ?),"
-                + " (0, 2, 'Point', ST_SetSRID(ST_MakePoint(-71.6, -33.0), 4326), ?)", PUNTO, PUNTO);
+        // La geometría va como GeoJSON en json_metadata, de donde la lee siante2 (sin PostGIS).
+        jdbc.update("insert into layers_features (id_feature, id_layer, type, json_metadata) values"
+                + " (0, 1, 'Point', ?), (0, 2, 'Point', ?)", PUNTO, PUNTO);
 
         assertThat(capas.listarDe(7)).extracting(r -> r.nombre()).containsExactly("Bodegas", "Servicio IDE");
         Capa capa = capas.buscarVisible(1, 7).orElseThrow();

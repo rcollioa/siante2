@@ -1,6 +1,6 @@
 # Modelo de datos de SIATE y construcción en PostgreSQL
 
-Modelo del esquema Oracle `SIANTE` y su construcción en PostgreSQL/PostGIS, para la prueba de concepto y el paso gradual de Oracle a PostgreSQL. Se armó **sin consultar la base**, a partir del diccionario de columnas que entregó el equipo.
+Modelo del esquema Oracle `SIANTE` y su construcción en PostgreSQL, para la prueba de concepto y el paso gradual de Oracle a PostgreSQL. Se armó **sin consultar la base**, a partir del diccionario de columnas que entregó el equipo.
 
 ## Fuentes
 
@@ -231,20 +231,28 @@ erDiagram
 | `BLOB` | `bytea` | No `oid` |
 | `DATE` | `timestamp(0)` | `DATE` de Oracle incluye hora, sin fracciones |
 | `DEFAULT SYSDATE` | `default localtimestamp(0)` | |
-| `SDO_GEOMETRY` | `geometry(Geometry, 4326)` + índice GiST | SRID por confirmar |
+| `SDO_GEOMETRY` | **No se migra por ahora** | Sin PostGIS: la geometría de cada elemento ya está como GeoJSON en `JSON_METADATA`, que es de donde la lee siante2 |
 
 Índices agregados que Oracle tiene implícitos o que PostgreSQL no crea solo:
 - en cada columna con clave foránea que no encabeza la clave primaria;
-- en `layers_features.id_layer`, que se usa para abrir una capa;
-- un índice GiST en `spatial_object`.
+- en `layers_features.id_layer`, que se usa para abrir una capa.
 
-**Verificado** en un PostGIS 18 / 3.6 desechable en Docker:
-- el script se aplica sin errores;
+**Sin PostGIS (decisión del 29/10/2026):** `LAYERS_FEATURES.SPATIAL_OBJECT` no está en el esquema de PostgreSQL. siante2 lee la geometría del GeoJSON en `JSON_METADATA`, así que ver capas y elementos no la necesita. Lo que sí la necesitará son las herramientas de análisis (intersección, selección por área, distancias) y "cargar solo lo visible" en capas grandes. Cuando lleguen, se puede instalar PostGIS y agregar una columna `geometry` calculada desde el JSON, sin cambiar lo que ya existe.
+
+**Verificado** en un PostgreSQL 16 sin PostGIS, desechable en Docker, como el servidor de la CGR:
+- el script se aplica sin errores y sin extensiones;
 - los ID salen por `identity` y las fechas por defecto se llenan;
-- una geometría GeoJSON entra y sale con SRID 4326;
 - las claves foráneas rechazan un favorito a un grupo inexistente;
-- `iv_user` de 21 caracteres se rechaza, igual que en Oracle;
-- la búsqueda por zona (`&&`) usa el índice GiST.
+- `iv_user` de 21 caracteres se rechaza, igual que en Oracle.
+
+### Crear el modelo en un servidor PostgreSQL
+
+[`postgresql/crear-esquema-siate.sql`](postgresql/crear-esquema-siate.sql) reúne V1 y V2 en un solo script, que crea todo en el esquema `siate`. Es generado: si cambian las migraciones, se regenera.
+
+1. **El DBA, una vez y solo si el esquema no existe:** `create schema if not exists siate authorization siate;`. No hace falta instalar PostGIS.
+2. **Con el usuario `siate`:** `psql -h <servidor> -p 5432 -U siate -d db_siate -v ON_ERROR_STOP=1 -f crear-esquema-siate.sql`.
+
+Corre en una transacción: si algo falla, no queda nada a medias. Se ejecuta una sola vez. Probado en PostgreSQL 16 sin PostGIS, como el servidor de la CGR, con un usuario sin privilegios de administrador: 18 tablas, 4 vistas y 20 claves foráneas en `siate`.
 
 ### Paso 2 · Mejoras (al dejar Oracle como base principal)
 Se aplican con migraciones Flyway **después** del cambio de escritura (fase 3), cuando PostgreSQL ya no necesite ser idéntico a Oracle:
@@ -268,7 +276,7 @@ Se aplican con migraciones Flyway **después** del cambio de escritura (fase 3),
 | `V_LAYERS_GROUPS` | `LAYERS_GROUPS` + cantidad de capas | Vista con `count(*)` sobre `LAYERS_GROUPS_LAYERS` |
 | `V_LF_TYPE_FILTER` | Elementos filtrados por tipo, para la intersección | Vista sobre `LAYERS_FEATURES`; filtro por confirmar |
 | `V_SELECT_AREA` | Capas elegibles para la selección por área | Vista o consulta directa |
-| `V_MEASURE_DISTANCE` | Distancia entre elementos de dos capas | **Función** con `ST_Distance` y parámetros: como vista sin filtro es un producto cartesiano |
+| `V_MEASURE_DISTANCE` | Distancia entre elementos de dos capas | **Función** con parámetros: como vista sin filtro es un producto cartesiano. Con PostGIS, `ST_Distance`; sin PostGIS, la distancia se calcula en la aplicación |
 | `NEXTVAL_PUBLIC_REPORTS(_DETAILS)` | El siguiente correlativo | Las columnas `identity` de `x_pure` y `x_puredet`; desaparecen |
 
 Las vistas que usa siante2 hoy (`V_LAYERS` y `V_LAYERS_GROUPS`) se agregan al espejo en cuanto el DBA entregue su definición SQL. Las de análisis se definen cuando esas herramientas tengan ticket.
@@ -289,12 +297,12 @@ Por eso **el esquema de PostgreSQL lo maneja Flyway** (partiendo de `V1__esquema
 
 ## Prueba de concepto: los adaptadores de hoy sobre PostgreSQL
 
-`mvnw test -Ppostgres` levanta PostGIS 18 / 3.6 con Testcontainers. Flyway aplica [`V1__esquema_espejo.sql`](../backend/src/test/resources/db/postgresql/V1__esquema_espejo.sql) y [`V2__vistas_inferidas.sql`](../backend/src/test/resources/db/postgresql/V2__vistas_inferidas.sql), y se prueban los **adaptadores de Oracle sin cambios**. Todo queda en los tests: la aplicación sigue usando solo Oracle.
+`mvnw test -Ppostgres` levanta PostgreSQL 16 sin PostGIS con Testcontainers, como el servidor de la CGR. Flyway aplica [`V1__esquema_espejo.sql`](../backend/src/test/resources/db/postgresql/V1__esquema_espejo.sql) y [`V2__vistas_inferidas.sql`](../backend/src/test/resources/db/postgresql/V2__vistas_inferidas.sql), y se prueban los **adaptadores de Oracle sin cambios**. Todo queda en los tests: la aplicación sigue usando solo Oracle.
 
 | Qué se prueba | Resultado |
 |---|---|
 | Tablas, columnas y claves primarias de las entidades (`EsquemaPostgresTest`) | ✅ Todas, salvo las 3 vistas de análisis, que no tienen definición |
-| Geometría PostGIS en SRID 4326, con índice GiST | ✅ |
+| Sin PostGIS: no hay extensiones ni `spatial_object`; la geometría va en `json_metadata` | ✅ |
 | Usuarios: alta con ID por `identity` y búsqueda | ✅ Sin cambios |
 | Categorías activas | ✅ Sin cambios |
 | Mis capas y abrir una capa desde `v_layers`, con el mismo `ID_FEATURE` en dos capas y capas por URL | ✅ Sin cambios |
@@ -307,7 +315,7 @@ Por eso **el esquema de PostgreSQL lo maneja Flyway** (partiendo de `V1__esquema
 ## Pendientes para el DBA
 1. Definición SQL de las vistas `V_LAYERS`, `V_LAYERS_GROUPS`, `V_LF_TYPE_FILTER`, `V_SELECT_AREA` y `V_MEASURE_DISTANCE`.
 2. Triggers y secuencias de los IDs.
-3. SRID de `LAYERS_FEATURES.SPATIAL_OBJECT` (se asume 4326) y cuántas geometrías no son válidas.
+3. Si `JSON_METADATA` de `LAYERS_FEATURES` trae siempre la geometría, para confirmar que `SPATIAL_OBJECT` se puede dejar fuera sin perder datos.
 4. Si otro sistema usa las 5 tablas sin uso conocido y `USERS.SUPERUSER`.
 5. Volumen: filas por tabla y tamaño de los `CLOB`/`BLOB`, para dimensionar PostgreSQL y la carga inicial.
 6. Valores de `CREATE_TYPE`, `ORIGIN` y `SCHEDULER_DATA.STATUS`.

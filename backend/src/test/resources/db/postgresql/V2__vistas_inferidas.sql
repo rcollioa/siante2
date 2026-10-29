@@ -15,9 +15,10 @@ select g.id, g.name, g.description, g.owner, g.status, g.is_scheduler, g.create_
 from layers_groups g;
 
 -- Correlativos de reportes públicos: cada lectura entrega el siguiente, como NEXTVAL_* en Oracle. Usan la
--- misma secuencia que la columna identity, así que un alta con o sin el correlativo no choca.
+-- misma secuencia que la columna identity, así que un alta con o sin el correlativo no choca. Con ::regclass
+-- la secuencia queda fijada al crear la vista, sin depender del search_path de quien consulta.
 create view nextval_public_reports as
-select nextval(pg_get_serial_sequence('public_reports', 'x_pure'))::integer as correlativo;
+select nextval('public_reports_x_pure_seq'::regclass)::integer as correlativo;
 
 create view nextval_public_reports_details as
-select nextval(pg_get_serial_sequence('public_reports_details', 'x_puredet'))::integer as correlativo;
+select nextval('public_reports_details_x_puredet_seq'::regclass)::integer as correlativo;

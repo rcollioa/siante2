@@ -19,9 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** El esquema que Flyway crea en PostgreSQL (espejo de Oracle) tiene las tablas, columnas y claves que esperan las
  * entidades: las mismas listas que {@link EntidadesSiateTest} verifica en H2. */
 @Tag("postgres")
-@DataJpaTest(properties = {PostgisDePrueba.FLYWAY, PostgisDePrueba.MIGRACIONES})
+@DataJpaTest(properties = {PostgresDePrueba.FLYWAY, PostgresDePrueba.MIGRACIONES})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(PostgisDePrueba.class)
+@Import(PostgresDePrueba.class)
 class EsquemaPostgresTest {
 
     /** Vistas de las herramientas de análisis: sin definición hasta que esas herramientas tengan ticket. */
@@ -64,12 +64,12 @@ class EsquemaPostgresTest {
     }
 
     @Test
-    void lasGeometriasSonDePostGisEnWgs84ConIndiceEspacial() {
-        assertThat(jdbc.queryForObject(
-                "select type || ',' || srid from geometry_columns where f_table_name = 'layers_features'", String.class))
-                .isEqualTo("GEOMETRY,4326");
-        assertThat(jdbc.queryForObject(
-                "select indexdef from pg_indexes where indexname = 'layers_features_spatial_object_gist'", String.class))
-                .contains("USING gist");
+    void noNecesitaPostGisPorqueLaGeometriaVaEnElJson() {
+        assertThat(jdbc.queryForObject("select count(*) from pg_extension where extname = 'postgis'", Integer.class))
+                .isZero();
+        assertThat(jdbc.queryForList(
+                "select column_name from information_schema.columns where table_name = 'layers_features'", String.class))
+                .contains("json_metadata")
+                .doesNotContain("spatial_object");
     }
 }

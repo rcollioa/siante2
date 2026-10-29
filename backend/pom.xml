@@ -109,7 +109,7 @@
 			<artifactId>testcontainers-junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<!-- Prueba de concepto con PostgreSQL/PostGIS (tests @Tag("postgres"), docs/modelo-datos.md): solo en
+		<!-- Prueba de concepto con PostgreSQL (tests @Tag("postgres"), docs/modelo-datos.md): solo en
 		     los tests, la aplicación sigue en Oracle. Flyway carga el esquema espejo de Oracle. -->
 		<dependency>
 			<groupId>org.testcontainers</groupId>
