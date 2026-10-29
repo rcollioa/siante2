@@ -1,5 +1,6 @@
 import LayerGroup from 'ol/layer/Group';
 import TileLayer from 'ol/layer/Tile';
+import TileWMS from 'ol/source/TileWMS';
 import VectorLayer from 'ol/layer/Vector';
 import { toLonLat } from 'ol/proj';
 import TileSource from 'ol/source/Tile';
@@ -157,6 +158,49 @@ describe('MapaOpenLayers', () => {
       servicio.mapa.setSize([800, 600]);
 
       servicio.acercarA(1);
+
+      expect(servicio.mapa.getView().getZoom()).toBe(4);
+    });
+
+    it('una capa WMS pide sus mosaicos al backend con sus capas y se acerca a la extensión del servidor', () => {
+      servicio.mostrarCapaWms(7, {
+        url: '/siante2/api/capas/7/wms',
+        capas: ['rios', 'lagos'],
+        extension: { oeste: -71.6, sur: -33.1, este: -71.5, norte: -33.0 }
+      });
+      const capa = abiertas()[0] as unknown as TileLayer<TileWMS>;
+
+      expect(capa).toBeInstanceOf(TileLayer);
+      expect(capa.getSource()!.getUrls()).toEqual(['/siante2/api/capas/7/wms']);
+      expect(capa.getSource()!.getParams()).toMatchObject({ LAYERS: 'rios,lagos', TILED: true });
+
+      servicio.mapa.setSize([800, 600]);
+      servicio.acercarA(7);
+      const [lon, lat] = toLonLat(servicio.mapa.getView().getCenter()!);
+      expect(lon).toBeCloseTo(-71.55);
+      expect(lat).toBeCloseTo(-33.05, 1);
+    });
+
+    it('marca una capa WMS sin respuesta cuando un mosaico falla, y la desmarca cuando uno llega', () => {
+      servicio.mostrarCapaWms(7, { url: '/siante2/api/capas/7/wms', capas: ['rios'], extension: null });
+      const fuente = (abiertas()[0] as unknown as TileLayer<TileWMS>).getSource()!;
+
+      fuente.dispatchEvent('tileloaderror');
+      expect(servicio.capasSinRespuesta().has(7)).toBe(true);
+
+      fuente.dispatchEvent('tileloadend');
+      expect(servicio.capasSinRespuesta().has(7)).toBe(false);
+
+      fuente.dispatchEvent('tileloaderror');
+      servicio.quitarCapa(7);
+      expect(servicio.capasSinRespuesta().size).toBe(0);
+    });
+
+    it('una capa WMS sin extensión no mueve el mapa al acercarse', () => {
+      servicio.mostrarCapaWms(7, { url: '/siante2/api/capas/7/wms', capas: ['rios'], extension: null });
+      servicio.mapa.setSize([800, 600]);
+
+      servicio.acercarA(7);
 
       expect(servicio.mapa.getView().getZoom()).toBe(4);
     });

@@ -18,5 +18,13 @@ export class PanelCapaComponent {
       .filter(({ visible }) => visible)
       .reduce((total, { capa }) => total + capa.elementos.length, 0)
   );
-  protected readonly hayPorUrl = computed(() => this.servicio.abiertas().some(({ capa }) => capa.tipo === 'URL'));
+  /** Capas por URL que todavía no se dibujan: WMTS y WFS (las WMS sí). */
+  protected readonly hayPorUrl = computed(() =>
+    this.servicio.abiertas().some(({ capa }) => capa.tipo === 'URL' && capa.servicio?.tipo !== 'WMS')
+  );
+  protected readonly hayWms = computed(() => this.servicio.abiertas().some(({ capa }) => capa.servicio?.tipo === 'WMS'));
+  /** Con solo capas WMS que responden no hay nada que decir: el panel no ocupa el mapa. */
+  protected readonly hayAviso = computed(
+    () => this.servicio.sinRespuesta().length > 0 || this.elementosVisibles() > 0 || this.hayPorUrl() || !this.hayWms()
+  );
 }

@@ -10,8 +10,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import siante2.ContadorSql;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.ElementoCapa;
+import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.ResumenCapa;
 import siante2.capas.domain.TipoCapa;
+import siante2.capas.domain.TipoServicio;
 import siante2.capas.domain.Visibilidad;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -91,6 +93,14 @@ class OracleCapasRepositoryTest {
         assertThat(repositorio.buscarVisible(5, YO)).isEmpty();
         assertThat(repositorio.buscarVisible(3, YO)).isEmpty();
         assertThat(repositorio.buscarVisible(99, YO)).isEmpty();
+    }
+
+    @Test
+    void elServidorDeUnaCapaPorUrlSaleDeSuJsonSoloSiElUsuarioPuedeVerla() {
+        assertThat(repositorio.servicioVisible(4, YO))
+                .contains(new OrigenServicio(TipoServicio.WMS, "https://ide.cl/wms"));
+        assertThat(repositorio.servicioVisible(1, YO)).isEmpty();
+        assertThat(repositorio.servicioVisible(5, YO)).isEmpty();
     }
 
     @Test

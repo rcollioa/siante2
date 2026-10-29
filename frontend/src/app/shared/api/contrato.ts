@@ -68,6 +68,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/siante2/api/capas/{id}/wms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["obtenerMapaDeCapa"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/categorias": {
         parameters: {
             query?: never;
@@ -191,6 +207,7 @@ export interface components {
             id: number;
             nombre: string;
             propia: boolean;
+            servicio: components["schemas"]["ServicioMapa"];
             /** @enum {string} */
             tipo: "VECTORIAL" | "URL";
             /** @enum {string} */
@@ -206,6 +223,11 @@ export interface components {
             nombre: string;
             /** @enum {string} */
             visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
+        };
+        CapaDeServicio: {
+            extension: components["schemas"]["Extension"];
+            nombre: string;
+            titulo: string;
         };
         CapasResponse: {
             data: components["schemas"]["ResumenCapa"][];
@@ -250,6 +272,16 @@ export interface components {
             icono: string;
             relleno: string;
         };
+        Extension: {
+            /** Format: double */
+            este: number;
+            /** Format: double */
+            norte: number;
+            /** Format: double */
+            oeste: number;
+            /** Format: double */
+            sur: number;
+        };
         Geometria: {
             coordinates: unknown[];
             geometries: components["schemas"]["Geometria"][];
@@ -274,6 +306,11 @@ export interface components {
             nombre: string;
             /** @enum {string} */
             visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
+        };
+        ServicioMapa: {
+            capas: components["schemas"]["CapaDeServicio"][];
+            /** @enum {string} */
+            tipo: "WMS" | "WMTS" | "WFS";
         };
         Usuario: {
             apellido: string;
@@ -378,6 +415,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Capa"];
+                };
+            };
+        };
+    };
+    obtenerMapaDeCapa: {
+        parameters: {
+            query: {
+                LAYERS: string;
+                BBOX: string;
+                WIDTH: number;
+                HEIGHT: number;
+                CRS?: string;
+                SRS?: string;
+                FORMAT?: string;
+                TRANSPARENT?: boolean;
+                VERSION?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
         };

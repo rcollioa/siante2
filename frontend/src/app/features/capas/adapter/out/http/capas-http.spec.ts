@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { CapaNoEncontrada } from '../../../domain/capa';
+import { Capa, CapaNoEncontrada, ServidorDeMapasNoDisponible } from '../../../domain/capa';
 import { CapasHttp } from './capas-http';
 
 describe('CapasHttp', () => {
@@ -39,6 +39,39 @@ describe('CapasHttp', () => {
 
     expect(error).toBeInstanceOf(CapaNoEncontrada);
     expect((error as CapaNoEncontrada).id).toBe(5);
+  });
+
+  it('una capa WMS trae sus capas y la URL del backend para pedir las imágenes; una vectorial, sin servicio', () => {
+    let wms: Capa | undefined;
+    let vectorial: Capa | undefined;
+    servicio.ver(7).subscribe((capa) => (wms = capa));
+    servicio.ver(8).subscribe((capa) => (vectorial = capa));
+    http.expectOne('/siante2/api/capas/7').flush({
+      id: 7, nombre: 'IDE', descripcion: '', visibilidad: 'PUBLICA', propia: false, tipo: 'URL', elementos: [],
+      servicio: { tipo: 'WMS', capas: [{ nombre: 'rios', titulo: 'Ríos', extension: null }] }
+    });
+    http.expectOne('/siante2/api/capas/8').flush({
+      id: 8, nombre: 'Bodegas', descripcion: '', visibilidad: 'PRIVADA', propia: true, tipo: 'VECTORIAL', elementos: [],
+      servicio: null
+    });
+
+    expect(wms?.servicio).toEqual({
+      tipo: 'WMS',
+      capas: [{ nombre: 'rios', titulo: 'Ríos', extension: null }],
+      urlMapa: '/siante2/api/capas/7/wms'
+    });
+    expect(vectorial?.servicio).toBeNull();
+  });
+
+  it('si el servidor de mapas de la capa no responde es ServidorDeMapasNoDisponible', () => {
+    let error: unknown;
+    servicio.ver(7).subscribe({ error: (e: unknown) => (error = e) });
+    http.expectOne('/siante2/api/capas/7').flush(
+      { code: 'EXTERNAL_SERVICE_UNAVAILABLE', message: 'El servidor de mapas de la capa no responde.' },
+      { status: 503, statusText: 'Service Unavailable' }
+    );
+
+    expect(error).toBeInstanceOf(ServidorDeMapasNoDisponible);
   });
 
   it('los demás errores llegan tal cual', () => {

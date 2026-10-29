@@ -17,7 +17,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 /** Cache-Control solo en GET 2xx con cuerpo (un error nunca queda en caché), siempre {@code private}: la
  * identidad llega en cabeceras de WebSEAL y un proxy compartido podría entregarle a otro los datos de un usuario.
- * Un {@link Catalogo} se guarda {@code app.cache.max-age}; el resto se revalida con ETag ({@link EtagApiFilter}). */
+ * Un {@link Catalogo} se guarda {@code app.cache.max-age}; el resto se revalida con ETag ({@link EtagApiFilter}).
+ * Un controlador que fija su propio Cache-Control (p. ej. las imágenes de mapa) lo conserva. */
 @RestControllerAdvice
 public class CacheControlAdvice implements ResponseBodyAdvice<Object> {
 
@@ -42,7 +43,8 @@ public class CacheControlAdvice implements ResponseBodyAdvice<Object> {
             Class<? extends HttpMessageConverter<?>> selectedConverterType,
             ServerHttpRequest request,
             ServerHttpResponse response) {
-        if (HttpMethod.GET.equals(request.getMethod()) && esExitosa(response)) {
+        if (HttpMethod.GET.equals(request.getMethod()) && esExitosa(response)
+                && response.getHeaders().getCacheControl() == null) {
             boolean catalogo = AnnotatedElementUtils.hasAnnotation(returnType.getContainingClass(), Catalogo.class);
             response.getHeaders().setCacheControl(catalogo ? this.catalogo : REVALIDAR);
         }

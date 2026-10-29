@@ -13,6 +13,7 @@ import siante2.capas.application.port.out.CapasReadPort;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.ElementoCapa;
+import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.ResumenCapa;
 import siante2.capas.domain.SeccionCatalogo;
 import siante2.capas.domain.TipoCapa;
@@ -61,7 +62,8 @@ class OracleCapasRepository implements CapasReadPort {
         return vista.buscarVisible(capaId, usuarioId, ACTIVA, DE_TODOS).map(f -> {
             TipoCapa tipo = f.inicioJson() != null && POR_URL.matcher(f.inicioJson()).find() ? TipoCapa.URL : TipoCapa.VECTORIAL;
             return new Capa(f.id(), f.nombre(), f.descripcion(), visibilidad(f.visibilidad()),
-                    Objects.equals(f.dueno(), usuarioId), tipo, tipo == TipoCapa.URL ? List.of() : elementosDe(capaId));
+                    Objects.equals(f.dueno(), usuarioId), tipo, tipo == TipoCapa.URL ? List.of() : elementosDe(capaId),
+                    null);
         });
     }
 
@@ -77,6 +79,11 @@ class OracleCapasRepository implements CapasReadPort {
                     capaId, filas.size() - leidos.size(), filas.size());
         }
         return leidos;
+    }
+
+    @Override
+    public Optional<OrigenServicio> servicioVisible(int capaId, int usuarioId) {
+        return vista.buscarJsonVisible(capaId, usuarioId, ACTIVA, DE_TODOS).flatMap(ServicioSiate::leer);
     }
 
     @Override

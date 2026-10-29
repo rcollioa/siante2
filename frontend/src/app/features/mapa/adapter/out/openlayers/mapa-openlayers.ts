@@ -7,14 +7,18 @@ import { Coordinate } from 'ol/coordinate';
 import { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import Point from 'ol/geom/Point';
+import { Extent } from 'ol/extent';
 import LayerGroup from 'ol/layer/Group';
+import Layer from 'ol/layer/Layer';
+import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
-import { fromLonLat, toLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat, transformExtent } from 'ol/proj';
+import TileWMS from 'ol/source/TileWMS';
 import VectorSource from 'ol/source/Vector';
 import { Circle, Fill, Stroke, Style, Text as Texto } from 'ol/style';
 import { esPantallaChica } from '../../../../../shared/pantalla/pantalla-chica';
 import { MapaPort } from '../../../application/port/out/mapa.port';
-import { AvisoUbicacion, CapaBase, ElementoMapa, ElementoSeleccionado, ZonaVisible } from '../../../domain/mapa';
+import { AvisoUbicacion, CapaBase, CapaWms, ElementoMapa, ElementoSeleccionado, ZonaVisible } from '../../../domain/mapa';
 import { crearCapasBase } from './capas-base';
 import { aFeatures, ELEMENTO } from './elementos-openlayers';
 
@@ -28,6 +32,8 @@ const PERMISO_DENEGADO = 1; // GeolocationPositionError.PERMISSION_DENIED
 const OPCIONES_UBICACION: PositionOptions = { enableHighAccuracy: false, timeout: 10_000, maximumAge: 10 * 60_000 };
 /** Propiedad de cada Feature y de cada capa de OpenLayers con el ID de su capa. */
 const CAPA = 'capa';
+/** Propiedad de una capa WMS con su extensión en EPSG:3857, para acercarse a ella. */
+const EXTENSION = 'extension';
 /** Teselas fallidas seguidas antes de avisar: una suelta (borde del mundo, servidor lento) no es un corte. */
 const FALLAS_PARA_AVISAR = 4;
 /** Preferencia de cada usuario en su navegador; si el almacenamiento no está disponible, parte con el mapa. */
@@ -63,7 +69,9 @@ export class MapaOpenLayers extends MapaPort {
 
   /** Una capa de OpenLayers por cada capa abierta, en el orden en que se abrieron (la última, encima). */
   private readonly grupoCapas = new LayerGroup();
-  private readonly capas = new Map<number, VectorLayer<VectorSource>>();
+  private readonly capas = new Map<number, Layer>();
+  private readonly sinRespuesta = signal<ReadonlySet<number>>(new Set());
+  readonly capasSinRespuesta = this.sinRespuesta.asReadonly();
   private ajustePendiente: EventsKey | EventsKey[] | null = null;
   private readonly marcador = new VectorSource();
   private readonly ubicacion = new VectorSource();
@@ -109,7 +117,7 @@ export class MapaOpenLayers extends MapaPort {
     this.mapa.on('singleclick', ({ pixel }) => {
       // Solo cuentan las capas abiertas y visibles: OpenLayers no busca en las que no dibuja.
       const feature = this.mapa.forEachFeatureAtPixel(pixel, (encontrada) => encontrada as Feature, {
-        layerFilter: (capa) => capa.get(CAPA) !== undefined,
+        layerFilter: (capa) => capa instanceof VectorLayer && capa.get(CAPA) !== undefined,
         hitTolerance: 4
       });
       this.elementoSeleccionado.set(
@@ -122,15 +130,52 @@ export class MapaOpenLayers extends MapaPort {
     const features = aFeatures(elementos);
     features.forEach((feature) => feature.set(CAPA, id));
     const existente = this.capas.get(id);
-    if (existente) {
+    if (existente instanceof VectorLayer) {
       this.deseleccionarDe(id);
       existente.getSource()?.clear();
       existente.getSource()?.addFeatures(features);
       return;
     }
-    const capa = new VectorLayer({ source: new VectorSource({ features }), properties: { [CAPA]: id } });
+    this.agregar(id, new VectorLayer({ source: new VectorSource({ features }), properties: { [CAPA]: id } }));
+  }
+
+  /** Mosaicos pedidos al backend; uno que no llega marca la capa como sin respuesta, y uno que llega la desmarca. */
+  mostrarCapaWms(id: number, wms: CapaWms): void {
+    const fuente = new TileWMS({ url: wms.url, params: { LAYERS: wms.capas.join(','), TILED: true } });
+    fuente.on('tileloaderror', () => this.marcarSinRespuesta(id, true));
+    fuente.on('tileloadend', () => this.marcarSinRespuesta(id, false));
+    const extension = wms.extension
+      ? transformExtent([wms.extension.oeste, wms.extension.sur, wms.extension.este, wms.extension.norte], 'EPSG:4326', 'EPSG:3857')
+      : undefined;
+    this.agregar(id, new TileLayer({ source: fuente, properties: { [CAPA]: id, [EXTENSION]: extension } }));
+  }
+
+  /** Sobre las que ya están; si la capa ya estaba, ocupa su lugar. */
+  private agregar(id: number, capa: Layer): void {
+    const anterior = this.capas.get(id);
+    const capas = this.grupoCapas.getLayers();
+    if (anterior) {
+      this.deseleccionarDe(id);
+      capas.setAt(capas.getArray().indexOf(anterior), capa);
+    } else {
+      capas.push(capa);
+    }
     this.capas.set(id, capa);
-    this.grupoCapas.getLayers().push(capa);
+  }
+
+  private marcarSinRespuesta(id: number, sinRespuesta: boolean): void {
+    if (this.sinRespuesta().has(id) === sinRespuesta) {
+      return;
+    }
+    this.sinRespuesta.update((ids) => {
+      const nuevos = new Set(ids);
+      if (sinRespuesta) {
+        nuevos.add(id);
+      } else {
+        nuevos.delete(id);
+      }
+      return nuevos;
+    });
   }
 
   quitarCapa(id: number): void {
@@ -140,6 +185,7 @@ export class MapaOpenLayers extends MapaPort {
     }
     this.grupoCapas.getLayers().remove(capa);
     this.capas.delete(id);
+    this.marcarSinRespuesta(id, false);
     this.deseleccionarDe(id);
     this.cancelarAjuste();
   }
@@ -152,8 +198,7 @@ export class MapaOpenLayers extends MapaPort {
   }
 
   acercarA(id: number): void {
-    const fuente = this.capas.get(id)?.getSource();
-    const extension = fuente && !fuente.isEmpty() ? fuente.getExtent() : null;
+    const extension = this.extensionDe(id);
     if (!extension) {
       return;
     }
@@ -167,6 +212,16 @@ export class MapaOpenLayers extends MapaPort {
     } else {
       this.ajustePendiente = this.mapa.once('change:size', ajustar);
     }
+  }
+
+  /** La de sus elementos en una capa vectorial; la que informó el servidor en una WMS. */
+  private extensionDe(id: number): Extent | null {
+    const capa = this.capas.get(id);
+    if (capa instanceof VectorLayer) {
+      const fuente = capa.getSource() as VectorSource | null;
+      return fuente && !fuente.isEmpty() ? fuente.getExtent() : null;
+    }
+    return (capa?.get(EXTENSION) as Extent | undefined) ?? null;
   }
 
   deseleccionar(): void {

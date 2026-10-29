@@ -12,7 +12,7 @@ describe('MisCapasComponent', () => {
   const bodegas: ResumenCapa = { id: 1, nombre: 'Bodegas', descripcion: 'Región', visibilidad: 'PRIVADA' };
   const ide: ResumenCapa = { id: 2, nombre: 'Servicio IDE', descripcion: '', visibilidad: 'PUBLICA' };
   const enMapa = (resumen: ResumenCapa, visible = true): CapaEnMapa => ({
-    capa: { ...resumen, propia: true, tipo: 'VECTORIAL', elementos: [] } as Capa,
+    capa: { ...resumen, propia: true, tipo: 'VECTORIAL', elementos: [], servicio: null } as Capa,
     visible
   });
   let listarMias: ReturnType<typeof vi.fn<() => Observable<ResumenCapa[]>>>;

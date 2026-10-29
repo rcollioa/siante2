@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { MapaPort } from '../../mapa/application/port/out/mapa.port';
 import { ElementoSeleccionado } from '../../mapa/domain/mapa';
-import { Capa, CapaNoEncontrada, ElementoCapa } from '../domain/capa';
+import { Capa, CapaNoEncontrada, ElementoCapa, ServidorDeMapasNoDisponible } from '../domain/capa';
 import { CapasAbiertas } from './capas-abiertas';
 import { CapasRepositorio } from './port/out/capas.repositorio';
 
@@ -25,18 +25,21 @@ describe('CapasAbiertas', () => {
     propia: true,
     tipo: 'VECTORIAL',
     elementos: [elemento],
+    servicio: null,
     ...cambios
   });
   let ver: ReturnType<typeof vi.fn<(id: number) => Observable<Capa>>>;
   // Dobles en memoria de los puertos: sin HTTP ni OpenLayers.
   const mapa = {
     mostrarCapa: vi.fn(),
+    mostrarCapaWms: vi.fn(),
     quitarCapa: vi.fn(),
     cambiarVisibilidad: vi.fn(),
     acercarA: vi.fn(),
     deseleccionar: vi.fn(),
     quitarMarcador: vi.fn(),
-    elementoSeleccionado: signal<ElementoSeleccionado | null>(null)
+    elementoSeleccionado: signal<ElementoSeleccionado | null>(null),
+    capasSinRespuesta: signal<ReadonlySet<number>>(new Set())
   };
   let servicio: CapasAbiertas;
   const ids = () => servicio.abiertas().map(({ capa }) => capa.id);
@@ -44,6 +47,7 @@ describe('CapasAbiertas', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mapa.elementoSeleccionado.set(null);
+    mapa.capasSinRespuesta.set(new Set());
     ver = vi.fn((id: number) => of(capa(id)));
     TestBed.configureTestingModule({
       providers: [
@@ -94,6 +98,48 @@ describe('CapasAbiertas', () => {
     servicio.abrir(1);
 
     expect(mapa.mostrarCapa).toHaveBeenCalledWith(1, []);
+  });
+
+  it('una capa WMS se dibuja con las imágenes de su servidor, pedidas al backend, y se acerca a su extensión', () => {
+    ver.mockReturnValue(of(capa(7, {
+      tipo: 'URL',
+      elementos: [],
+      servicio: {
+        tipo: 'WMS',
+        urlMapa: '/siante2/api/capas/7/wms',
+        capas: [
+          { nombre: 'rios', titulo: 'Ríos', extension: { oeste: -76, sur: -56, este: -66, norte: -17 } },
+          { nombre: 'lagos', titulo: 'Lagos', extension: { oeste: -73, sur: -42, este: -70, norte: -39 } }
+        ]
+      }
+    })));
+
+    servicio.abrir(7);
+
+    expect(mapa.mostrarCapa).not.toHaveBeenCalled();
+    expect(mapa.mostrarCapaWms).toHaveBeenCalledWith(7, {
+      url: '/siante2/api/capas/7/wms',
+      capas: ['rios', 'lagos'],
+      extension: { oeste: -76, sur: -56, este: -66, norte: -17 }
+    });
+    expect(mapa.acercarA).toHaveBeenCalledWith(7);
+  });
+
+  it('dice qué capas WMS abiertas no reciben imágenes de su servidor', () => {
+    servicio.abrir(1);
+    servicio.abrir(2);
+
+    mapa.capasSinRespuesta.set(new Set([2]));
+
+    expect(servicio.sinRespuesta().map(({ id }) => id)).toEqual([2]);
+  });
+
+  it('si el servidor de mapas de la capa no responde lo dice', () => {
+    ver.mockReturnValue(throwError(() => new ServidorDeMapasNoDisponible(7)));
+
+    servicio.abrir(7);
+
+    expect(servicio.error()).toBe('El servidor de mapas de la capa no responde. Intente más tarde.');
   });
 
   it('oculta y vuelve a mostrar una capa sin cerrarla', () => {

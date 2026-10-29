@@ -35,18 +35,21 @@
       </dl>
     }
   </section>
-} @else if (servicio.abiertas().length > 0) {
+} @else if (servicio.abiertas().length > 0 && hayAviso()) {
   <div class="panel nota" role="status">
+    @for (capa of servicio.sinRespuesta(); track capa.id) {
+      <p class="error">El servidor de mapas de «{{ capa.nombre }}» no responde.</p>
+    }
     @if (elementosVisibles() > 0) {
       <p>
         {{ elementosVisibles() | number }} {{ elementosVisibles() === 1 ? 'elemento visible' : 'elementos visibles' }}.
         Haga clic en uno para ver su información.
       </p>
-    } @else if (!hayPorUrl()) {
+    } @else if (!hayPorUrl() && !hayWms()) {
       <p>Las capas abiertas no tienen elementos a la vista.</p>
     }
     @if (hayPorUrl()) {
-      <p>Las capas por URL (WMS, WFS o WMTS) se podrán ver en una próxima versión.</p>
+      <p>Las capas por URL de tipo WMTS o WFS se podrán ver en una próxima versión.</p>
     }
   </div>
 }

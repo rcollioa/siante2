@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { MapaPort } from '../../mapa/application/port/out/mapa.port';
-import { Capa, CapaNoEncontrada, ElementoCapa } from '../domain/capa';
+import { Capa, CapaNoEncontrada, ElementoCapa, extensionDe, ServidorDeMapasNoDisponible } from '../domain/capa';
 import { CapasRepositorio } from './port/out/capas.repositorio';
 
 /** Una capa abierta en el mapa y si se está mostrando. */
@@ -32,6 +32,11 @@ export class CapasAbiertas {
   readonly abriendo = this.idsAbriendo.asReadonly();
   readonly error = this.mensajeError.asReadonly();
   /** Los elementos en el mapa son solo los de las capas abiertas, así que lo seleccionado es de una de ellas. */
+  /** Capas WMS abiertas cuyo servidor no está entregando imágenes. */
+  readonly sinRespuesta = computed(() => {
+    const ids = this.mapa.capasSinRespuesta();
+    return this.lista().filter(({ capa }) => ids.has(capa.id)).map(({ capa }) => capa);
+  });
   readonly elegido = computed<ElementoElegido | null>(() => {
     const seleccion = this.mapa.elementoSeleccionado();
     const abierta = seleccion && this.lista().find(({ capa }) => capa.id === seleccion.capa);
@@ -60,7 +65,7 @@ export class CapasAbiertas {
         next: (capa) => {
           this.terminarPedido(id);
           this.lista.update((abiertas) => [...abiertas, { capa, visible: true }]);
-          this.mapa.mostrarCapa(id, capa.tipo === 'URL' ? [] : capa.elementos);
+          this.mostrar(capa);
           this.mapa.acercarA(id);
           // Como el marcador del buscador en SIATE: desaparece al elegir otra capa.
           this.mapa.quitarMarcador();
@@ -68,11 +73,7 @@ export class CapasAbiertas {
         // Si falla, las capas que ya estaban abiertas siguen en el mapa.
         error: (error: unknown) => {
           this.terminarPedido(id);
-          this.mensajeError.set(
-            error instanceof CapaNoEncontrada
-              ? 'La capa ya no existe o no tiene permiso para verla.'
-              : 'No se pudo abrir la capa. Intente nuevamente.'
-          );
+          this.mensajeError.set(mensaje(error));
         }
       })
     );
@@ -108,6 +109,19 @@ export class CapasAbiertas {
     this.mensajeError.set('');
   }
 
+  /** Una capa WMS como imágenes de su servidor; las demás, con sus elementos (las WMTS y WFS, todavía sin nada). */
+  private mostrar(capa: Capa): void {
+    if (capa.servicio?.tipo === 'WMS') {
+      this.mapa.mostrarCapaWms(capa.id, {
+        url: capa.servicio.urlMapa,
+        capas: capa.servicio.capas.map(({ nombre }) => nombre),
+        extension: extensionDe(capa.servicio)
+      });
+    } else {
+      this.mapa.mostrarCapa(capa.id, capa.tipo === 'URL' ? [] : capa.elementos);
+    }
+  }
+
   private cambiarVisibilidad(id: number, visible: boolean): void {
     this.lista.update((abiertas) => abiertas.map((abierta) => (abierta.capa.id === id ? { ...abierta, visible } : abierta)));
     this.mapa.cambiarVisibilidad(id, visible);
@@ -121,4 +135,13 @@ export class CapasAbiertas {
       return restantes;
     });
   }
+}
+
+function mensaje(error: unknown): string {
+  if (error instanceof CapaNoEncontrada) {
+    return 'La capa ya no existe o no tiene permiso para verla.';
+  }
+  return error instanceof ServidorDeMapasNoDisponible
+    ? 'El servidor de mapas de la capa no responde. Intente más tarde.'
+    : 'No se pudo abrir la capa. Intente nuevamente.';
 }

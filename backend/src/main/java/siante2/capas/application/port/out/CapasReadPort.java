@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
+import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.ResumenCapa;
 import siante2.capas.domain.SeccionCatalogo;
 
@@ -14,6 +15,10 @@ public interface CapasReadPort {
 
     /** La capa activa si es del usuario, pública o formal; vacío si no existe o no puede verla. */
     Optional<Capa> buscarVisible(int capaId, int usuarioId);
+
+    /** El servidor de mapas de una capa por URL que el usuario puede ver; vacío si no existe, no la puede ver o no es
+     * por URL. */
+    Optional<OrigenServicio> servicioVisible(int capaId, int usuarioId);
 
     /** Capas activas de los grupos que el usuario marcó como favoritos ({@code FAVORITES}), sin áreas de dibujo y
      * solo las que todavía puede ver: una que su dueño volvió privada deja de aparecer. */

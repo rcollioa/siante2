@@ -9,10 +9,17 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import siante2.capas.application.port.in.ListarFavoritasUseCase;
 import siante2.capas.application.port.in.ListarMisCapasUseCase;
+import siante2.capas.application.port.in.ObtenerMapaUseCase;
 import siante2.capas.application.port.in.VerCapaUseCase;
 import siante2.capas.application.port.in.VerCatalogoUseCase;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
+import siante2.capas.domain.CapaDeServicio;
+import siante2.capas.domain.Extension;
+import siante2.capas.domain.ImagenMapa;
+import siante2.capas.domain.PedidoMapa;
+import siante2.capas.domain.ServicioMapa;
+import siante2.capas.domain.TipoServicio;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.EstiloElemento;
 import siante2.capas.domain.Metadato;
@@ -25,7 +32,11 @@ import siante2.compartido.domain.Geometria;
 import siante2.compartido.domain.RecursoNoEncontradoException;
 
 import static org.hamcrest.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -51,6 +62,49 @@ class CapasControllerTest {
 
     @MockitoBean
     private VerCatalogoUseCase catalogo;
+
+    @MockitoBean
+    private ObtenerMapaUseCase mapa;
+
+    @Test
+    void unaCapaWmsTraeLasCapasDeSuServidorSinSuUrl() throws Exception {
+        when(ver.ver(7, "prueba")).thenReturn(new Capa(7, "IDE", "", Visibilidad.PUBLICA, false, TipoCapa.URL, List.of(),
+                new ServicioMapa(TipoServicio.WMS, List.of(new CapaDeServicio("rios", "Ríos", new Extension(-76, -56, -66, -17))))));
+
+        mockMvc.perform(get(RUTA + "/7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.servicio.tipo").value("WMS"))
+                .andExpect(jsonPath("$.servicio.capas[0].nombre").value("rios"))
+                .andExpect(jsonPath("$.servicio.capas[0].extension.oeste").value(-76))
+                .andExpect(jsonPath("$.servicio.url").doesNotExist());
+    }
+
+    @Test
+    void entregaLaImagenWmsConSuTipoYSeGuardaUnosMinutosEnElNavegador() throws Exception {
+        when(mapa.obtenerMapa(eq(7), eq("prueba"), argThat((PedidoMapa p) -> p.capas().equals(List.of("rios", "lagos"))
+                && p.crs().equals("EPSG:3857") && p.ancho() == 256))).thenReturn(new ImagenMapa(new byte[] {1, 2}, "image/png"));
+
+        mockMvc.perform(get(RUTA + "/7/wms").param("SERVICE", "WMS").param("REQUEST", "GetMap").param("VERSION", "1.3.0")
+                        .param("LAYERS", "rios,lagos").param("CRS", "EPSG:3857").param("BBOX", "-7.9e6,-4e6,-7.8e6,-3.9e6")
+                        .param("WIDTH", "256").param("HEIGHT", "256").param("FORMAT", "image/png").param("TRANSPARENT", "true"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "image/png"))
+                .andExpect(header().string("Cache-Control", "max-age=600, private"))
+                .andExpect(content().bytes(new byte[] {1, 2}));
+    }
+
+    @Test
+    void unaImagenWmsConParametrosInvalidosResponde400SinPreguntarAlServidor() throws Exception {
+        mockMvc.perform(get(RUTA + "/7/wms").param("LAYERS", "rios").param("CRS", "EPSG:3857").param("BBOX", "1,2,3")
+                        .param("WIDTH", "256").param("HEIGHT", "256"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        mockMvc.perform(get(RUTA + "/7/wms").param("LAYERS", "rios").param("CRS", "EPSG:3857").param("BBOX", "1,2,3,4")
+                        .param("WIDTH", "99999").param("HEIGHT", "256"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(mapa);
+    }
 
     @Test
     void listaLasFavoritasDelUsuarioDeWebSeal() throws Exception {
@@ -98,7 +152,7 @@ class CapasControllerTest {
         ElementoCapa circulo = new ElementoCapa(0, Geometria.simple("Point", List.of(-70.65, -33.44)), 500, "Radio",
                 "", new EstiloElemento("#3399CC", 2, "", ""), List.of(new Metadato("Fuente", "Terreno")));
         when(ver.ver(5, "prueba")).thenReturn(
-                new Capa(5, "Bodegas", "", Visibilidad.PUBLICA, true, TipoCapa.VECTORIAL, List.of(circulo)));
+                new Capa(5, "Bodegas", "", Visibilidad.PUBLICA, true, TipoCapa.VECTORIAL, List.of(circulo), null));
 
         mockMvc.perform(get(RUTA + "/5"))
                 .andExpect(status().isOk())

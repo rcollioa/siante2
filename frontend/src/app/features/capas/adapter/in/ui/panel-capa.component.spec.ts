@@ -24,13 +24,17 @@ describe('PanelCapaComponent', () => {
     propia: true,
     tipo: 'VECTORIAL',
     elementos: Array.from({ length: 1234 }, () => elemento),
+    servicio: null,
     ...cambios
   });
+  const wms = (id: number, nombre: string): Capa =>
+    capa({ id, nombre, tipo: 'URL', elementos: [], servicio: { tipo: 'WMS', capas: [], urlMapa: '/siante2/api/capas/7/wms' } });
   const servicio = {
     abiertas: signal<CapaEnMapa[]>([]),
     abriendo: signal<ReadonlySet<number>>(new Set()),
     error: signal(''),
     elegido: signal<ElementoElegido | null>(null),
+    sinRespuesta: signal<Capa[]>([]),
     deseleccionar: vi.fn(),
     descartarError: vi.fn()
   };
@@ -44,6 +48,7 @@ describe('PanelCapaComponent', () => {
     servicio.abriendo.set(new Set());
     servicio.error.set('');
     servicio.elegido.set(null);
+    servicio.sinRespuesta.set([]);
     TestBed.configureTestingModule({
       imports: [PanelCapaComponent],
       providers: [{ provide: CapasAbiertas, useValue: servicio }, { provide: LOCALE_ID, useValue: 'es-CL' }]
@@ -89,11 +94,26 @@ describe('PanelCapaComponent', () => {
     expect(servicio.deseleccionar).toHaveBeenCalled();
   });
 
-  it('avisa que las capas por URL todavía no se pueden ver', () => {
-    servicio.abiertas.set([{ capa: capa({ tipo: 'URL', elementos: [] }), visible: true }]);
+  it('avisa que las capas WMTS y WFS todavía no se pueden ver', () => {
+    servicio.abiertas.set([{ capa: capa({ tipo: 'URL', elementos: [], servicio: { tipo: 'WFS', capas: [], urlMapa: '' } }), visible: true }]);
     fixture.detectChanges();
 
-    expect(texto()).toBe('Las capas por URL (WMS, WFS o WMTS) se podrán ver en una próxima versión.');
+    expect(texto()).toBe('Las capas por URL de tipo WMTS o WFS se podrán ver en una próxima versión.');
+  });
+
+  it('con solo capas WMS que responden no ocupa el mapa', () => {
+    servicio.abiertas.set([{ capa: wms(7, 'IDE'), visible: true }]);
+    fixture.detectChanges();
+
+    expect(texto()).toBe('');
+  });
+
+  it('avisa qué servidores de mapas no responden', () => {
+    servicio.abiertas.set([{ capa: wms(7, 'IDE'), visible: true }]);
+    servicio.sinRespuesta.set([wms(7, 'IDE')]);
+    fixture.detectChanges();
+
+    expect(texto()).toBe('El servidor de mapas de «IDE» no responde.');
   });
 
   it('mientras abre y si falla lo dice', () => {

@@ -33,6 +33,22 @@ export interface ElementoMapa {
   estilo: EstiloElemento;
 }
 
+/** Rectángulo en grados (EPSG:4326). */
+export interface Extension {
+  oeste: number;
+  sur: number;
+  este: number;
+  norte: number;
+}
+
+/** Una capa de un servidor WMS: el mapa pide sus imágenes a `url` (el backend, que habla con el servidor). */
+export interface CapaWms {
+  url: string;
+  capas: readonly string[];
+  /** Para acercarse a la capa; null si el servidor no la informa. */
+  extension: Extension | null;
+}
+
 /** El elemento en que el usuario hizo clic (el mismo objeto que se entregó) y la capa del mapa que lo muestra. */
 export interface ElementoSeleccionado {
   capa: number;

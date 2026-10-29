@@ -28,6 +28,14 @@ interface VistaCapaJpaRepository extends Repository<VistaCapaEntity, Integer> {
             limit 1""")
     Optional<FilaCapaVisible> buscarVisible(int capa, int usuario, String activa, Collection<String> deTodos);
 
+    /** El JSON completo de una capa que el usuario puede ver. Solo para las capas por URL, cuyo JSON es corto: el de
+     * una vectorial puede pesar megas. */
+    @Query("""
+            select c.jsonMetadata
+            from VistaCapaEntity c
+            where c.id = :capa and c.status = :activa and (c.userId = :usuario or c.visibility in :deTodos)""")
+    Optional<String> buscarJsonVisible(int capa, int usuario, String activa, Collection<String> deTodos);
+
     /** Como SIATE: el favorito apunta a un grupo ({@code FAVORITES.L_GROUP_ID}) y sus capas salen de
      * {@code LAYERS_GROUPS_LAYERS}. Además, solo las que el usuario todavía puede ver. */
     @Query("""

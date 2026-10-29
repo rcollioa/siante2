@@ -1,5 +1,5 @@
 import { Signal } from '@angular/core';
-import { AvisoUbicacion, CapaBase, ElementoMapa, ElementoSeleccionado, ZonaVisible } from '../../../domain/mapa';
+import { AvisoUbicacion, CapaBase, CapaWms, ElementoMapa, ElementoSeleccionado, ZonaVisible } from '../../../domain/mapa';
 
 /** El mapa para el resto de la aplicación: instancia única, sin exponer la librería que lo dibuja. */
 export abstract class MapaPort {
@@ -12,6 +12,8 @@ export abstract class MapaPort {
   abstract readonly sinMapaBase: Signal<boolean>;
   /** Elemento en el que el usuario hizo clic; null si ninguno o si su capa se ocultó o se quitó. */
   abstract readonly elementoSeleccionado: Signal<ElementoSeleccionado | null>;
+  /** Capas WMS cuyas imágenes no están llegando: el servidor de mapas no responde. */
+  abstract readonly capasSinRespuesta: Signal<ReadonlySet<number>>;
 
   abstract montar(elemento: HTMLElement): void;
   abstract desmontar(): void;
@@ -21,6 +23,8 @@ export abstract class MapaPort {
 
   /** Muestra los elementos de una capa, sobre las que ya están; si la capa ya estaba, reemplaza sus elementos. */
   abstract mostrarCapa(id: number, elementos: readonly ElementoMapa[]): void;
+  /** Muestra una capa de un servidor WMS, sobre las que ya están; si ya estaba, la reemplaza. */
+  abstract mostrarCapaWms(id: number, wms: CapaWms): void;
   abstract quitarCapa(id: number): void;
   abstract cambiarVisibilidad(id: number, visible: boolean): void;
   /** Acerca el mapa para ver todos los elementos de la capa. */
