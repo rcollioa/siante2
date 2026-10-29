@@ -1,9 +1,11 @@
 package siante2.capas.adapter.out.wms;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
@@ -14,8 +16,10 @@ import siante2.compartido.domain.ServicioExternoNoDisponibleException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.client.ExpectedCount.manyTimes;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /** Con un servidor WMS simulado. 8.8.8.8 en vez de un nombre: la prueba no depende de resolver DNS. */
@@ -55,6 +59,55 @@ class ClienteWmsTest {
         servidor.expect(requestTo("https://8.8.8.8/geoserver/wms?SERVICE=WMS&REQUEST=GetCapabilities"))
                 .andRespond(withSuccess("<WMS_Capabilities><Capability/></WMS_Capabilities>", MediaType.APPLICATION_XML));
         assertThatThrownBy(() -> cliente.capasWms(URL)).hasMessage("El servidor de mapas de la capa no publica capas.");
+    }
+
+    @Test
+    void unServicioDadoDeBajaSeInformaComoTal() {
+        servidor.expect(requestTo("https://8.8.8.8/geoserver/wms?SERVICE=WMS&REQUEST=GetCapabilities"))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND).body("<!DOCTYPE html><title>Not Found</title>"));
+
+        assertThatThrownBy(() -> cliente.capasWms(URL))
+                .isInstanceOf(ServicioExternoNoDisponibleException.class)
+                .hasMessage("El servidor de mapas ya no publica el servicio de la capa (respondió 404).");
+    }
+
+    @Test
+    void sigueLasRedireccionesComoGeoportalYLuegoPideDirectoAlDestinoFinal() {
+        String capacidades = "/geoserver/wms?SERVICE=WMS&REQUEST=GetCapabilities";
+        servidor.expect(requestTo("http://8.8.8.8" + capacidades))
+                .andRespond(withStatus(HttpStatus.PERMANENT_REDIRECT).location(URI.create("https://8.8.8.8" + capacidades)));
+        servidor.expect(requestTo("https://8.8.8.8" + capacidades))
+                .andRespond(withStatus(HttpStatus.MOVED_PERMANENTLY).location(URI.create("https://8.8.4.4" + capacidades)));
+        servidor.expect(requestTo("https://8.8.4.4" + capacidades))
+                .andRespond(withSuccess("<WMS_Capabilities><Capability><Layer><Name>rios</Name></Layer></Capability></WMS_Capabilities>"
+                        .getBytes(StandardCharsets.UTF_8), MediaType.APPLICATION_XML));
+        // El mosaico va directo al último servidor: sin repetir las dos redirecciones por cada imagen.
+        servidor.expect(requestTo(startsWith("https://8.8.4.4/geoserver/wms?SERVICE=WMS&REQUEST=GetMap")))
+                .andRespond(withSuccess(new byte[] {1}, MediaType.IMAGE_PNG));
+
+        String url = "http://8.8.8.8/geoserver/wms?request=GetCapabilities";
+        assertThat(cliente.capasWms(url)).extracting(CapaDeServicio::nombre).containsExactly("rios");
+        assertThat(cliente.mapaWms(url, PEDIDO).tipo()).isEqualTo("image/png");
+        servidor.verify();
+    }
+
+    @Test
+    void unaRedireccionHaciaLaPropiaMaquinaSeBloquea() {
+        servidor.expect(requestTo("https://8.8.8.8/geoserver/wms?SERVICE=WMS&REQUEST=GetCapabilities"))
+                .andRespond(withStatus(HttpStatus.FOUND).location(URI.create("http://127.0.0.1:8081/actuator/env")));
+
+        assertThatThrownBy(() -> cliente.capasWms(URL))
+                .isInstanceOf(ServicioExternoNoDisponibleException.class)
+                .hasMessage("La dirección del servidor de mapas no está permitida.");
+    }
+
+    @Test
+    void demasiadasRedireccionesNoSeSiguen() {
+        servidor.expect(manyTimes(),
+                        requestTo(startsWith("https://8.8.8.8/")))
+                .andRespond(withStatus(HttpStatus.FOUND).location(URI.create("https://8.8.8.8/otra")));
+
+        assertThatThrownBy(() -> cliente.capasWms(URL)).hasMessage("El servidor de mapas de la capa redirige demasiadas veces.");
     }
 
     @Test
