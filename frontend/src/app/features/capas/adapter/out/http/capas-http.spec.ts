@@ -59,9 +59,25 @@ describe('CapasHttp', () => {
       tipo: 'WMS',
       capas: [{ nombre: 'rios', titulo: 'Ríos', extension: null }],
       urlMapa: '/siante2/api/capas/7/wms',
-      disponible: false
+      disponible: false,
+      grilla: null
     });
     expect(vectorial?.servicio).toBeNull();
+  });
+
+  it('una capa WMTS pide sus mosaicos al backend y trae la grilla', () => {
+    const grilla = {
+      crs: 'EPSG:3857',
+      matrices: [{ id: '0', resolucion: 1, origenX: 0, origenY: 0, anchoMosaico: 256, altoMosaico: 256, columnas: 1, filas: 1 }]
+    };
+    let wmts: Capa | undefined;
+    servicio.ver(9).subscribe((capa) => (wmts = capa));
+    http.expectOne('/siante2/api/capas/9').flush({
+      id: 9, nombre: 'Orto', descripcion: '', visibilidad: 'PRIVADA', propia: true, tipo: 'URL', elementos: [],
+      servicio: { tipo: 'WMTS', capas: [], disponible: true, grilla }
+    });
+
+    expect(wmts?.servicio).toMatchObject({ urlMapa: '/siante2/api/capas/9/wmts', grilla });
   });
 
   it('si el servidor de mapas de la capa no responde es ServidorDeMapasNoDisponible', () => {

@@ -1,5 +1,14 @@
 import { Signal } from '@angular/core';
-import { AvisoUbicacion, CapaBase, CapaWms, ElementoMapa, ElementoSeleccionado, PuntoWms, ZonaVisible } from '../../../domain/mapa';
+import {
+  AvisoUbicacion,
+  CapaBase,
+  CapaWms,
+  CapaWmts,
+  ElementoMapa,
+  ElementoSeleccionado,
+  PuntoWms,
+  ZonaVisible
+} from '../../../domain/mapa';
 
 /** El mapa para el resto de la aplicación: instancia única, sin exponer la librería que lo dibuja. */
 export abstract class MapaPort {
@@ -28,6 +37,9 @@ export abstract class MapaPort {
   abstract mostrarCapa(id: number, elementos: readonly ElementoMapa[]): void;
   /** Muestra una capa de un servidor WMS, sobre las que ya están; si ya estaba, la reemplaza. */
   abstract mostrarCapaWms(id: number, wms: CapaWms): void;
+  /** Muestra las capas de un servidor WMTS como una sola capa abierta, sobre las que ya están; si ya estaba, la
+   * reemplaza. */
+  abstract mostrarCapaWmts(id: number, wmts: CapaWmts): void;
   abstract quitarCapa(id: number): void;
   abstract cambiarVisibilidad(id: number, visible: boolean): void;
   /** Acerca el mapa para ver todos los elementos de la capa. */

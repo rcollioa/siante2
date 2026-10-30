@@ -169,14 +169,19 @@ export class CapasAbiertas {
     this.mensajeError.set('');
   }
 
-  /** Una capa WMS como imágenes de su servidor; las demás, con sus elementos (las WMTS y WFS, todavía sin nada). Una
-   * WMS cuyo servidor no respondió queda vacía, como en SIATE. */
+  /** Una capa WMS o WMTS como imágenes de su servidor; las demás, con sus elementos (las WFS, todavía sin nada). Una
+   * capa cuyo servidor no respondió queda vacía, como en SIATE. */
   private mostrar(capa: Capa): void {
-    if (capa.servicio?.tipo === 'WMS' && capa.servicio.disponible) {
-      this.mapa.mostrarCapaWms(capa.id, {
-        url: capa.servicio.urlMapa,
-        capas: capa.servicio.capas.map(({ nombre }) => nombre),
-        extension: extensionDe(capa.servicio)
+    const servicio = capa.servicio;
+    const capasDelServidor = servicio?.capas.map(({ nombre }) => nombre) ?? [];
+    if (servicio?.tipo === 'WMS' && servicio.disponible) {
+      this.mapa.mostrarCapaWms(capa.id, { url: servicio.urlMapa, capas: capasDelServidor, extension: extensionDe(servicio) });
+    } else if (servicio?.tipo === 'WMTS' && servicio.disponible && servicio.grilla) {
+      this.mapa.mostrarCapaWmts(capa.id, {
+        url: servicio.urlMapa,
+        capas: capasDelServidor,
+        extension: extensionDe(servicio),
+        grilla: servicio.grilla
       });
     } else {
       this.mapa.mostrarCapa(capa.id, capa.tipo === 'URL' ? [] : capa.elementos);

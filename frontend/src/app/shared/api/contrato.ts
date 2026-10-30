@@ -100,6 +100,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/siante2/api/capas/{id}/wmts/{capa}/{matriz}/{fila}/{columna}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["obtenerMosaicoDeCapa"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/categorias": {
         parameters: {
             query?: never;
@@ -310,6 +326,27 @@ export interface components {
             geometries: components["schemas"]["Geometria"][];
             type: string;
         };
+        GrillaWmts: {
+            crs: string;
+            matrices: components["schemas"]["MatrizMosaicos"][];
+        };
+        MatrizMosaicos: {
+            /** Format: int32 */
+            altoMosaico: number;
+            /** Format: int32 */
+            anchoMosaico: number;
+            /** Format: int32 */
+            columnas: number;
+            /** Format: int32 */
+            filas: number;
+            id: string;
+            /** Format: double */
+            origenX: number;
+            /** Format: double */
+            origenY: number;
+            /** Format: double */
+            resolucion: number;
+        };
         Metadato: {
             nombre: string;
             valor: string;
@@ -333,6 +370,7 @@ export interface components {
         ServicioMapa: {
             capas: components["schemas"]["CapaDeServicio"][];
             disponible: boolean;
+            grilla: components["schemas"]["GrillaWmts"];
             /** @enum {string} */
             tipo: "WMS" | "WMTS" | "WFS";
         };
@@ -502,6 +540,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ElementosDeServicioResponse"];
+                };
+            };
+        };
+    };
+    obtenerMosaicoDeCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                capa: string;
+                matriz: string;
+                fila: number;
+                columna: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
         };

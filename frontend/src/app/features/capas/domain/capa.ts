@@ -1,4 +1,4 @@
-import { ElementoMapa, Extension } from '../../mapa/domain/mapa';
+import { ElementoMapa, Extension, GrillaWmts } from '../../mapa/domain/mapa';
 
 /** Quién ve una capa ({@code VISIBILITY} de SIATE). Las áreas de dibujo son capas internas de los grupos. */
 export type Visibilidad = 'PRIVADA' | 'PUBLICA' | 'FORMAL' | 'AREA_DE_DIBUJO';
@@ -73,8 +73,10 @@ export interface CapaDeServicio {
 export interface ServicioCapa {
   tipo: TipoServicio;
   capas: CapaDeServicio[];
-  /** Dónde se piden las imágenes del mapa: el backend, nunca el servidor directo. */
+  /** Dónde se piden las imágenes o los mosaicos del mapa: el backend, nunca el servidor directo. */
   urlMapa: string;
+  /** Solo en WMTS: la grilla de sus mosaicos. */
+  grilla: GrillaWmts | null;
   /** false si el servidor no respondió al abrir la capa: como en SIATE, se abre igual, vacía, con un aviso. */
   disponible: boolean;
 }

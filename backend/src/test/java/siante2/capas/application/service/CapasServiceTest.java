@@ -7,17 +7,22 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import siante2.capas.application.port.out.CapasReadPort;
 import siante2.capas.application.port.out.ServiciosMapaPort;
+import siante2.capas.application.port.out.ServiciosWmtsPort;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.CapaDeServicio;
 import siante2.capas.domain.ConsultaPunto;
 import siante2.capas.domain.ElementoDeServicio;
+import siante2.capas.domain.GrillaWmts;
 import siante2.capas.domain.ImagenMapa;
+import siante2.capas.domain.MatrizMosaicos;
 import siante2.capas.domain.Metadato;
 import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.PedidoMapa;
+import siante2.capas.domain.PedidoMosaico;
 import siante2.capas.domain.ResumenCapa;
 import siante2.capas.domain.SeccionCatalogo;
+import siante2.capas.domain.ServicioMapa;
 import siante2.capas.domain.TipoCapa;
 import siante2.capas.domain.TipoServicio;
 import siante2.capas.domain.Visibilidad;
@@ -53,7 +58,7 @@ class CapasServiceTest {
             }
             return switch (capaId) {
                 case 1 -> Optional.of(new Capa(1, "Bodegas", "", Visibilidad.PRIVADA, true, TipoCapa.VECTORIAL, List.of(), null));
-                case 20, 21, 22 -> Optional.of(new Capa(capaId, "IDE", "", Visibilidad.PUBLICA, false, TipoCapa.URL, List.of(), null));
+                case 20, 21, 22, 23 -> Optional.of(new Capa(capaId, "IDE", "", Visibilidad.PUBLICA, false, TipoCapa.URL, List.of(), null));
                 default -> Optional.empty();
             };
         }
@@ -67,6 +72,7 @@ class CapasServiceTest {
                 case 20 -> Optional.of(new OrigenServicio(TipoServicio.WMS, WMS_IDE));
                 case 21 -> Optional.of(new OrigenServicio(TipoServicio.WFS, "https://ide.cl/wfs"));
                 case 22 -> Optional.of(new OrigenServicio(TipoServicio.WMS, WMS_CAIDO));
+                case 23 -> Optional.of(new OrigenServicio(TipoServicio.WMTS, "https://wmts.cl/WMTSCapabilities.xml"));
                 default -> Optional.empty();
             };
         }
@@ -122,9 +128,54 @@ class CapasServiceTest {
         }
     }
 
+    /** El servidor WMTS de la capa 23 publica "orto" con dos niveles: el 0 de 1×1 mosaicos y el 1 de 2×2. */
+    private static class MosaicosEnMemoria implements ServiciosWmtsPort {
+
+        final List<PedidoMosaico> pedidos = new ArrayList<>();
+
+        @Override
+        public ServicioMapa servicioWmts(String url) {
+            return ServicioMapa.wmts(List.of(new CapaDeServicio("orto", "Ortofoto", null)), new GrillaWmts("EPSG:3857",
+                    List.of(new MatrizMosaicos("0", 156543.03, -2.0e7, 2.0e7, 256, 256, 1, 1),
+                            new MatrizMosaicos("1", 78271.52, -2.0e7, 2.0e7, 256, 256, 2, 2))));
+        }
+
+        @Override
+        public ImagenMapa mosaicoWmts(String url, PedidoMosaico pedido) {
+            pedidos.add(pedido);
+            return new ImagenMapa(new byte[] {2}, "image/jpeg");
+        }
+    }
+
     private final ServiciosEnMemoria servicios = new ServiciosEnMemoria();
+    private final MosaicosEnMemoria mosaicos = new MosaicosEnMemoria();
     private final CapasService servicio = new CapasService(new CapasEnMemoria(),
-            ivUser -> Optional.ofNullable(USUARIOS.get(ivUser)), servicios);
+            ivUser -> Optional.ofNullable(USUARIOS.get(ivUser)), servicios, mosaicos);
+
+    @Test
+    void unaCapaWmtsSeAbreConSusCapasYLaGrillaDeMosaicos() {
+        Capa capa = servicio.ver(23, "jperez");
+
+        assertThat(capa.servicio().tipo()).isEqualTo(TipoServicio.WMTS);
+        assertThat(capa.servicio().capas()).extracting(CapaDeServicio::nombre).containsExactly("orto");
+        assertThat(capa.servicio().grilla().matrices()).extracting(MatrizMosaicos::id).containsExactly("0", "1");
+    }
+
+    @Test
+    void elMosaicoSePideSoloSiEstaEnLaGrillaDeUnaCapaPublicada() {
+        assertThat(servicio.obtenerMosaico(23, "jperez", new PedidoMosaico("orto", "1", 1, 1)).tipo()).isEqualTo("image/jpeg");
+
+        assertThatThrownBy(() -> servicio.obtenerMosaico(23, "jperez", new PedidoMosaico("secreta", "1", 0, 0)))
+                .isInstanceOf(SolicitudInvalidaException.class);
+        assertThatThrownBy(() -> servicio.obtenerMosaico(23, "jperez", new PedidoMosaico("orto", "9", 0, 0)))
+                .isInstanceOf(SolicitudInvalidaException.class);
+        assertThatThrownBy(() -> servicio.obtenerMosaico(23, "jperez", new PedidoMosaico("orto", "0", 1, 0)))
+                .isInstanceOf(SolicitudInvalidaException.class);
+        assertThatThrownBy(() -> servicio.obtenerMosaico(20, "jperez", new PedidoMosaico("orto", "0", 0, 0)))
+                .isInstanceOf(RecursoNoEncontradoException.class);
+        assertThatThrownBy(() -> new PedidoMosaico("orto", "0", -1, 0)).isInstanceOf(SolicitudInvalidaException.class);
+        assertThat(mosaicos.pedidos).hasSize(1);
+    }
 
     private static PedidoMapa pedido(String... capas) {
         return new PedidoMapa(List.of(capas), "0,0,10,10", 256, 256, "EPSG:3857", "image/png", true, "1.3.0");

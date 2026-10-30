@@ -18,12 +18,15 @@ export class PanelCapaComponent {
       .filter(({ visible }) => visible)
       .reduce((total, { capa }) => total + capa.elementos.length, 0)
   );
-  /** Capas por URL que todavía no se dibujan: WMTS y WFS (las WMS sí). */
+  /** Capas por URL que todavía no se dibujan: WFS (las WMS y WMTS sí). */
   protected readonly hayPorUrl = computed(() =>
-    this.servicio.abiertas().some(({ capa }) => capa.tipo === 'URL' && capa.servicio?.tipo !== 'WMS')
+    this.servicio.abiertas().some(({ capa }) => capa.tipo === 'URL' && capa.servicio?.tipo !== 'WMS' && capa.servicio?.tipo !== 'WMTS')
   );
-  protected readonly hayWms = computed(() => this.servicio.abiertas().some(({ capa }) => capa.servicio?.tipo === 'WMS'));
-  /** Con solo capas WMS que responden no hay nada que decir: el panel no ocupa el mapa. */
+  /** Capas que se dibujan con imágenes de su servidor (WMS o WMTS), sin elementos que contar. */
+  protected readonly hayWms = computed(() =>
+    this.servicio.abiertas().some(({ capa }) => capa.servicio?.tipo === 'WMS' || capa.servicio?.tipo === 'WMTS')
+  );
+  /** Con solo capas WMS o WMTS que responden no hay nada que decir: el panel no ocupa el mapa. */
   protected readonly hayAviso = computed(
     () => this.servicio.sinRespuesta().length > 0 || this.elementosVisibles() > 0 || this.hayPorUrl() || !this.hayWms()
   );

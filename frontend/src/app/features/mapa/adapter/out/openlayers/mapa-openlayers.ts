@@ -8,17 +8,29 @@ import { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import Point from 'ol/geom/Point';
 import { Extent } from 'ol/extent';
+import BaseLayer from 'ol/layer/Base';
 import LayerGroup from 'ol/layer/Group';
-import Layer from 'ol/layer/Layer';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import { fromLonLat, toLonLat, transformExtent } from 'ol/proj';
 import TileWMS from 'ol/source/TileWMS';
 import VectorSource from 'ol/source/Vector';
+import WMTS from 'ol/source/WMTS';
+import WMTSTileGrid from 'ol/tilegrid/WMTS';
 import { Circle, Fill, Stroke, Style, Text as Texto } from 'ol/style';
 import { esPantallaChica } from '../../../../../shared/pantalla/pantalla-chica';
 import { MapaPort } from '../../../application/port/out/mapa.port';
-import { AvisoUbicacion, CapaBase, CapaWms, ElementoMapa, ElementoSeleccionado, PuntoWms, ZonaVisible } from '../../../domain/mapa';
+import {
+  AvisoUbicacion,
+  CapaBase,
+  CapaWms,
+  CapaWmts,
+  ElementoMapa,
+  ElementoSeleccionado,
+  Extension,
+  PuntoWms,
+  ZonaVisible
+} from '../../../domain/mapa';
 import { crearCapasBase } from './capas-base';
 import { aFeatures, ELEMENTO } from './elementos-openlayers';
 
@@ -69,7 +81,7 @@ export class MapaOpenLayers extends MapaPort {
 
   /** Una capa de OpenLayers por cada capa abierta, en el orden en que se abrieron (la última, encima). */
   private readonly grupoCapas = new LayerGroup();
-  private readonly capas = new Map<number, Layer>();
+  private readonly capas = new Map<number, BaseLayer>();
   private readonly sinRespuesta = signal<ReadonlySet<number>>(new Set());
   readonly capasSinRespuesta = this.sinRespuesta.asReadonly();
   private ajustePendiente: EventsKey | EventsKey[] | null = null;
@@ -147,10 +159,7 @@ export class MapaOpenLayers extends MapaPort {
     const fuente = new TileWMS({ url: wms.url, params: { LAYERS: wms.capas.join(','), TILED: true } });
     fuente.on('tileloaderror', () => this.marcarSinRespuesta(id, true));
     fuente.on('tileloadend', () => this.marcarSinRespuesta(id, false));
-    const extension = wms.extension
-      ? transformExtent([wms.extension.oeste, wms.extension.sur, wms.extension.este, wms.extension.norte], 'EPSG:4326', 'EPSG:3857')
-      : undefined;
-    this.agregar(id, new TileLayer({ source: fuente, properties: { [CAPA]: id, [EXTENSION]: extension } }));
+    this.agregar(id, new TileLayer({ source: fuente, properties: { [CAPA]: id, [EXTENSION]: aExtensionDelMapa(wms.extension) } }));
   }
 
   /** OpenLayers arma el GetFeatureInfo del mosaico en que cayó el clic; de esa URL al backend salen los valores. */
@@ -161,15 +170,50 @@ export class MapaOpenLayers extends MapaPort {
     }
     return [...this.capas.entries()]
       .reverse()
-      .filter(([, capa]) => capa.getVisible() && capa.getSource() instanceof TileWMS)
       .flatMap(([id, capa]) => {
-        const url = (capa.getSource() as TileWMS).getFeatureInfoUrl(coordenada, resolucion, 'EPSG:3857', {});
+        const fuente = capa instanceof TileLayer && capa.getVisible() ? capa.getSource() : null;
+        const url = fuente instanceof TileWMS ? fuente.getFeatureInfoUrl(coordenada, resolucion, 'EPSG:3857', {}) : undefined;
         return url ? [aPuntoWms(id, new URL(url, location.origin).searchParams)] : [];
       });
   }
 
+  /** Como SIATE, todas las capas del servidor, una sobre otra; los mosaicos los pide al backend con la grilla que
+   * éste leyó del servidor. Fuera de la grilla no hay mosaicos: no se piden. */
+  mostrarCapaWmts(id: number, wmts: CapaWmts): void {
+    const { crs, matrices } = wmts.grilla;
+    const [primera] = matrices;
+    const grilla = new WMTSTileGrid({
+      extent: [
+        primera.origenX,
+        primera.origenY - primera.filas * primera.altoMosaico * primera.resolucion,
+        primera.origenX + primera.columnas * primera.anchoMosaico * primera.resolucion,
+        primera.origenY
+      ],
+      origins: matrices.map((m) => [m.origenX, m.origenY]),
+      resolutions: matrices.map((m) => m.resolucion),
+      matrixIds: matrices.map((m) => m.id),
+      tileSizes: matrices.map((m) => [m.anchoMosaico, m.altoMosaico])
+    });
+    const capas = wmts.capas.map((capa) => {
+      const fuente = new WMTS({
+        url: `${wmts.url}/${encodeURIComponent(capa)}/{TileMatrix}/{TileRow}/{TileCol}`,
+        requestEncoding: 'REST',
+        layer: capa,
+        matrixSet: crs,
+        style: '',
+        projection: crs,
+        tileGrid: grilla,
+        wrapX: false
+      });
+      fuente.on('tileloaderror', () => this.marcarSinRespuesta(id, true));
+      fuente.on('tileloadend', () => this.marcarSinRespuesta(id, false));
+      return new TileLayer({ source: fuente });
+    });
+    this.agregar(id, new LayerGroup({ layers: capas, properties: { [CAPA]: id, [EXTENSION]: aExtensionDelMapa(wmts.extension) } }));
+  }
+
   /** Sobre las que ya están; si la capa ya estaba, ocupa su lugar. */
-  private agregar(id: number, capa: Layer): void {
+  private agregar(id: number, capa: BaseLayer): void {
     const anterior = this.capas.get(id);
     const capas = this.grupoCapas.getLayers();
     if (anterior) {
@@ -366,6 +410,13 @@ export class MapaOpenLayers extends MapaPort {
   desmontar(): void {
     this.mapa.setTarget(undefined);
   }
+}
+
+/** La extensión que informó el servidor, en grados, pasada al sistema del mapa para acercarse a la capa. */
+function aExtensionDelMapa(extension: Extension | null): Extent | undefined {
+  return extension
+    ? transformExtent([extension.oeste, extension.sur, extension.este, extension.norte], 'EPSG:4326', 'EPSG:3857')
+    : undefined;
 }
 
 /** WMS 1.3.0 (el de OpenLayers) usa CRS, I y J; 1.1.1, SRS, X e Y. */

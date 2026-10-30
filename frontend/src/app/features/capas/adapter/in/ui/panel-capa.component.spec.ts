@@ -28,7 +28,7 @@ describe('PanelCapaComponent', () => {
     ...cambios
   });
   const wms = (id: number, nombre: string): Capa =>
-    capa({ id, nombre, tipo: 'URL', elementos: [], servicio: { tipo: 'WMS', capas: [], urlMapa: '/siante2/api/capas/7/wms', disponible: true } });
+    capa({ id, nombre, tipo: 'URL', elementos: [], servicio: { tipo: 'WMS', capas: [], urlMapa: '/siante2/api/capas/7/wms', disponible: true, grilla: null } });
   const servicio = {
     abiertas: signal<CapaEnMapa[]>([]),
     abriendo: signal<ReadonlySet<number>>(new Set()),
@@ -134,11 +134,11 @@ describe('PanelCapaComponent', () => {
     });
   });
 
-  it('avisa que las capas WMTS y WFS todavía no se pueden ver', () => {
-    servicio.abiertas.set([{ capa: capa({ tipo: 'URL', elementos: [], servicio: { tipo: 'WFS', capas: [], urlMapa: '', disponible: true } }), visible: true }]);
+  it('avisa que las capas WFS todavía no se pueden ver', () => {
+    servicio.abiertas.set([{ capa: capa({ tipo: 'URL', elementos: [], servicio: { tipo: 'WFS', capas: [], urlMapa: '', disponible: true, grilla: null } }), visible: true }]);
     fixture.detectChanges();
 
-    expect(texto()).toBe('Las capas por URL de tipo WMTS o WFS se podrán ver en una próxima versión.');
+    expect(texto()).toBe('Las capas por URL de tipo WFS se podrán ver en una próxima versión.');
   });
 
   it('con solo capas WMS que responden no ocupa el mapa', () => {

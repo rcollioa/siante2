@@ -11,6 +11,7 @@ import siante2.capas.application.port.in.ConsultarPuntoUseCase;
 import siante2.capas.application.port.in.ListarFavoritasUseCase;
 import siante2.capas.application.port.in.ListarMisCapasUseCase;
 import siante2.capas.application.port.in.ObtenerMapaUseCase;
+import siante2.capas.application.port.in.ObtenerMosaicoUseCase;
 import siante2.capas.application.port.in.VerCapaUseCase;
 import siante2.capas.application.port.in.VerCatalogoUseCase;
 import siante2.capas.domain.Capa;
@@ -21,6 +22,7 @@ import siante2.capas.domain.ElementoDeServicio;
 import siante2.capas.domain.Extension;
 import siante2.capas.domain.ImagenMapa;
 import siante2.capas.domain.PedidoMapa;
+import siante2.capas.domain.PedidoMosaico;
 import siante2.capas.domain.ServicioMapa;
 import siante2.capas.domain.TipoServicio;
 import siante2.capas.domain.ElementoCapa;
@@ -72,6 +74,9 @@ class CapasControllerTest {
     @MockitoBean
     private ConsultarPuntoUseCase consulta;
 
+    @MockitoBean
+    private ObtenerMosaicoUseCase mosaico;
+
     @Test
     void unaCapaWmsTraeLasCapasDeSuServidorSinSuUrl() throws Exception {
         when(ver.ver(7, "prueba")).thenReturn(new Capa(7, "IDE", "", Visibilidad.PUBLICA, false, TipoCapa.URL, List.of(),
@@ -111,6 +116,27 @@ class CapasControllerTest {
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(mapa);
+    }
+
+    @Test
+    void entregaElMosaicoWmtsConSuTipoYSeGuardaUnosMinutosEnElNavegador() throws Exception {
+        when(mosaico.obtenerMosaico(7, "prueba", new PedidoMosaico("ide:orto", "EPSG:3857:5", 10, 20)))
+                .thenReturn(new ImagenMapa(new byte[] {3}, "image/jpeg"));
+
+        mockMvc.perform(get(RUTA + "/7/wmts/ide:orto/EPSG:3857:5/10/20"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "image/jpeg"))
+                .andExpect(header().string("Cache-Control", "max-age=600, private"))
+                .andExpect(content().bytes(new byte[] {3}));
+    }
+
+    @Test
+    void unMosaicoConFilaNegativaResponde400SinPreguntarAlServidor() throws Exception {
+        mockMvc.perform(get(RUTA + "/7/wmts/orto/0/-1/0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+
+        verifyNoInteractions(mosaico);
     }
 
     @Test

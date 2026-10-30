@@ -49,6 +49,35 @@ export interface CapaWms {
   extension: Extension | null;
 }
 
+/** Un nivel de zoom de una grilla WMTS: resolución en unidades del mapa por píxel, esquina superior izquierda,
+ * tamaño de cada mosaico y cuántos hay. */
+export interface MatrizMosaicos {
+  id: string;
+  resolucion: number;
+  origenX: number;
+  origenY: number;
+  anchoMosaico: number;
+  altoMosaico: number;
+  columnas: number;
+  filas: number;
+}
+
+/** La grilla de mosaicos de un servidor WMTS, de menos a más zoom; `crs`: EPSG:3857 o EPSG:4326. */
+export interface GrillaWmts {
+  crs: string;
+  matrices: readonly MatrizMosaicos[];
+}
+
+/** Las capas de un servidor WMTS: el mapa pide cada mosaico a `url` (el backend) seguido de la capa, la matriz, la
+ * fila y la columna. */
+export interface CapaWmts {
+  url: string;
+  capas: readonly string[];
+  /** Para acercarse a la capa; null si el servidor no la informa. */
+  extension: Extension | null;
+  grilla: GrillaWmts;
+}
+
 /** Un clic sobre una capa WMS: la imagen del servidor en que se hizo, como la pidió el mapa, y el píxel dentro de
  * ella (`i` de izquierda a derecha, `j` de arriba abajo). Es lo que el servidor necesita para decir qué hay ahí. */
 export interface PuntoWms {

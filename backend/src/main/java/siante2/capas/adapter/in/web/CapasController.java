@@ -16,6 +16,7 @@ import siante2.capas.application.port.in.ConsultarPuntoUseCase;
 import siante2.capas.application.port.in.ListarFavoritasUseCase;
 import siante2.capas.application.port.in.ListarMisCapasUseCase;
 import siante2.capas.application.port.in.ObtenerMapaUseCase;
+import siante2.capas.application.port.in.ObtenerMosaicoUseCase;
 import siante2.capas.application.port.in.VerCapaUseCase;
 import siante2.capas.application.port.in.VerCatalogoUseCase;
 import siante2.capas.domain.Capa;
@@ -24,6 +25,7 @@ import siante2.capas.domain.ConsultaPunto;
 import siante2.capas.domain.ElementoDeServicio;
 import siante2.capas.domain.ImagenMapa;
 import siante2.capas.domain.PedidoMapa;
+import siante2.capas.domain.PedidoMosaico;
 import siante2.capas.domain.ResumenCapa;
 import siante2.capas.domain.SeccionCatalogo;
 
@@ -39,15 +41,18 @@ public class CapasController {
     private final VerCatalogoUseCase catalogo;
     private final ObtenerMapaUseCase mapa;
     private final ConsultarPuntoUseCase consulta;
+    private final ObtenerMosaicoUseCase mosaico;
 
     public CapasController(ListarMisCapasUseCase listar, VerCapaUseCase ver, ListarFavoritasUseCase favoritas,
-                           VerCatalogoUseCase catalogo, ObtenerMapaUseCase mapa, ConsultarPuntoUseCase consulta) {
+                           VerCatalogoUseCase catalogo, ObtenerMapaUseCase mapa, ConsultarPuntoUseCase consulta,
+                           ObtenerMosaicoUseCase mosaico) {
         this.listar = listar;
         this.ver = ver;
         this.favoritas = favoritas;
         this.catalogo = catalogo;
         this.mapa = mapa;
         this.consulta = consulta;
+        this.mosaico = mosaico;
     }
 
     @GetMapping("/mias")
@@ -84,6 +89,19 @@ public class CapasController {
                 formato, transparente, version);
         ImagenMapa imagen = mapa.obtenerMapa(id, autenticacion.getName(), pedido);
         // Privado como toda la API; unos minutos bastan para moverse por el mapa sin volver a pedir cada mosaico.
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(Duration.ofMinutes(10)).cachePrivate())
+                .contentType(MediaType.parseMediaType(imagen.tipo()))
+                .body(imagen.contenido());
+    }
+
+    /** Mosaico WMTS (GetTile) de una capa por URL, pedido por el backend a su servidor, como las imágenes WMS.
+     * Reemplaza al {@code ol.source.WMTS} de SIATE, que iba directo del navegador al servidor. La ruta sigue la
+     * plantilla REST de WMTS, que OpenLayers completa con la matriz, la fila y la columna. */
+    @GetMapping("/{id}/wmts/{capa}/{matriz}/{fila}/{columna}")
+    public ResponseEntity<byte[]> obtenerMosaicoDeCapa(@PathVariable int id, @PathVariable String capa,
+            @PathVariable String matriz, @PathVariable int fila, @PathVariable int columna, Authentication autenticacion) {
+        ImagenMapa imagen = mosaico.obtenerMosaico(id, autenticacion.getName(), new PedidoMosaico(capa, matriz, fila, columna));
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(Duration.ofMinutes(10)).cachePrivate())
                 .contentType(MediaType.parseMediaType(imagen.tipo()))

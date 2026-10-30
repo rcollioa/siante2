@@ -1,6 +1,8 @@
 import LayerGroup from 'ol/layer/Group';
 import TileLayer from 'ol/layer/Tile';
 import TileWMS from 'ol/source/TileWMS';
+import WMTS from 'ol/source/WMTS';
+import WMTSTileGrid from 'ol/tilegrid/WMTS';
 import VectorLayer from 'ol/layer/Vector';
 import { toLonLat } from 'ol/proj';
 import TileSource from 'ol/source/Tile';
@@ -179,6 +181,40 @@ describe('MapaOpenLayers', () => {
       const [lon, lat] = toLonLat(servicio.mapa.getView().getCenter()!);
       expect(lon).toBeCloseTo(-71.55);
       expect(lat).toBeCloseTo(-33.05, 1);
+    });
+
+    it('una capa WMTS dibuja cada capa del servidor con la grilla del backend y le pide los mosaicos a él', () => {
+      servicio.mostrarCapaWmts(9, {
+        url: '/siante2/api/capas/9/wmts',
+        capas: ['orto', 'ide:calles'],
+        extension: { oeste: -71.6, sur: -33.1, este: -71.5, norte: -33.0 },
+        grilla: {
+          crs: 'EPSG:3857',
+          matrices: [
+            { id: '0', resolucion: 156543.03, origenX: -20037508.34, origenY: 20037508.34, anchoMosaico: 256, altoMosaico: 256, columnas: 1, filas: 1 },
+            { id: '1', resolucion: 78271.52, origenX: -20037508.34, origenY: 20037508.34, anchoMosaico: 256, altoMosaico: 256, columnas: 2, filas: 2 }
+          ]
+        }
+      });
+
+      const grupo = abiertas()[0] as unknown as LayerGroup;
+      const capasWmts = grupo.getLayers().getArray() as TileLayer<WMTS>[];
+      expect(capasWmts).toHaveLength(2);
+      const fuente = capasWmts[1].getSource()!;
+      expect(fuente.getUrls()).toEqual(['/siante2/api/capas/9/wmts/ide%3Acalles/{TileMatrix}/{TileRow}/{TileCol}']);
+      expect(fuente.getTileGrid()!.getResolutions()).toEqual([156543.03, 78271.52]);
+      expect((fuente.getTileGrid() as WMTSTileGrid).getMatrixIds()).toEqual(['0', '1']);
+
+      fuente.dispatchEvent('tileloaderror');
+      expect(servicio.capasSinRespuesta().has(9)).toBe(true);
+
+      servicio.mapa.setSize([800, 600]);
+      servicio.acercarA(9);
+      const [lon] = toLonLat(servicio.mapa.getView().getCenter()!);
+      expect(lon).toBeCloseTo(-71.55);
+
+      servicio.cambiarVisibilidad(9, false);
+      expect(grupo.getVisible()).toBe(false);
     });
 
     it('marca una capa WMS sin respuesta cuando un mosaico falla, y la desmarca cuando uno llega', () => {

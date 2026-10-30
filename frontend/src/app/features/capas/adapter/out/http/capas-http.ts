@@ -76,7 +76,8 @@ export class CapasHttp extends CapasRepositorio {
   }
 }
 
-/** El contrato marca `servicio` y `extension` como obligatorios, pero el backend los manda en null cuando no hay. */
+/** El contrato marca `servicio`, `extension` y `grilla` como obligatorios, pero el backend los manda en null cuando
+ * no hay. */
 function aCapa(capa: CapaDto): Capa {
   const servicio = capa.servicio as CapaDto['servicio'] | null;
   return {
@@ -85,8 +86,9 @@ function aCapa(capa: CapaDto): Capa {
       ? {
           tipo: servicio.tipo,
           capas: servicio.capas.map((c) => ({ ...c, extension: c.extension ?? null })),
-          urlMapa: `${API_PREFIJO}/capas/${capa.id}/wms`,
-          disponible: servicio.disponible
+          urlMapa: `${API_PREFIJO}/capas/${capa.id}/${servicio.tipo === 'WMTS' ? 'wmts' : 'wms'}`,
+          disponible: servicio.disponible,
+          grilla: servicio.grilla ?? null
         }
       : null
   };

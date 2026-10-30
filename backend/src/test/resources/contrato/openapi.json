@@ -282,6 +282,64 @@
         "tags" : [ "capas-controller" ]
       }
     },
+    "/siante2/api/capas/{id}/wmts/{capa}/{matriz}/{fila}/{columna}" : {
+      "get" : {
+        "operationId" : "obtenerMosaicoDeCapa",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "path",
+          "name" : "capa",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "matriz",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "fila",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "path",
+          "name" : "columna",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "capas-controller" ]
+      }
+    },
     "/siante2/api/categorias" : {
       "get" : {
         "operationId" : "listarCategorias",
@@ -759,6 +817,58 @@
         },
         "required" : [ "coordinates", "geometries", "type" ]
       },
+      "GrillaWmts" : {
+        "type" : "object",
+        "properties" : {
+          "crs" : {
+            "type" : "string"
+          },
+          "matrices" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MatrizMosaicos"
+            }
+          }
+        },
+        "required" : [ "crs", "matrices" ]
+      },
+      "MatrizMosaicos" : {
+        "type" : "object",
+        "properties" : {
+          "altoMosaico" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "anchoMosaico" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "columnas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "filas" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "origenX" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "origenY" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "resolucion" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        },
+        "required" : [ "altoMosaico", "anchoMosaico", "columnas", "filas", "id", "origenX", "origenY", "resolucion" ]
+      },
       "Metadato" : {
         "type" : "object",
         "properties" : {
@@ -828,12 +938,15 @@
           "disponible" : {
             "type" : "boolean"
           },
+          "grilla" : {
+            "$ref" : "#/components/schemas/GrillaWmts"
+          },
           "tipo" : {
             "type" : "string",
             "enum" : [ "WMS", "WMTS", "WFS" ]
           }
         },
-        "required" : [ "capas", "disponible", "tipo" ]
+        "required" : [ "capas", "disponible", "grilla", "tipo" ]
       },
       "Usuario" : {
         "type" : "object",

@@ -39,7 +39,7 @@ class ClienteWmsTest {
     void preparar() {
         RestClient.Builder constructor = RestClient.builder();
         servidor = MockRestServiceServer.bindTo(constructor).build();
-        cliente = new ClienteWms(constructor.build());
+        cliente = new ClienteWms(new ServidoresMapa(constructor.build()));
     }
 
     @Test

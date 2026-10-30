@@ -33,6 +33,7 @@ describe('CapasAbiertas', () => {
   const mapa = {
     mostrarCapa: vi.fn(),
     mostrarCapaWms: vi.fn(),
+    mostrarCapaWmts: vi.fn(),
     quitarCapa: vi.fn(),
     cambiarVisibilidad: vi.fn(),
     acercarA: vi.fn(),
@@ -115,7 +116,8 @@ describe('CapasAbiertas', () => {
           { nombre: 'rios', titulo: 'Ríos', extension: { oeste: -76, sur: -56, este: -66, norte: -17 } },
           { nombre: 'lagos', titulo: 'Lagos', extension: { oeste: -73, sur: -42, este: -70, norte: -39 } }
         ],
-        disponible: true
+        disponible: true,
+        grilla: null
       }
     })));
 
@@ -130,11 +132,34 @@ describe('CapasAbiertas', () => {
     expect(mapa.acercarA).toHaveBeenCalledWith(7);
   });
 
+  it('una capa WMTS se dibuja con los mosaicos de su servidor, pedidos al backend con su grilla', () => {
+    const grilla = {
+      crs: 'EPSG:3857',
+      matrices: [{ id: '0', resolucion: 156543.03, origenX: -2e7, origenY: 2e7, anchoMosaico: 256, altoMosaico: 256, columnas: 1, filas: 1 }]
+    };
+    ver.mockReturnValue(of(capa(9, {
+      tipo: 'URL',
+      elementos: [],
+      servicio: {
+        tipo: 'WMTS',
+        urlMapa: '/siante2/api/capas/9/wmts',
+        capas: [{ nombre: 'orto', titulo: 'Ortofoto', extension: null }],
+        disponible: true,
+        grilla
+      }
+    })));
+
+    servicio.abrir(9);
+
+    expect(mapa.mostrarCapa).not.toHaveBeenCalled();
+    expect(mapa.mostrarCapaWmts).toHaveBeenCalledWith(9, { url: '/siante2/api/capas/9/wmts', capas: ['orto'], extension: null, grilla });
+  });
+
   it('una capa WMS cuyo servidor no respondió se abre vacía y se avisa, como en SIATE', () => {
     ver.mockReturnValue(of(capa(7, {
       tipo: 'URL',
       elementos: [],
-      servicio: { tipo: 'WMS', urlMapa: '/siante2/api/capas/7/wms', capas: [], disponible: false }
+      servicio: { tipo: 'WMS', urlMapa: '/siante2/api/capas/7/wms', capas: [], disponible: false, grilla: null }
     })));
 
     servicio.abrir(7);
