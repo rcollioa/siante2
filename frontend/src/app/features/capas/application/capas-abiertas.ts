@@ -1,7 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { catchError, forkJoin, map, of, Subscription } from 'rxjs';
 import { MapaPort } from '../../mapa/application/port/out/mapa.port';
-import { Capa, CapaNoEncontrada, ElementoCapa, extensionDe, ServidorDeMapasNoDisponible } from '../domain/capa';
+import { Capa, CapaNoEncontrada, ElementoCapa, ElementoDeServicio, extensionDe, ServidorDeMapasNoDisponible } from '../domain/capa';
 import { CapasRepositorio } from './port/out/capas.repositorio';
 
 /** Una capa abierta en el mapa y si se está mostrando. */
@@ -14,6 +15,25 @@ export interface CapaEnMapa {
 export interface ElementoElegido {
   capa: Capa;
   elemento: ElementoCapa;
+}
+
+/** Lo que respondió el servidor de una capa WMS abierta al consultar un punto. */
+export interface ResultadoWms {
+  capa: Capa;
+  elementos: readonly ElementoDeServicio[];
+}
+
+/** El punto del mapa consultado a las capas WMS: solo las capas con algo en ese punto, y las que no respondieron. */
+export interface PuntoConsultado {
+  consultando: boolean;
+  resultados: readonly ResultadoWms[];
+  sinRespuesta: readonly Capa[];
+}
+
+interface RespuestaWms {
+  capaId: number;
+  elementos: readonly ElementoDeServicio[];
+  fallo: boolean;
 }
 
 /** Las capas abiertas en el mapa, sobrepuestas como en SIATE: cada una se puede ocultar, acercar o cerrar. */
@@ -31,16 +51,56 @@ export class CapasAbiertas {
   /** IDs de las capas que se están descargando. */
   readonly abriendo = this.idsAbriendo.asReadonly();
   readonly error = this.mensajeError.asReadonly();
-  /** Los elementos en el mapa son solo los de las capas abiertas, así que lo seleccionado es de una de ellas. */
-  /** Capas WMS abiertas cuyo servidor no está entregando imágenes. */
+  /** Capas WMS abiertas cuyo servidor no respondió al abrirlas o no está entregando imágenes. */
   readonly sinRespuesta = computed(() => {
     const ids = this.mapa.capasSinRespuesta();
-    return this.lista().filter(({ capa }) => ids.has(capa.id)).map(({ capa }) => capa);
+    return this.lista()
+      .filter(({ capa }) => capa.servicio?.disponible === false || ids.has(capa.id))
+      .map(({ capa }) => capa);
   });
+  /** Los elementos en el mapa son solo los de las capas abiertas, así que lo seleccionado es de una de ellas. */
   readonly elegido = computed<ElementoElegido | null>(() => {
     const seleccion = this.mapa.elementoSeleccionado();
     const abierta = seleccion && this.lista().find(({ capa }) => capa.id === seleccion.capa);
     return abierta ? { capa: abierta.capa, elemento: seleccion.elemento as ElementoCapa } : null;
+  });
+
+  /** Un clic en el mapa pregunta a cada capa WMS visible; otro clic cancela lo que faltaba y vuelve a preguntar. Un
+   * servidor que no responde no impide ver lo que respondieron los demás. */
+  private readonly respuestasWms = rxResource({
+    params: () => {
+      const puntos = this.mapa.consultaWms();
+      return puntos.length > 0 ? puntos : undefined;
+    },
+    stream: ({ params: puntos }) =>
+      forkJoin(
+        puntos.map((punto) =>
+          this.repositorio.consultarPunto(punto).pipe(
+            map((elementos): RespuestaWms => ({ capaId: punto.capa, elementos, fallo: false })),
+            catchError(() => of<RespuestaWms>({ capaId: punto.capa, elementos: [], fallo: true }))
+          )
+        )
+      )
+  });
+  /** Lo que hay en el punto en que el usuario hizo clic, según los servidores de las capas WMS abiertas; null si no
+   * se consultó ninguna. */
+  readonly consultado = computed<PuntoConsultado | null>(() => {
+    if (this.mapa.consultaWms().length === 0) {
+      return null;
+    }
+    const respuestas = this.respuestasWms.value() ?? [];
+    const abierta = (id: number) => this.lista().find(({ capa }) => capa.id === id)?.capa;
+    return {
+      consultando: this.respuestasWms.isLoading(),
+      resultados: respuestas.flatMap(({ capaId, elementos }) => {
+        const capa = abierta(capaId);
+        return capa && elementos.length > 0 ? [{ capa, elementos }] : [];
+      }),
+      sinRespuesta: respuestas.flatMap(({ capaId, fallo }) => {
+        const capa = abierta(capaId);
+        return capa && fallo ? [capa] : [];
+      })
+    };
   });
 
   estaAbierta(id: number): boolean {
@@ -109,9 +169,10 @@ export class CapasAbiertas {
     this.mensajeError.set('');
   }
 
-  /** Una capa WMS como imágenes de su servidor; las demás, con sus elementos (las WMTS y WFS, todavía sin nada). */
+  /** Una capa WMS como imágenes de su servidor; las demás, con sus elementos (las WMTS y WFS, todavía sin nada). Una
+   * WMS cuyo servidor no respondió queda vacía, como en SIATE. */
   private mostrar(capa: Capa): void {
-    if (capa.servicio?.tipo === 'WMS') {
+    if (capa.servicio?.tipo === 'WMS' && capa.servicio.disponible) {
       this.mapa.mostrarCapaWms(capa.id, {
         url: capa.servicio.urlMapa,
         capas: capa.servicio.capas.map(({ nombre }) => nombre),

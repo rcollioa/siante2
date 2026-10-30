@@ -205,6 +205,27 @@ describe('MapaOpenLayers', () => {
       expect(servicio.mapa.getView().getZoom()).toBe(4);
     });
 
+    it('un clic fuera de los elementos consulta el punto a las capas WMS visibles, la de más arriba primero', () => {
+      servicio.mostrarCapaWms(7, { url: '/siante2/api/capas/7/wms', capas: ['rios'], extension: null });
+      servicio.mostrarCapaWms(8, { url: '/siante2/api/capas/8/wms', capas: ['ide:lagos', 'ide:canales'], extension: null });
+      servicio.mostrarCapaWms(9, { url: '/siante2/api/capas/9/wms', capas: ['oculta'], extension: null });
+      servicio.cambiarVisibilidad(9, false);
+      // Sin dibujar, OpenLayers no encuentra elementos en el píxel: el clic cae sobre las capas WMS.
+      servicio.mapa.dispatchEvent({ type: 'singleclick', pixel: [10, 10], coordinate: [-7_850_000, -3_950_000] } as never);
+
+      const puntos = servicio.consultaWms();
+      expect(puntos.map(({ capa }) => capa)).toEqual([8, 7]);
+      expect(puntos[0]).toMatchObject({ capas: ['ide:lagos', 'ide:canales'], crs: 'EPSG:3857', version: '1.3.0', ancho: 256, alto: 256 });
+      expect(puntos[0].bbox.split(',')).toHaveLength(4);
+      expect(puntos[0].i).toBeGreaterThanOrEqual(0);
+      expect(puntos[0].i).toBeLessThan(256);
+
+      servicio.cambiarVisibilidad(8, false);
+      expect(servicio.consultaWms().map(({ capa }) => capa)).toEqual([7]);
+      servicio.deseleccionar();
+      expect(servicio.consultaWms()).toEqual([]);
+    });
+
     it('ocultar o quitar una capa deselecciona su elemento, pero no el de otra', () => {
       const bodega = punto(-70.65, -33.44);
       servicio.mostrarCapa(1, [bodega]);

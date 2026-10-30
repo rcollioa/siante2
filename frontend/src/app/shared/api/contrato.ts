@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/siante2/api/capas/{id}/wms/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["consultarPuntoDeCapa"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/categorias": {
         parameters: {
             query?: never;
@@ -265,6 +281,13 @@ export interface components {
             /** Format: double */
             radio: number;
         };
+        ElementoDeServicio: {
+            capa: string;
+            datos: components["schemas"]["Metadato"][];
+        };
+        ElementosDeServicioResponse: {
+            data: components["schemas"]["ElementoDeServicio"][];
+        };
         EstiloElemento: {
             color: string;
             /** Format: double */
@@ -309,6 +332,7 @@ export interface components {
         };
         ServicioMapa: {
             capas: components["schemas"]["CapaDeServicio"][];
+            disponible: boolean;
             /** @enum {string} */
             tipo: "WMS" | "WMTS" | "WFS";
         };
@@ -447,6 +471,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+        };
+    };
+    consultarPuntoDeCapa: {
+        parameters: {
+            query: {
+                LAYERS: string;
+                BBOX: string;
+                WIDTH: number;
+                HEIGHT: number;
+                CRS: string;
+                VERSION?: string;
+                I: number;
+                J: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElementosDeServicioResponse"];
                 };
             };
         };

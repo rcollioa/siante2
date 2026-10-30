@@ -35,6 +35,48 @@
       </dl>
     }
   </section>
+} @else if (servicio.consultado(); as consultado) {
+  <section class="panel" aria-labelledby="punto-consultado" aria-live="polite">
+    <div class="encabezado">
+      <h2 id="punto-consultado">Información del punto</h2>
+      <button
+        type="button"
+        class="cerrar"
+        aria-label="Cerrar la información del punto"
+        title="Cerrar"
+        (click)="servicio.deseleccionar()">
+        <span aria-hidden="true">×</span>
+      </button>
+    </div>
+    @if (consultado.consultando) {
+      <p role="status">Consultando a los servidores de mapas…</p>
+    } @else {
+      @for (resultado of consultado.resultados; track resultado.capa.id) {
+        @for (elemento of resultado.elementos; track $index) {
+          <div class="resultado">
+            <p class="nota">{{ resultado.capa.nombre }}@if (elemento.capa) { · {{ elemento.capa }}}</p>
+            @if (elemento.datos.length > 0) {
+              <dl>
+                @for (dato of elemento.datos; track $index) {
+                  <div>
+                    <dt>{{ dato.nombre }}</dt>
+                    <dd>{{ dato.valor }}</dd>
+                  </div>
+                }
+              </dl>
+            } @else {
+              <p>El servidor no entregó datos de este elemento.</p>
+            }
+          </div>
+        }
+      } @empty {
+        <p>No hay información de las capas en este punto.</p>
+      }
+      @for (capa of consultado.sinRespuesta; track capa.id) {
+        <p class="error">El servidor de mapas de «{{ capa.nombre }}» no respondió la consulta.</p>
+      }
+    }
+  </section>
 } @else if (servicio.abiertas().length > 0 && hayAviso()) {
   <div class="panel nota" role="status">
     @for (capa of servicio.sinRespuesta(); track capa.id) {

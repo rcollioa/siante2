@@ -75,6 +75,8 @@ export interface ServicioCapa {
   capas: CapaDeServicio[];
   /** Dónde se piden las imágenes del mapa: el backend, nunca el servidor directo. */
   urlMapa: string;
+  /** false si el servidor no respondió al abrir la capa: como en SIATE, se abre igual, vacía, con un aviso. */
+  disponible: boolean;
 }
 
 export interface Capa extends ResumenCapa {
@@ -83,6 +85,13 @@ export interface Capa extends ResumenCapa {
   elementos: ElementoCapa[];
   /** Solo en las capas por URL. */
   servicio: ServicioCapa | null;
+}
+
+/** Un elemento que el servidor de mapas encontró en el punto consultado: el título de la capa del servidor en que
+ * está (vacío si no lo informa) y sus datos, en el orden en que los entregó. */
+export interface ElementoDeServicio {
+  capa: string;
+  datos: Metadato[];
 }
 
 /** El rectángulo que cubre todas las capas del servidor; null si ninguna informa su extensión. */

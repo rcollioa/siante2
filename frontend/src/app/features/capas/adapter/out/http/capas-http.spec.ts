@@ -48,7 +48,7 @@ describe('CapasHttp', () => {
     servicio.ver(8).subscribe((capa) => (vectorial = capa));
     http.expectOne('/siante2/api/capas/7').flush({
       id: 7, nombre: 'IDE', descripcion: '', visibilidad: 'PUBLICA', propia: false, tipo: 'URL', elementos: [],
-      servicio: { tipo: 'WMS', capas: [{ nombre: 'rios', titulo: 'Ríos', extension: null }] }
+      servicio: { tipo: 'WMS', capas: [{ nombre: 'rios', titulo: 'Ríos', extension: null }], disponible: false }
     });
     http.expectOne('/siante2/api/capas/8').flush({
       id: 8, nombre: 'Bodegas', descripcion: '', visibilidad: 'PRIVADA', propia: true, tipo: 'VECTORIAL', elementos: [],
@@ -58,7 +58,8 @@ describe('CapasHttp', () => {
     expect(wms?.servicio).toEqual({
       tipo: 'WMS',
       capas: [{ nombre: 'rios', titulo: 'Ríos', extension: null }],
-      urlMapa: '/siante2/api/capas/7/wms'
+      urlMapa: '/siante2/api/capas/7/wms',
+      disponible: false
     });
     expect(vectorial?.servicio).toBeNull();
   });
@@ -70,6 +71,31 @@ describe('CapasHttp', () => {
       { code: 'EXTERNAL_SERVICE_UNAVAILABLE', message: 'El servidor de mapas de la capa no responde.' },
       { status: 503, statusText: 'Service Unavailable' }
     );
+
+    expect(error).toBeInstanceOf(ServidorDeMapasNoDisponible);
+  });
+
+  it('consulta un punto al backend con los parámetros de WMS, nunca al servidor de mapas', () => {
+    let elementos: unknown;
+    servicio
+      .consultarPunto({ capa: 7, capas: ['rios', 'lagos'], bbox: '1,2,3,4', ancho: 256, alto: 256, crs: 'EPSG:3857', version: '1.3.0', i: 10, j: 20 })
+      .subscribe((respuesta) => (elementos = respuesta));
+
+    const pedido = http.expectOne((req) => req.url === '/siante2/api/capas/7/wms/info');
+    expect(pedido.request.params.toString()).toBe('LAYERS=rios,lagos&BBOX=1,2,3,4&WIDTH=256&HEIGHT=256&CRS=EPSG:3857&VERSION=1.3.0&I=10&J=20');
+    pedido.flush({ data: [{ capa: 'Ríos', datos: [] }] });
+
+    expect(elementos).toEqual([{ capa: 'Ríos', datos: [] }]);
+  });
+
+  it('si el servidor de mapas no responde la consulta es ServidorDeMapasNoDisponible', () => {
+    let error: unknown;
+    servicio
+      .consultarPunto({ capa: 7, capas: ['rios'], bbox: '1,2,3,4', ancho: 256, alto: 256, crs: 'EPSG:3857', version: '1.3.0', i: 0, j: 0 })
+      .subscribe({ error: (e: unknown) => (error = e) });
+    http
+      .expectOne((req) => req.url === '/siante2/api/capas/7/wms/info')
+      .flush({ code: 'EXTERNAL_SERVICE_UNAVAILABLE', message: '' }, { status: 503, statusText: 'Service Unavailable' });
 
     expect(error).toBeInstanceOf(ServidorDeMapasNoDisponible);
   });

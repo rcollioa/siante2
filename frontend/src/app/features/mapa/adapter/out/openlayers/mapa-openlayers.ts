@@ -18,7 +18,7 @@ import VectorSource from 'ol/source/Vector';
 import { Circle, Fill, Stroke, Style, Text as Texto } from 'ol/style';
 import { esPantallaChica } from '../../../../../shared/pantalla/pantalla-chica';
 import { MapaPort } from '../../../application/port/out/mapa.port';
-import { AvisoUbicacion, CapaBase, CapaWms, ElementoMapa, ElementoSeleccionado, ZonaVisible } from '../../../domain/mapa';
+import { AvisoUbicacion, CapaBase, CapaWms, ElementoMapa, ElementoSeleccionado, PuntoWms, ZonaVisible } from '../../../domain/mapa';
 import { crearCapasBase } from './capas-base';
 import { aFeatures, ELEMENTO } from './elementos-openlayers';
 
@@ -84,6 +84,7 @@ export class MapaOpenLayers extends MapaPort {
   readonly ubicando = signal(false);
   readonly sinMapaBase = signal(false);
   readonly elementoSeleccionado = signal<ElementoSeleccionado | null>(null);
+  readonly consultaWms = signal<readonly PuntoWms[]>([]);
 
   readonly mapa = new MapaOl({
     layers: [
@@ -114,7 +115,7 @@ export class MapaOpenLayers extends MapaPort {
       this.usarCapaBase('satelital');
     }
     // Como la herramienta de selección de SIATE: un clic muestra la información del elemento.
-    this.mapa.on('singleclick', ({ pixel }) => {
+    this.mapa.on('singleclick', ({ pixel, coordinate }) => {
       // Solo cuentan las capas abiertas y visibles: OpenLayers no busca en las que no dibuja.
       const feature = this.mapa.forEachFeatureAtPixel(pixel, (encontrada) => encontrada as Feature, {
         layerFilter: (capa) => capa instanceof VectorLayer && capa.get(CAPA) !== undefined,
@@ -123,6 +124,8 @@ export class MapaOpenLayers extends MapaPort {
       this.elementoSeleccionado.set(
         feature ? { capa: feature.get(CAPA) as number, elemento: feature.get(ELEMENTO) as ElementoMapa } : null
       );
+      // Como en SIATE, un elemento propio tapa lo que haya debajo en las capas WMS.
+      this.consultaWms.set(feature ? [] : this.puntosWms(coordinate));
     });
   }
 
@@ -148,6 +151,21 @@ export class MapaOpenLayers extends MapaPort {
       ? transformExtent([wms.extension.oeste, wms.extension.sur, wms.extension.este, wms.extension.norte], 'EPSG:4326', 'EPSG:3857')
       : undefined;
     this.agregar(id, new TileLayer({ source: fuente, properties: { [CAPA]: id, [EXTENSION]: extension } }));
+  }
+
+  /** OpenLayers arma el GetFeatureInfo del mosaico en que cayó el clic; de esa URL al backend salen los valores. */
+  private puntosWms(coordenada: Coordinate): PuntoWms[] {
+    const resolucion = this.mapa.getView().getResolution();
+    if (resolucion === undefined) {
+      return [];
+    }
+    return [...this.capas.entries()]
+      .reverse()
+      .filter(([, capa]) => capa.getVisible() && capa.getSource() instanceof TileWMS)
+      .flatMap(([id, capa]) => {
+        const url = (capa.getSource() as TileWMS).getFeatureInfoUrl(coordenada, resolucion, 'EPSG:3857', {});
+        return url ? [aPuntoWms(id, new URL(url, location.origin).searchParams)] : [];
+      });
   }
 
   /** Sobre las que ya están; si la capa ya estaba, ocupa su lugar. */
@@ -226,11 +244,15 @@ export class MapaOpenLayers extends MapaPort {
 
   deseleccionar(): void {
     this.elementoSeleccionado.set(null);
+    this.consultaWms.set([]);
   }
 
   private deseleccionarDe(capa: number): void {
     if (this.elementoSeleccionado()?.capa === capa) {
       this.elementoSeleccionado.set(null);
+    }
+    if (this.consultaWms().some((punto) => punto.capa === capa)) {
+      this.consultaWms.update((puntos) => puntos.filter((punto) => punto.capa !== capa));
     }
   }
 
@@ -344,6 +366,22 @@ export class MapaOpenLayers extends MapaPort {
   desmontar(): void {
     this.mapa.setTarget(undefined);
   }
+}
+
+/** WMS 1.3.0 (el de OpenLayers) usa CRS, I y J; 1.1.1, SRS, X e Y. */
+function aPuntoWms(capa: number, parametros: URLSearchParams): PuntoWms {
+  const valor = (...nombres: string[]) => nombres.map((nombre) => parametros.get(nombre)).find((v) => v !== null) ?? '';
+  return {
+    capa,
+    capas: valor('QUERY_LAYERS', 'LAYERS').split(','),
+    bbox: valor('BBOX'),
+    ancho: Number(valor('WIDTH')),
+    alto: Number(valor('HEIGHT')),
+    crs: valor('CRS', 'SRS'),
+    version: valor('VERSION'),
+    i: Number(valor('I', 'X')),
+    j: Number(valor('J', 'Y'))
+  };
 }
 
 function zoomUbicacion(): number {

@@ -10,11 +10,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import siante2.capas.domain.CapaDeServicio;
+import siante2.capas.domain.ConsultaPunto;
+import siante2.capas.domain.ElementoDeServicio;
 import siante2.capas.domain.PedidoMapa;
 import siante2.compartido.domain.ServicioExternoNoDisponibleException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.client.ExpectedCount.manyTimes;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -59,6 +62,54 @@ class ClienteWmsTest {
         servidor.expect(requestTo("https://8.8.8.8/geoserver/wms?SERVICE=WMS&REQUEST=GetCapabilities"))
                 .andRespond(withSuccess("<WMS_Capabilities><Capability/></WMS_Capabilities>", MediaType.APPLICATION_XML));
         assertThatThrownBy(() -> cliente.capasWms(URL)).hasMessage("El servidor de mapas de la capa no publica capas.");
+    }
+
+    private void capacidadesConInfo(String... formatos) {
+        StringBuilder xml = new StringBuilder("<WMS_Capabilities><Capability><Request><GetFeatureInfo>");
+        for (String formato : formatos) {
+            xml.append("<Format>").append(formato).append("</Format>");
+        }
+        xml.append("</GetFeatureInfo></Request><Layer><Name>rios</Name></Layer></Capability></WMS_Capabilities>");
+        servidor.expect(requestTo("https://8.8.8.8/geoserver/wms?SERVICE=WMS&REQUEST=GetCapabilities"))
+                .andRespond(withSuccess(xml.toString(), MediaType.APPLICATION_XML));
+    }
+
+    private static ConsultaPunto consulta() {
+        return new ConsultaPunto(PEDIDO, 10, 20);
+    }
+
+    @Test
+    void consultaElPuntoEnElFormatoQueElServidorOfreceYRecuerdaElFormato() {
+        capacidadesConInfo("text/html", "application/json");
+        servidor.expect(requestTo(containsString("REQUEST=GetFeatureInfo")))
+                .andExpect(requestTo(containsString("INFO_FORMAT=application%2Fjson")))
+                .andRespond(withSuccess("{\"features\":[{\"id\":\"rios.1\",\"properties\":{\"NOMBRE\":\"Maipo\"}}]}",
+                        MediaType.APPLICATION_JSON));
+        servidor.expect(requestTo(containsString("REQUEST=GetFeatureInfo")))
+                .andRespond(withSuccess("{\"features\":[]}", MediaType.APPLICATION_JSON));
+
+        assertThat(cliente.infoWms(URL, consulta())).extracting(ElementoDeServicio::capa).containsExactly("rios");
+        assertThat(cliente.infoWms(URL, consulta())).isEmpty();
+        servidor.verify();
+    }
+
+    @Test
+    void sinUnFormatoQueSeSepaLeerNoSeConsultaAlServidor() {
+        capacidadesConInfo("text/html", "text/plain");
+
+        assertThat(cliente.infoWms(URL, consulta())).isEmpty();
+        servidor.verify();
+    }
+
+    @Test
+    void unaRespuestaIlegibleNoMuestraNadaYUnServidorCaidoEsServicioNoDisponible() {
+        capacidadesConInfo("text/xml");
+        servidor.expect(requestTo(containsString("REQUEST=GetFeatureInfo")))
+                .andRespond(withSuccess("<html>Error", MediaType.TEXT_HTML));
+        servidor.expect(requestTo(containsString("REQUEST=GetFeatureInfo"))).andRespond(withServerError());
+
+        assertThat(cliente.infoWms(URL, consulta())).isEmpty();
+        assertThatThrownBy(() -> cliente.infoWms(URL, consulta())).isInstanceOf(ServicioExternoNoDisponibleException.class);
     }
 
     @Test

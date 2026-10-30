@@ -34,7 +34,7 @@ class CapacidadesWmsTest {
                   </Capability>
                 </WMS_Capabilities>""";
 
-        assertThat(CapacidadesWms.leer(xml.getBytes(StandardCharsets.UTF_8)))
+        assertThat(CapacidadesWms.leer(xml.getBytes(StandardCharsets.UTF_8)).capas())
                 .extracting(CapaDeServicio::nombre, CapaDeServicio::titulo, CapaDeServicio::extension)
                 .containsExactly(
                         tuple("ide:rios", "Ríos", new Extension(-76, -56, -66, -17)),
@@ -48,7 +48,7 @@ class CapacidadesWmsTest {
                   <Layer><Name>comunas</Name><LatLonBoundingBox minx="-75" miny="-55" maxx="-67" maxy="-18"/></Layer>
                 </Layer></Capability></WMT_MS_Capabilities>""";
 
-        assertThat(CapacidadesWms.leer(xml.getBytes(StandardCharsets.UTF_8))).containsExactly(
+        assertThat(CapacidadesWms.leer(xml.getBytes(StandardCharsets.UTF_8)).capas()).containsExactly(
                 new CapaDeServicio("comunas", "comunas", new Extension(-75, -55, -67, -18)));
     }
 
@@ -59,7 +59,7 @@ class CapacidadesWmsTest {
                   <Layer><Name>todo</Name><Title>Todo</Title><Layer><Title>Sin nombre</Title></Layer></Layer>
                 </Capability></WMS_Capabilities>""";
 
-        assertThat(CapacidadesWms.leer(xml.getBytes(StandardCharsets.UTF_8))).extracting(CapaDeServicio::nombre).containsExactly("todo");
+        assertThat(CapacidadesWms.leer(xml.getBytes(StandardCharsets.UTF_8)).capas()).extracting(CapaDeServicio::nombre).containsExactly("todo");
     }
 
     @Test
@@ -69,12 +69,27 @@ class CapacidadesWmsTest {
                 <!DOCTYPE x [<!ENTITY secreto SYSTEM "file:///etc/passwd">]>
                 <WMS_Capabilities><Capability><Layer><Name>&secreto;</Name></Layer></Capability></WMS_Capabilities>""";
 
-        assertThatThrownBy(() -> CapacidadesWms.leer(xml.getBytes(StandardCharsets.UTF_8))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> CapacidadesWms.leer(xml.getBytes(StandardCharsets.UTF_8)).capas()).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void unaRespuestaQueNoEsXmlNoSeAcepta() {
         assertThatThrownBy(() -> CapacidadesWms.leer("<html>Error 500".getBytes(StandardCharsets.UTF_8))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> CapacidadesWms.leer(new byte[0])).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void leeLosFormatosDeGetFeatureInfo() {
+        String xml = """
+                <WMS_Capabilities xmlns="http://www.opengis.net/wms"><Capability>
+                  <Request>
+                    <GetMap><Format>image/png</Format></GetMap>
+                    <GetFeatureInfo><Format>text/html</Format><Format> application/geojson </Format></GetFeatureInfo>
+                  </Request>
+                  <Layer><Name>rios</Name></Layer>
+                </Capability></WMS_Capabilities>""";
+
+        assertThat(CapacidadesWms.leer(xml.getBytes(StandardCharsets.UTF_8)).formatosInfo())
+                .containsExactly("text/html", "application/geojson");
     }
 }

@@ -49,6 +49,20 @@ export interface CapaWms {
   extension: Extension | null;
 }
 
+/** Un clic sobre una capa WMS: la imagen del servidor en que se hizo, como la pidió el mapa, y el píxel dentro de
+ * ella (`i` de izquierda a derecha, `j` de arriba abajo). Es lo que el servidor necesita para decir qué hay ahí. */
+export interface PuntoWms {
+  capa: number;
+  capas: readonly string[];
+  bbox: string;
+  ancho: number;
+  alto: number;
+  crs: string;
+  version: string;
+  i: number;
+  j: number;
+}
+
 /** El elemento en que el usuario hizo clic (el mismo objeto que se entregó) y la capa del mapa que lo muestra. */
 export interface ElementoSeleccionado {
   capa: number;

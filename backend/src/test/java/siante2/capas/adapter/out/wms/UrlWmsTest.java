@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import siante2.capas.domain.CapaDeServicio;
+import siante2.capas.domain.ConsultaPunto;
 import siante2.capas.domain.PedidoMapa;
 import siante2.compartido.domain.ServicioExternoNoDisponibleException;
 
@@ -33,6 +34,18 @@ class UrlWmsTest {
                 + "&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ide%3Arios%2Cide%3Alagos&STYLES=&CRS=EPSG%3A3857"
                 + "&BBOX=-7.9e6%2C-4e6%2C-7.8e6%2C-3.9e6&WIDTH=256&HEIGHT=256&FORMAT=image%2Fpng&TRANSPARENT=TRUE");
         assertThat(UrlWms.mapa(url, pedido("1.1.1")).toString()).contains("&SRS=EPSG%3A3857").doesNotContain("CRS=");
+    }
+
+    @Test
+    void getFeatureInfoPideLaMismaImagenYElPixelSegunLaVersion() {
+        String url = "https://ide.cl/geoserver/wms?map=chile&request=GetCapabilities&i=99";
+
+        assertThat(UrlWms.info(url, new ConsultaPunto(pedido("1.3.0"), 10, 20), "application/json").toString())
+                .startsWith("https://ide.cl/geoserver/wms?map=chile&SERVICE=WMS&REQUEST=GetFeatureInfo&VERSION=1.3.0")
+                .contains("&QUERY_LAYERS=ide%3Arios%2Cide%3Alagos&INFO_FORMAT=application%2Fjson&I=10&J=20&FEATURE_COUNT=10")
+                .doesNotContain("i=99");
+        assertThat(UrlWms.info(url, new ConsultaPunto(pedido("1.1.1"), 10, 20), "text/xml").toString())
+                .contains("&SRS=EPSG%3A3857").contains("&X=10&Y=20").doesNotContain("&I=");
     }
 
     @Test

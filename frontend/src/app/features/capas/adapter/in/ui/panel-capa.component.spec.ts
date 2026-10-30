@@ -2,7 +2,7 @@ import { LOCALE_ID, signal } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localeEsCl from '@angular/common/locales/es-CL';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { CapaEnMapa, CapasAbiertas, ElementoElegido } from '../../../application/capas-abiertas';
+import { CapaEnMapa, CapasAbiertas, ElementoElegido, PuntoConsultado } from '../../../application/capas-abiertas';
 import { Capa, ElementoCapa } from '../../../domain/capa';
 import { PanelCapaComponent } from './panel-capa.component';
 
@@ -28,12 +28,13 @@ describe('PanelCapaComponent', () => {
     ...cambios
   });
   const wms = (id: number, nombre: string): Capa =>
-    capa({ id, nombre, tipo: 'URL', elementos: [], servicio: { tipo: 'WMS', capas: [], urlMapa: '/siante2/api/capas/7/wms' } });
+    capa({ id, nombre, tipo: 'URL', elementos: [], servicio: { tipo: 'WMS', capas: [], urlMapa: '/siante2/api/capas/7/wms', disponible: true } });
   const servicio = {
     abiertas: signal<CapaEnMapa[]>([]),
     abriendo: signal<ReadonlySet<number>>(new Set()),
     error: signal(''),
     elegido: signal<ElementoElegido | null>(null),
+    consultado: signal<PuntoConsultado | null>(null),
     sinRespuesta: signal<Capa[]>([]),
     deseleccionar: vi.fn(),
     descartarError: vi.fn()
@@ -48,6 +49,7 @@ describe('PanelCapaComponent', () => {
     servicio.abriendo.set(new Set());
     servicio.error.set('');
     servicio.elegido.set(null);
+    servicio.consultado.set(null);
     servicio.sinRespuesta.set([]);
     TestBed.configureTestingModule({
       imports: [PanelCapaComponent],
@@ -94,8 +96,46 @@ describe('PanelCapaComponent', () => {
     expect(servicio.deseleccionar).toHaveBeenCalled();
   });
 
+  describe('información de un punto en capas WMS', () => {
+    beforeEach(() => servicio.abiertas.set([{ capa: wms(7, 'IDE'), visible: true }]));
+
+    it('mientras consulta lo dice', () => {
+      servicio.consultado.set({ consultando: true, resultados: [], sinRespuesta: [] });
+      fixture.detectChanges();
+
+      expect(texto()).toBe('Información del punto×Consultando a los servidores de mapas…');
+    });
+
+    it('muestra los datos de cada elemento con su capa y la del servidor, y permite cerrarla', () => {
+      servicio.consultado.set({
+        consultando: false,
+        resultados: [{ capa: wms(7, 'IDE'), elementos: [{ capa: 'Ríos', datos: [{ nombre: 'NOMBRE', valor: 'Maipo' }] }, { capa: '', datos: [] }] }],
+        sinRespuesta: [wms(8, 'Geoportal')]
+      });
+      fixture.detectChanges();
+
+      const panel: HTMLElement = fixture.nativeElement;
+      const notas = [...panel.querySelectorAll('.resultado .nota')].map((nota) => nota.textContent?.trim());
+      expect(notas).toEqual(['IDE · Ríos', 'IDE']);
+      expect(panel.querySelector('dt')?.textContent).toBe('NOMBRE');
+      expect(panel.querySelector('dd')?.textContent).toBe('Maipo');
+      expect(texto()).toContain('El servidor no entregó datos de este elemento.');
+      expect(texto()).toContain('El servidor de mapas de «Geoportal» no respondió la consulta.');
+
+      panel.querySelector<HTMLButtonElement>('button.cerrar')!.click();
+      expect(servicio.deseleccionar).toHaveBeenCalled();
+    });
+
+    it('si no hay nada en el punto lo dice', () => {
+      servicio.consultado.set({ consultando: false, resultados: [], sinRespuesta: [] });
+      fixture.detectChanges();
+
+      expect(texto()).toBe('Información del punto×No hay información de las capas en este punto.');
+    });
+  });
+
   it('avisa que las capas WMTS y WFS todavía no se pueden ver', () => {
-    servicio.abiertas.set([{ capa: capa({ tipo: 'URL', elementos: [], servicio: { tipo: 'WFS', capas: [], urlMapa: '' } }), visible: true }]);
+    servicio.abiertas.set([{ capa: capa({ tipo: 'URL', elementos: [], servicio: { tipo: 'WFS', capas: [], urlMapa: '', disponible: true } }), visible: true }]);
     fixture.detectChanges();
 
     expect(texto()).toBe('Las capas por URL de tipo WMTS o WFS se podrán ver en una próxima versión.');

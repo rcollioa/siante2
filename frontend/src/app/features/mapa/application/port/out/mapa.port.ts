@@ -1,5 +1,5 @@
 import { Signal } from '@angular/core';
-import { AvisoUbicacion, CapaBase, CapaWms, ElementoMapa, ElementoSeleccionado, ZonaVisible } from '../../../domain/mapa';
+import { AvisoUbicacion, CapaBase, CapaWms, ElementoMapa, ElementoSeleccionado, PuntoWms, ZonaVisible } from '../../../domain/mapa';
 
 /** El mapa para el resto de la aplicación: instancia única, sin exponer la librería que lo dibuja. */
 export abstract class MapaPort {
@@ -12,6 +12,9 @@ export abstract class MapaPort {
   abstract readonly sinMapaBase: Signal<boolean>;
   /** Elemento en el que el usuario hizo clic; null si ninguno o si su capa se ocultó o se quitó. */
   abstract readonly elementoSeleccionado: Signal<ElementoSeleccionado | null>;
+  /** Un clic fuera de los elementos, sobre capas WMS visibles: un punto por capa, la de más arriba primero. Vacío si
+   * el clic fue sobre un elemento, si no hay capas WMS visibles o al deseleccionar. Cada clic entrega otro arreglo. */
+  abstract readonly consultaWms: Signal<readonly PuntoWms[]>;
   /** Capas WMS cuyas imágenes no están llegando: el servidor de mapas no responde. */
   abstract readonly capasSinRespuesta: Signal<ReadonlySet<number>>;
 

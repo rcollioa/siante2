@@ -5,11 +5,21 @@ import { API_PREFIJO } from '../../../../../shared/api/api-prefijo';
 import { components } from '../../../../../shared/api/contrato';
 import { sinPantallaDeCarga } from '../../../../../shared/pantalla-carga/pantalla-carga.interceptor';
 import { CapasRepositorio } from '../../../application/port/out/capas.repositorio';
-import { Capa, CapaCatalogo, CapaNoEncontrada, ResumenCapa, SeccionCatalogo, ServidorDeMapasNoDisponible } from '../../../domain/capa';
+import { PuntoWms } from '../../../../mapa/domain/mapa';
+import {
+  Capa,
+  CapaCatalogo,
+  CapaNoEncontrada,
+  ElementoDeServicio,
+  ResumenCapa,
+  SeccionCatalogo,
+  ServidorDeMapasNoDisponible
+} from '../../../domain/capa';
 
 type CapaDto = components['schemas']['Capa'];
 type CapasResponse = components['schemas']['CapasResponse'];
 type CatalogoResponse = components['schemas']['CatalogoResponse'];
+type ElementosDeServicioResponse = components['schemas']['ElementosDeServicioResponse'];
 
 /** Sin CacheConsultas: las capas de cada usuario cambian (también desde SIATE) y el ETag ya evita volver a
  * descargarlas si siguen iguales. Los DTO del contrato se entregan como dominio sin conversión: si el contrato
@@ -44,6 +54,26 @@ export class CapasHttp extends CapasRepositorio {
       catchError((error: unknown) => throwError(() => traducir(error, id)))
     );
   }
+
+  /** Sin pantalla de carga: el panel de la capa avisa que está consultando, y el mapa sigue usable. */
+  consultarPunto(punto: PuntoWms): Observable<ElementoDeServicio[]> {
+    const params = {
+      LAYERS: punto.capas.join(','),
+      BBOX: punto.bbox,
+      WIDTH: punto.ancho,
+      HEIGHT: punto.alto,
+      CRS: punto.crs,
+      VERSION: punto.version,
+      I: punto.i,
+      J: punto.j
+    };
+    return this.http
+      .get<ElementosDeServicioResponse>(`${API_PREFIJO}/capas/${punto.capa}/wms/info`, { params, context: sinPantallaDeCarga() })
+      .pipe(
+        map((respuesta): ElementoDeServicio[] => respuesta.data),
+        catchError((error: unknown) => throwError(() => traducir(error, punto.capa)))
+      );
+  }
 }
 
 /** El contrato marca `servicio` y `extension` como obligatorios, pero el backend los manda en null cuando no hay. */
@@ -55,7 +85,8 @@ function aCapa(capa: CapaDto): Capa {
       ? {
           tipo: servicio.tipo,
           capas: servicio.capas.map((c) => ({ ...c, extension: c.extension ?? null })),
-          urlMapa: `${API_PREFIJO}/capas/${capa.id}/wms`
+          urlMapa: `${API_PREFIJO}/capas/${capa.id}/wms`,
+          disponible: servicio.disponible
         }
       : null
   };

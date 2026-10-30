@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import siante2.capas.application.port.in.ConsultarPuntoUseCase;
 import siante2.capas.application.port.in.ListarFavoritasUseCase;
 import siante2.capas.application.port.in.ListarMisCapasUseCase;
 import siante2.capas.application.port.in.ObtenerMapaUseCase;
@@ -19,6 +20,8 @@ import siante2.capas.application.port.in.VerCapaUseCase;
 import siante2.capas.application.port.in.VerCatalogoUseCase;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
+import siante2.capas.domain.ConsultaPunto;
+import siante2.capas.domain.ElementoDeServicio;
 import siante2.capas.domain.ImagenMapa;
 import siante2.capas.domain.PedidoMapa;
 import siante2.capas.domain.ResumenCapa;
@@ -35,14 +38,16 @@ public class CapasController {
     private final ListarFavoritasUseCase favoritas;
     private final VerCatalogoUseCase catalogo;
     private final ObtenerMapaUseCase mapa;
+    private final ConsultarPuntoUseCase consulta;
 
     public CapasController(ListarMisCapasUseCase listar, VerCapaUseCase ver, ListarFavoritasUseCase favoritas,
-                           VerCatalogoUseCase catalogo, ObtenerMapaUseCase mapa) {
+                           VerCatalogoUseCase catalogo, ObtenerMapaUseCase mapa, ConsultarPuntoUseCase consulta) {
         this.listar = listar;
         this.ver = ver;
         this.favoritas = favoritas;
         this.catalogo = catalogo;
         this.mapa = mapa;
+        this.consulta = consulta;
     }
 
     @GetMapping("/mias")
@@ -85,12 +90,29 @@ public class CapasController {
                 .body(imagen.contenido());
     }
 
+    /** Qué hay en un punto de una capa por URL (GetFeatureInfo): la imagen en que se hizo clic y el píxel dentro de
+     * ella. Reemplaza a {@code GET /siante/api/layers/featureinfo?URL=} de SIATE, que pedía cualquier URL que le
+     * mandara el navegador; aquí, como las imágenes, solo al servidor de la capa y con capas que publica. */
+    @GetMapping("/{id}/wms/info")
+    public ElementosDeServicioResponse consultarPuntoDeCapa(@PathVariable int id, @RequestParam("LAYERS") String capas,
+            @RequestParam("BBOX") String bbox, @RequestParam("WIDTH") int ancho, @RequestParam("HEIGHT") int alto,
+            @RequestParam("CRS") String crs, @RequestParam(value = "VERSION", defaultValue = "1.3.0") String version,
+            @RequestParam("I") int i, @RequestParam("J") int j, Authentication autenticacion) {
+        PedidoMapa imagen = new PedidoMapa(Arrays.asList(capas.split(",")), bbox, ancho, alto, crs, "image/png", true,
+                version);
+        return new ElementosDeServicioResponse(
+                consulta.consultarPunto(id, autenticacion.getName(), new ConsultaPunto(imagen, i, j)));
+    }
+
     @GetMapping("/{id}")
     public Capa verCapa(@PathVariable int id, Authentication autenticacion) {
         return ver.ver(id, autenticacion.getName());
     }
 
     public record CapasResponse(List<ResumenCapa> data) {
+    }
+
+    public record ElementosDeServicioResponse(List<ElementoDeServicio> data) {
     }
 
     public record CatalogoResponse(List<CapaCatalogo> data) {

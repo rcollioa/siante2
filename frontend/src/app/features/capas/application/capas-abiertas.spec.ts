@@ -2,8 +2,8 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { MapaPort } from '../../mapa/application/port/out/mapa.port';
-import { ElementoSeleccionado } from '../../mapa/domain/mapa';
-import { Capa, CapaNoEncontrada, ElementoCapa, ServidorDeMapasNoDisponible } from '../domain/capa';
+import { ElementoSeleccionado, PuntoWms } from '../../mapa/domain/mapa';
+import { Capa, CapaNoEncontrada, ElementoCapa, ElementoDeServicio, ServidorDeMapasNoDisponible } from '../domain/capa';
 import { CapasAbiertas } from './capas-abiertas';
 import { CapasRepositorio } from './port/out/capas.repositorio';
 
@@ -39,8 +39,10 @@ describe('CapasAbiertas', () => {
     deseleccionar: vi.fn(),
     quitarMarcador: vi.fn(),
     elementoSeleccionado: signal<ElementoSeleccionado | null>(null),
+    consultaWms: signal<readonly PuntoWms[]>([]),
     capasSinRespuesta: signal<ReadonlySet<number>>(new Set())
   };
+  let consultarPunto: ReturnType<typeof vi.fn<(punto: PuntoWms) => Observable<ElementoDeServicio[]>>>;
   let servicio: CapasAbiertas;
   const ids = () => servicio.abiertas().map(({ capa }) => capa.id);
 
@@ -48,10 +50,12 @@ describe('CapasAbiertas', () => {
     vi.clearAllMocks();
     mapa.elementoSeleccionado.set(null);
     mapa.capasSinRespuesta.set(new Set());
+    mapa.consultaWms.set([]);
     ver = vi.fn((id: number) => of(capa(id)));
+    consultarPunto = vi.fn(() => of([]));
     TestBed.configureTestingModule({
       providers: [
-        { provide: CapasRepositorio, useValue: { ver } },
+        { provide: CapasRepositorio, useValue: { ver, consultarPunto } },
         { provide: MapaPort, useValue: mapa }
       ]
     });
@@ -110,7 +114,8 @@ describe('CapasAbiertas', () => {
         capas: [
           { nombre: 'rios', titulo: 'Ríos', extension: { oeste: -76, sur: -56, este: -66, norte: -17 } },
           { nombre: 'lagos', titulo: 'Lagos', extension: { oeste: -73, sur: -42, este: -70, norte: -39 } }
-        ]
+        ],
+        disponible: true
       }
     })));
 
@@ -123,6 +128,22 @@ describe('CapasAbiertas', () => {
       extension: { oeste: -76, sur: -56, este: -66, norte: -17 }
     });
     expect(mapa.acercarA).toHaveBeenCalledWith(7);
+  });
+
+  it('una capa WMS cuyo servidor no respondió se abre vacía y se avisa, como en SIATE', () => {
+    ver.mockReturnValue(of(capa(7, {
+      tipo: 'URL',
+      elementos: [],
+      servicio: { tipo: 'WMS', urlMapa: '/siante2/api/capas/7/wms', capas: [], disponible: false }
+    })));
+
+    servicio.abrir(7);
+
+    expect(servicio.error()).toBe('');
+    expect(ids()).toEqual([7]);
+    expect(mapa.mostrarCapaWms).not.toHaveBeenCalled();
+    expect(mapa.mostrarCapa).toHaveBeenCalledWith(7, []);
+    expect(servicio.sinRespuesta().map(({ id }) => id)).toEqual([7]);
   });
 
   it('dice qué capas WMS abiertas no reciben imágenes de su servidor', () => {
@@ -204,5 +225,69 @@ describe('CapasAbiertas', () => {
 
     expect(servicio.error()).toBe('No se pudo abrir la capa. Intente nuevamente.');
     expect(servicio.abriendo().size).toBe(0);
+  });
+
+  describe('consulta de un punto en capas WMS', () => {
+    const punto = (id: number): PuntoWms => ({
+      capa: id,
+      capas: ['rios'],
+      bbox: '0,0,10,10',
+      ancho: 256,
+      alto: 256,
+      crs: 'EPSG:3857',
+      version: '1.3.0',
+      i: 1,
+      j: 2
+    });
+    const rios: ElementoDeServicio = { capa: 'Ríos', datos: [{ nombre: 'NOMBRE', valor: 'Maipo' }] };
+
+    beforeEach(() => {
+      servicio.abrir(7);
+      servicio.abrir(8);
+      servicio.abrir(9);
+    });
+
+    it('sin un clic sobre capas WMS no hay nada consultado', () => {
+      expect(servicio.consultado()).toBeNull();
+    });
+
+    it('muestra solo las capas con algo en el punto, y las que no respondieron', () => {
+      consultarPunto.mockImplementation(({ capa: id }) =>
+        id === 7 ? of([rios]) : id === 8 ? of([]) : throwError(() => new ServidorDeMapasNoDisponible(id))
+      );
+
+      mapa.consultaWms.set([punto(7), punto(8), punto(9)]);
+      TestBed.tick();
+
+      expect(consultarPunto).toHaveBeenCalledTimes(3);
+      const consultado = servicio.consultado()!;
+      expect(consultado.consultando).toBe(false);
+      expect(consultado.resultados.map(({ capa, elementos }) => [capa.id, elementos])).toEqual([[7, [rios]]]);
+      expect(consultado.sinRespuesta.map(({ id }) => id)).toEqual([9]);
+    });
+
+    it('mientras los servidores responden lo dice, y otro clic deja la consulta anterior', () => {
+      const lenta = new Subject<ElementoDeServicio[]>();
+      consultarPunto.mockReturnValueOnce(lenta).mockReturnValue(of([rios]));
+
+      mapa.consultaWms.set([punto(7)]);
+      TestBed.tick();
+      expect(servicio.consultado()).toEqual({ consultando: true, resultados: [], sinRespuesta: [] });
+
+      mapa.consultaWms.set([punto(7)]);
+      TestBed.tick();
+      expect(lenta.observed).toBe(false);
+      expect(servicio.consultado()!.resultados).toHaveLength(1);
+    });
+
+    it('una capa cerrada deja de aparecer en lo consultado', () => {
+      consultarPunto.mockReturnValue(of([rios]));
+      mapa.consultaWms.set([punto(7), punto(8)]);
+      TestBed.tick();
+
+      servicio.cerrar(7);
+
+      expect(servicio.consultado()!.resultados.map(({ capa }) => capa.id)).toEqual([8]);
+    });
   });
 });

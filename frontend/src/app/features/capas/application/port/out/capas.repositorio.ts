@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs';
-import { Capa, CapaCatalogo, ResumenCapa, SeccionCatalogo } from '../../../domain/capa';
+import { PuntoWms } from '../../../../mapa/domain/mapa';
+import { Capa, CapaCatalogo, ElementoDeServicio, ResumenCapa, SeccionCatalogo } from '../../../domain/capa';
 
 /** Las capas guardadas en SIATE. */
 export abstract class CapasRepositorio {
@@ -12,4 +13,8 @@ export abstract class CapasRepositorio {
 
   /** Falla con CapaNoEncontrada si no existe o el usuario no puede verla. */
   abstract ver(id: number): Observable<Capa>;
+
+  /** Lo que el servidor WMS de la capa tiene en el punto; vacío si nada. Falla con ServidorDeMapasNoDisponible si no
+   * responde. */
+  abstract consultarPunto(punto: PuntoWms): Observable<ElementoDeServicio[]>;
 }

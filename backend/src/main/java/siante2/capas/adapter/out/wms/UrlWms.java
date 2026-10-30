@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import siante2.capas.domain.CapaDeServicio;
+import siante2.capas.domain.ConsultaPunto;
 import siante2.capas.domain.Extension;
 import siante2.capas.domain.PedidoMapa;
 import siante2.compartido.domain.ServicioExternoNoDisponibleException;
@@ -24,7 +25,10 @@ import siante2.compartido.domain.ServicioExternoNoDisponibleException;
 final class UrlWms {
 
     private static final Set<String> DE_WMS = Set.of("service", "request", "version", "layers", "bbox", "width",
-            "height", "format", "crs", "srs", "styles", "transparent", "tiled", "exceptions");
+            "height", "format", "crs", "srs", "styles", "transparent", "tiled", "exceptions", "query_layers",
+            "info_format", "i", "j", "x", "y", "feature_count");
+    /** Como SIATE no hay paginación: unos pocos elementos en un clic bastan. */
+    private static final int ELEMENTOS_POR_CONSULTA = 10;
 
     private UrlWms() {
     }
@@ -34,12 +38,26 @@ final class UrlWms {
     }
 
     static URI mapa(String url, PedidoMapa pedido) {
-        Map<String, String> wms = parametros("SERVICE", "WMS", "REQUEST", "GetMap", "VERSION", pedido.version(),
+        return armar(url, deMapa("GetMap", pedido));
+    }
+
+    /** La misma imagen del GetMap y el píxel consultado: I/J en 1.3.0, X/Y en 1.1.1. */
+    static URI info(String url, ConsultaPunto consulta, String formato) {
+        PedidoMapa mapa = consulta.mapa();
+        boolean wms130 = "1.3.0".equals(mapa.version());
+        Map<String, String> wms = deMapa("GetFeatureInfo", mapa);
+        wms.putAll(parametros("QUERY_LAYERS", String.join(",", mapa.capas()), "INFO_FORMAT", formato,
+                wms130 ? "I" : "X", String.valueOf(consulta.i()), wms130 ? "J" : "Y", String.valueOf(consulta.j()),
+                "FEATURE_COUNT", String.valueOf(ELEMENTOS_POR_CONSULTA)));
+        return armar(url, wms);
+    }
+
+    private static Map<String, String> deMapa(String request, PedidoMapa pedido) {
+        return parametros("SERVICE", "WMS", "REQUEST", request, "VERSION", pedido.version(),
                 "LAYERS", String.join(",", pedido.capas()), "STYLES", "",
                 "1.3.0".equals(pedido.version()) ? "CRS" : "SRS", pedido.crs(), "BBOX", pedido.bbox(),
                 "WIDTH", String.valueOf(pedido.ancho()), "HEIGHT", String.valueOf(pedido.alto()),
                 "FORMAT", pedido.formato(), "TRANSPARENT", String.valueOf(pedido.transparente()).toUpperCase(Locale.ROOT));
-        return armar(url, wms);
     }
 
     /** Si SIATE guardó una URL GetMap, sus capas van en {@code layers}: no hace falta preguntar al servidor. */

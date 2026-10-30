@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import siante2.capas.application.port.in.ConsultarPuntoUseCase;
 import siante2.capas.application.port.in.ListarFavoritasUseCase;
 import siante2.capas.application.port.in.ListarMisCapasUseCase;
 import siante2.capas.application.port.in.ObtenerMapaUseCase;
@@ -15,6 +16,8 @@ import siante2.capas.application.port.in.VerCatalogoUseCase;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.CapaDeServicio;
+import siante2.capas.domain.ConsultaPunto;
+import siante2.capas.domain.ElementoDeServicio;
 import siante2.capas.domain.Extension;
 import siante2.capas.domain.ImagenMapa;
 import siante2.capas.domain.PedidoMapa;
@@ -66,6 +69,9 @@ class CapasControllerTest {
     @MockitoBean
     private ObtenerMapaUseCase mapa;
 
+    @MockitoBean
+    private ConsultarPuntoUseCase consulta;
+
     @Test
     void unaCapaWmsTraeLasCapasDeSuServidorSinSuUrl() throws Exception {
         when(ver.ver(7, "prueba")).thenReturn(new Capa(7, "IDE", "", Visibilidad.PUBLICA, false, TipoCapa.URL, List.of(),
@@ -76,6 +82,7 @@ class CapasControllerTest {
                 .andExpect(jsonPath("$.servicio.tipo").value("WMS"))
                 .andExpect(jsonPath("$.servicio.capas[0].nombre").value("rios"))
                 .andExpect(jsonPath("$.servicio.capas[0].extension.oeste").value(-76))
+                .andExpect(jsonPath("$.servicio.disponible").value(true))
                 .andExpect(jsonPath("$.servicio.url").doesNotExist());
     }
 
@@ -104,6 +111,32 @@ class CapasControllerTest {
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(mapa);
+    }
+
+    @Test
+    void laConsultaDeUnPuntoEntregaLosElementosDelServidor() throws Exception {
+        when(consulta.consultarPunto(eq(7), eq("prueba"), argThat((ConsultaPunto c) -> c.i() == 10 && c.j() == 20
+                && c.mapa().capas().equals(List.of("rios")) && c.mapa().version().equals("1.1.1"))))
+                .thenReturn(List.of(new ElementoDeServicio("Ríos", List.of(new Metadato("NOMBRE", "Maipo")))));
+
+        mockMvc.perform(get(RUTA + "/7/wms/info").param("LAYERS", "rios").param("CRS", "EPSG:3857")
+                        .param("BBOX", "1,2,3,4").param("WIDTH", "256").param("HEIGHT", "256").param("VERSION", "1.1.1")
+                        .param("I", "10").param("J", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].capa").value("Ríos"))
+                .andExpect(jsonPath("$.data[0].datos[0].nombre").value("NOMBRE"))
+                .andExpect(jsonPath("$.data[0].datos[0].valor").value("Maipo"));
+    }
+
+    @Test
+    void unPuntoFueraDeLaImagenResponde400SinPreguntarAlServidor() throws Exception {
+        mockMvc.perform(get(RUTA + "/7/wms/info").param("LAYERS", "rios").param("CRS", "EPSG:3857")
+                        .param("BBOX", "1,2,3,4").param("WIDTH", "256").param("HEIGHT", "256")
+                        .param("I", "256").param("J", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+
+        verifyNoInteractions(consulta);
     }
 
     @Test

@@ -1,33 +1,42 @@
 package siante2.capas.adapter.out.wms;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 import siante2.capas.domain.CapaDeServicio;
 import siante2.capas.domain.Extension;
 
+import static siante2.capas.adapter.out.wms.XmlSeguro.hijos;
+import static siante2.capas.adapter.out.wms.XmlSeguro.texto;
+
 /** Lee las capas de un GetCapabilities WMS 1.1.1 o 1.3.0. Como SIATE, las capas con nombre que no agrupan otras;
  * si el servidor solo publica grupos, las capas con nombre que haya. La extensión se hereda del grupo si la capa no
- * la trae. XML de un tercero: sin DOCTYPE ni entidades externas. Se lee en bytes para que el parser tome la
- * codificación de la declaración XML: muchos servidores no la informan en Content-Type. */
+ * la trae. */
 final class CapacidadesWms {
 
     private CapacidadesWms() {
     }
 
-    static List<CapaDeServicio> leer(byte[] xml) {
+    /** Las capas publicadas y los formatos en que el servidor responde GetFeatureInfo. */
+    record Leidas(List<CapaDeServicio> capas, List<String> formatosInfo) {
+    }
+
+    static Leidas leer(byte[] xml) {
+        Element raiz = XmlSeguro.raiz(xml, "GetCapabilities WMS");
         List<CapaDeServicio> hojas = new ArrayList<>();
         List<CapaDeServicio> conNombre = new ArrayList<>();
-        recorrer(raiz(xml), null, hojas, conNombre);
-        return hojas.isEmpty() ? conNombre : hojas;
+        recorrer(raiz, null, hojas, conNombre);
+        return new Leidas(hojas.isEmpty() ? conNombre : hojas, formatosInfo(raiz));
+    }
+
+    /** Capability/Request/GetFeatureInfo/Format, igual en 1.1.1 y 1.3.0. */
+    private static List<String> formatosInfo(Element raiz) {
+        return hijos(raiz).stream().filter(h -> "Capability".equals(h.getLocalName()))
+                .flatMap(capacidad -> hijos(capacidad).stream()).filter(h -> "Request".equals(h.getLocalName()))
+                .flatMap(pedidos -> hijos(pedidos).stream()).filter(h -> "GetFeatureInfo".equals(h.getLocalName()))
+                .flatMap(info -> hijos(info).stream()).filter(h -> "Format".equals(h.getLocalName()))
+                .map(formato -> formato.getTextContent().trim())
+                .toList();
     }
 
     private static void recorrer(Element elemento, Extension heredada, List<CapaDeServicio> hojas,
@@ -73,38 +82,6 @@ final class CapacidadesWms {
                     Double.parseDouble(norte));
         } catch (NumberFormatException e) {
             return null;
-        }
-    }
-
-    /** Texto del primer hijo directo con ese nombre, sin espacios; vacío si no está. */
-    private static String texto(Element padre, String nombre) {
-        return hijos(padre).stream().filter(h -> nombre.equals(h.getLocalName())).findFirst()
-                .map(h -> h.getTextContent().trim()).orElse("");
-    }
-
-    private static List<Element> hijos(Element padre) {
-        List<Element> hijos = new ArrayList<>();
-        for (Node n = padre.getFirstChild(); n != null; n = n.getNextSibling()) {
-            if (n instanceof Element e) {
-                hijos.add(e);
-            }
-        }
-        return hijos;
-    }
-
-    private static Element raiz(byte[] xml) {
-        if (xml == null || xml.length == 0) {
-            throw new IllegalArgumentException("GetCapabilities WMS vacío");
-        }
-        try {
-            DocumentBuilderFactory fabrica = DocumentBuilderFactory.newInstance();
-            fabrica.setNamespaceAware(true);
-            fabrica.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-            fabrica.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            fabrica.setExpandEntityReferences(false);
-            return fabrica.newDocumentBuilder().parse(new InputSource(new ByteArrayInputStream(xml))).getDocumentElement();
-        } catch (ParserConfigurationException | SAXException | IOException e) {
-            throw new IllegalArgumentException("GetCapabilities WMS no reconocido: " + e.getMessage(), e);
         }
     }
 }

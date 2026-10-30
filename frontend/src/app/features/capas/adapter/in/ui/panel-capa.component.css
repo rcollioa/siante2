@@ -45,6 +45,10 @@ dl {
   margin: 0.5rem 0 0;
 }
 
+.resultado + .resultado {
+  margin-top: 0.75rem;
+}
+
 dl div {
   display: grid;
   grid-template-columns: minmax(6rem, auto) 1fr;
