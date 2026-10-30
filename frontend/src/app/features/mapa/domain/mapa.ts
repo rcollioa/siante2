@@ -92,6 +92,13 @@ export interface PuntoWms {
   j: number;
 }
 
+/** El largo que muestra la regla: en metros hasta 1 km y en kilómetros desde ahí. SIATE pasaba a kilómetros desde
+ * 100 m, así que 150 m se leían "0.15 km". */
+export function formatearDistancia(metros: number): string {
+  const numero = (valor: number, decimales: number) => valor.toLocaleString('es-CL', { maximumFractionDigits: decimales });
+  return metros < 1000 ? `${numero(metros, 1)} m` : `${numero(metros / 1000, 2)} km`;
+}
+
 /** El elemento en que el usuario hizo clic (el mismo objeto que se entregó) y la capa del mapa que lo muestra. */
 export interface ElementoSeleccionado {
   capa: number;

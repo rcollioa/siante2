@@ -1,3 +1,6 @@
+import Feature from 'ol/Feature';
+import LineString from 'ol/geom/LineString';
+import Draw, { DrawEvent } from 'ol/interaction/Draw';
 import LayerGroup from 'ol/layer/Group';
 import TileLayer from 'ol/layer/Tile';
 import TileWMS from 'ol/source/TileWMS';
@@ -282,6 +285,67 @@ describe('MapaOpenLayers', () => {
 
       servicio.deseleccionar();
       expect(servicio.elementoSeleccionado()).toBeNull();
+    });
+  });
+
+  describe('regla', () => {
+    const dibujos = () => servicio.mapa.getInteractions().getArray().filter((interaccion) => interaccion instanceof Draw);
+
+    it('activarla agrega el dibujo de líneas y deselecciona; apagarla lo quita', () => {
+      servicio.consultaWms.set([{ capa: 7, capas: ['rios'], bbox: '0,0,1,1', ancho: 256, alto: 256, crs: 'EPSG:3857', version: '1.3.0', i: 0, j: 0 }]);
+
+      servicio.alternarRegla();
+      expect(servicio.midiendo()).toBe(true);
+      expect(dibujos()).toHaveLength(1);
+      expect(servicio.consultaWms()).toEqual([]);
+
+      servicio.alternarRegla();
+      expect(servicio.midiendo()).toBe(false);
+      expect(dibujos()).toHaveLength(0);
+    });
+
+    it('con la regla activa un clic no elige elementos ni consulta capas WMS', () => {
+      servicio.mostrarCapaWms(7, { url: '/siante2/api/capas/7/wms', capas: ['rios'], extension: null });
+      servicio.alternarRegla();
+
+      servicio.mapa.dispatchEvent({ type: 'singleclick', pixel: [10, 10], coordinate: [-7_850_000, -3_950_000] } as never);
+
+      expect(servicio.consultaWms()).toEqual([]);
+      expect(servicio.elementoSeleccionado()).toBeNull();
+    });
+
+    it('muestra el largo de la línea mientras se dibuja, y al apagarla borra líneas y etiquetas', () => {
+      servicio.alternarRegla();
+      const dibujo = dibujos()[0] as Draw;
+      const linea = new Feature(new LineString([[0, 0], [0, 0]]));
+      dibujo.dispatchEvent(new DrawEvent('drawstart', linea));
+      // Largo real sobre la Tierra, como SIATE: en el ecuador, 1000 unidades del mapa son 998,9 m.
+      (linea.getGeometry() as LineString).setCoordinates([[0, 0], [1000, 0]]);
+
+      const etiquetas = servicio.mapa.getOverlays().getArray();
+      expect(etiquetas).toHaveLength(1);
+      expect(etiquetas[0].getElement()!.textContent).toBe('998,9 m');
+
+      dibujo.dispatchEvent(new DrawEvent('drawend', linea));
+      expect(etiquetas[0].getElement()!.classList).toContain('medicion-terminada');
+
+      servicio.alternarRegla();
+      expect(servicio.mapa.getOverlays().getLength()).toBe(0);
+    });
+
+    it('cancelar descarta solo la línea en curso', () => {
+      servicio.alternarRegla();
+      const dibujo = dibujos()[0] as Draw;
+      const terminada = new Feature(new LineString([[0, 0], [10, 0]]));
+      dibujo.dispatchEvent(new DrawEvent('drawstart', terminada));
+      dibujo.dispatchEvent(new DrawEvent('drawend', terminada));
+      dibujo.dispatchEvent(new DrawEvent('drawstart', new Feature(new LineString([[0, 0], [5, 0]]))));
+
+      servicio.cancelarMedicion();
+
+      expect(servicio.mapa.getOverlays().getLength()).toBe(1);
+      servicio.cancelarMedicion();
+      expect(servicio.mapa.getOverlays().getLength()).toBe(1);
     });
   });
 

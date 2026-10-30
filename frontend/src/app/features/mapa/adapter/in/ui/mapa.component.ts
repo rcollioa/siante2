@@ -12,7 +12,8 @@ import { MapaPort } from '../../../application/port/out/mapa.port';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, BuscadorDireccionesComponent, PanelCapaComponent],
   templateUrl: './mapa.component.html',
-  styleUrl: './mapa.component.css'
+  styleUrl: './mapa.component.css',
+  host: { '(document:keydown.escape)': 'mapa.cancelarMedicion()' }
 })
 export class MapaComponent {
   protected readonly mapa = inject(MapaPort);

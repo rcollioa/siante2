@@ -26,6 +26,8 @@ export abstract class MapaPort {
   abstract readonly consultaWms: Signal<readonly PuntoWms[]>;
   /** Capas WMS cuyas imágenes no están llegando: el servidor de mapas no responde. */
   abstract readonly capasSinRespuesta: Signal<ReadonlySet<number>>;
+  /** La regla de SIATE está activa: cada línea que se dibuja muestra su largo y los clics no eligen elementos. */
+  abstract readonly midiendo: Signal<boolean>;
 
   abstract montar(elemento: HTMLElement): void;
   abstract desmontar(): void;
@@ -45,6 +47,11 @@ export abstract class MapaPort {
   /** Acerca el mapa para ver todos los elementos de la capa. */
   abstract acercarA(id: number): void;
   abstract deseleccionar(): void;
+
+  /** Activa la regla o, si estaba activa, la apaga y borra las mediciones, como en SIATE. */
+  abstract alternarRegla(): void;
+  /** Descarta la línea que se está midiendo; las ya terminadas quedan. */
+  abstract cancelarMedicion(): void;
 
   /** Centra el mapa en el punto (EPSG:4326) y lo marca. */
   abstract irA(longitud: number, latitud: number): void;

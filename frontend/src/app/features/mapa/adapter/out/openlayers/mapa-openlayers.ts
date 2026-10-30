@@ -1,12 +1,15 @@
 import { Injectable, signal } from '@angular/core';
 import Feature from 'ol/Feature';
 import MapaOl from 'ol/Map';
+import Overlay from 'ol/Overlay';
 import View from 'ol/View';
 import { defaults as controlesPorDefecto, ScaleLine } from 'ol/control';
 import { Coordinate } from 'ol/coordinate';
 import { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
+import LineString from 'ol/geom/LineString';
 import Point from 'ol/geom/Point';
+import Draw from 'ol/interaction/Draw';
 import { Extent } from 'ol/extent';
 import BaseLayer from 'ol/layer/Base';
 import LayerGroup from 'ol/layer/Group';
@@ -15,6 +18,7 @@ import VectorLayer from 'ol/layer/Vector';
 import { fromLonLat, toLonLat, transformExtent } from 'ol/proj';
 import TileWMS from 'ol/source/TileWMS';
 import VectorSource from 'ol/source/Vector';
+import { getLength } from 'ol/sphere';
 import WMTS from 'ol/source/WMTS';
 import WMTSTileGrid from 'ol/tilegrid/WMTS';
 import { Circle, Fill, Stroke, Style, Text as Texto } from 'ol/style';
@@ -27,6 +31,7 @@ import {
   CapaWmts,
   ElementoMapa,
   ElementoSeleccionado,
+  formatearDistancia,
   Extension,
   PuntoWms,
   ZonaVisible
@@ -72,6 +77,12 @@ const ESTILO_UBICACION = new Style({
   })
 });
 
+// La regla de SIATE: línea amarilla de 4 px.
+const ESTILO_MEDICION = new Style({
+  stroke: new Stroke({ color: '#ffcc33', width: 4 }),
+  image: new Circle({ radius: 6, fill: new Fill({ color: '#ffcc33' }) })
+});
+
 /** Instancia única del mapa con OpenLayers; el resto de la aplicación llega a él por MapaPort. */
 @Injectable({ providedIn: 'root' })
 export class MapaOpenLayers extends MapaPort {
@@ -97,13 +108,20 @@ export class MapaOpenLayers extends MapaPort {
   readonly sinMapaBase = signal(false);
   readonly elementoSeleccionado = signal<ElementoSeleccionado | null>(null);
   readonly consultaWms = signal<readonly PuntoWms[]>([]);
+  readonly midiendo = signal(false);
+  private readonly mediciones = new VectorSource();
+  private dibujoMedicion: Draw | null = null;
+  /** Una etiqueta por línea medida, con su largo; la última, mientras se dibuja. */
+  private readonly etiquetas: Overlay[] = [];
+  private etiquetaEnCurso: Overlay | null = null;
 
   readonly mapa = new MapaOl({
     layers: [
       ...Object.values(this.capasBase),
       this.grupoCapas,
       new VectorLayer({ source: this.marcador, style: ESTILO_MARCADOR }),
-      new VectorLayer({ source: this.ubicacion, style: ESTILO_UBICACION })
+      new VectorLayer({ source: this.ubicacion, style: ESTILO_UBICACION }),
+      new VectorLayer({ source: this.mediciones, style: ESTILO_MEDICION })
     ],
     view: new View({ center: CENTRO_CHILE, zoom: 4 }),
     controls: controlesPorDefecto({ attributionOptions: { collapsible: false } }).extend([new ScaleLine()])
@@ -128,6 +146,10 @@ export class MapaOpenLayers extends MapaPort {
     }
     // Como la herramienta de selección de SIATE: un clic muestra la información del elemento.
     this.mapa.on('singleclick', ({ pixel, coordinate }) => {
+      // Con la regla activa, cada clic es un punto de la línea que se mide, como en SIATE.
+      if (this.midiendo()) {
+        return;
+      }
       // Solo cuentan las capas abiertas y visibles: OpenLayers no busca en las que no dibuja.
       const feature = this.mapa.forEachFeatureAtPixel(pixel, (encontrada) => encontrada as Feature, {
         layerFilter: (capa) => capa instanceof VectorLayer && capa.get(CAPA) !== undefined,
@@ -289,6 +311,68 @@ export class MapaOpenLayers extends MapaPort {
   deseleccionar(): void {
     this.elementoSeleccionado.set(null);
     this.consultaWms.set([]);
+  }
+
+  alternarRegla(): void {
+    if (this.midiendo()) {
+      this.apagarRegla();
+      return;
+    }
+    this.deseleccionar();
+    // Un clic agrega un punto y el doble clic termina la línea, como en SIATE.
+    const dibujo = new Draw({ source: this.mediciones, type: 'LineString', style: ESTILO_MEDICION });
+    dibujo.on('drawstart', ({ feature }) => {
+      const etiqueta = this.nuevaEtiqueta();
+      const linea = feature.getGeometry() as LineString;
+      linea.on('change', () => {
+        etiqueta.getElement()!.textContent = formatearDistancia(getLength(linea));
+        etiqueta.setPosition(linea.getLastCoordinate());
+      });
+    });
+    dibujo.on('drawend', () => {
+      this.etiquetaEnCurso?.getElement()?.classList.add('medicion-terminada');
+      this.etiquetaEnCurso = null;
+    });
+    dibujo.on('drawabort', () => this.quitarEtiquetaEnCurso());
+    this.mapa.addInteraction(dibujo);
+    this.dibujoMedicion = dibujo;
+    this.midiendo.set(true);
+  }
+
+  cancelarMedicion(): void {
+    this.dibujoMedicion?.abortDrawing();
+    this.quitarEtiquetaEnCurso();
+  }
+
+  private apagarRegla(): void {
+    if (this.dibujoMedicion) {
+      this.mapa.removeInteraction(this.dibujoMedicion);
+      this.dibujoMedicion = null;
+    }
+    this.etiquetas.forEach((etiqueta) => this.mapa.removeOverlay(etiqueta));
+    this.etiquetas.length = 0;
+    this.etiquetaEnCurso = null;
+    this.mediciones.clear();
+    this.midiendo.set(false);
+  }
+
+  /** El canvas no dibuja texto con fondo: la etiqueta es un elemento HTML sobre el mapa (estilos en styles.css). */
+  private nuevaEtiqueta(): Overlay {
+    const elemento = document.createElement('div');
+    elemento.className = 'medicion';
+    const etiqueta = new Overlay({ element: elemento, offset: [0, -12], positioning: 'bottom-center', stopEvent: false });
+    this.mapa.addOverlay(etiqueta);
+    this.etiquetas.push(etiqueta);
+    this.etiquetaEnCurso = etiqueta;
+    return etiqueta;
+  }
+
+  private quitarEtiquetaEnCurso(): void {
+    if (this.etiquetaEnCurso) {
+      this.mapa.removeOverlay(this.etiquetaEnCurso);
+      this.etiquetas.splice(this.etiquetas.indexOf(this.etiquetaEnCurso), 1);
+      this.etiquetaEnCurso = null;
+    }
   }
 
   private deseleccionarDe(capa: number): void {

@@ -62,3 +62,22 @@ h4 {
   font-weight: 700;
   margin: 0;
 }
+
+/* Etiquetas de la regla del mapa: OpenLayers las crea fuera de cualquier componente, así que van aquí. */
+.medicion {
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.medicion.medicion-terminada {
+  opacity: 1;
+}

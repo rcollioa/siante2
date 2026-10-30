@@ -22,6 +22,23 @@
     <button
       type="button"
       class="accion"
+      aria-label="Medir distancia"
+      title="Medir distancia"
+      [attr.aria-pressed]="mapa.midiendo()"
+      (click)="mapa.alternarRegla()">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path
+          d="M3 16.5 16.5 3 21 7.5 7.5 21z M7 12.5l2 2 M10 9.5l2 2 M13 6.5l2 2"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+          stroke-linecap="round" />
+      </svg>
+    </button>
+    <button
+      type="button"
+      class="accion"
       aria-label="Ir a mi ubicación"
       title="Mi ubicación"
       [attr.aria-busy]="mapa.ubicando()"
@@ -44,6 +61,12 @@
     }
   </div>
   <div class="avisos" role="status">
+    @if (mapa.midiendo()) {
+      <div class="aviso">
+        Haga clic en el mapa para marcar los puntos y doble clic para terminar. Esc descarta la línea en curso.
+        <button type="button" (click)="mapa.alternarRegla()">Dejar de medir</button>
+      </div>
+    }
     @if (mapa.sinMapaBase()) {
       <div class="aviso">
         No se pudieron cargar los mapas base. Revise su conexión a internet.
