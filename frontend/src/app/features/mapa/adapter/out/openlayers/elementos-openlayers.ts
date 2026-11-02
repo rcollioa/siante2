@@ -8,16 +8,17 @@ import MultiPolygon from 'ol/geom/MultiPolygon';
 import Point from 'ol/geom/Point';
 import Polygon from 'ol/geom/Polygon';
 import { fromLonLat } from 'ol/proj';
-import { Circle as Punto, Fill, Icon, Stroke, Style } from 'ol/style';
+import { Fill, Icon, Stroke, Style } from 'ol/style';
 import { ElementoMapa } from '../../../domain/mapa';
 
 /** Propiedad de cada Feature con su elemento, para entregarlo tal cual al seleccionarlo. */
 export const ELEMENTO = 'elemento';
 
-// El canvas no lee variables CSS: mismos valores que --color-primary y --color-surface.
-const COLOR = '#4c6fed';
-const RELLENO = 'rgba(76, 111, 237, 0.2)';
-const BLANCO = '#ffffff';
+// Los de SIATE para lo que no definió su estilo (getDefaultStyle en su map.service).
+const COLOR = '#71aecb';
+const RELLENO = 'rgba(230, 248, 253, 0.35)';
+/** El marcador de SIATE. Su punta está cerca del centro de la imagen: se ancla al centro, como en SIATE. */
+const PIN = 'assets/img/marker.svg';
 
 /** Un elemento que no se puede dibujar se omite: el resto de la capa se muestra igual. */
 export function aFeatures(elementos: readonly ElementoMapa[]): Feature[] {
@@ -64,17 +65,13 @@ function enGrados(tipo: string, coordenadas: never): Geometry {
 
 /** El estilo que guardó SIATE; lo que no definió, con los colores de la aplicación. */
 function estilo({ geometria, radio, estilo: guardado }: ElementoMapa): Style {
-  const color = guardado.color || COLOR;
   const esPunto = radio === 0 && (geometria.type === 'Point' || geometria.type === 'MultiPoint');
   if (esPunto) {
-    // Solo íconos incrustados: la CSP bloquea imágenes de otros servidores (SIATE guardaba algunas así).
-    const imagen = guardado.icono.startsWith('data:image/')
-      ? new Icon({ src: guardado.icono, anchor: [0.5, 1] })
-      : new Punto({ radius: 7, fill: new Fill({ color }), stroke: new Stroke({ color: BLANCO, width: 2 }) });
-    return new Style({ image: imagen });
+    // SIATE guarda "./assets/img/marker.svg" o un ícono incrustado; los de otros servidores los bloquearía la CSP.
+    return new Style({ image: new Icon({ src: guardado.icono.startsWith('data:image/') ? guardado.icono : PIN }) });
   }
   return new Style({
-    stroke: new Stroke({ color, width: guardado.grosor || 2 }),
+    stroke: new Stroke({ color: guardado.color || COLOR, width: guardado.grosor || 2 }),
     fill: new Fill({ color: guardado.relleno || RELLENO })
   });
 }

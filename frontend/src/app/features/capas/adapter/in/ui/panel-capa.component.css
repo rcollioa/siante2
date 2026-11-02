@@ -51,7 +51,8 @@ dl {
 
 dl div {
   display: grid;
-  grid-template-columns: minmax(6rem, auto) 1fr;
+  /* Columnas fijas: un nombre largo (los de un Excel importado) no debe dejar el valor en un carácter por línea. */
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
   gap: 0.5rem;
   padding: 0.2rem 0;
   border-top: 1px solid var(--color-border-soft);
@@ -59,6 +60,7 @@ dl div {
 
 dt {
   color: var(--color-muted);
+  overflow-wrap: anywhere;
 }
 
 dd {
