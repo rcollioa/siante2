@@ -28,8 +28,8 @@ interface VistaCapaJpaRepository extends Repository<VistaCapaEntity, Integer> {
             limit 1""")
     Optional<FilaCapaVisible> buscarVisible(int capa, int usuario, String activa, Collection<String> deTodos);
 
-    /** El JSON completo de una capa que el usuario puede ver. Solo para las capas por URL, cuyo JSON es corto: el de
-     * una vectorial puede pesar megas. */
+    /** El JSON completo de una capa que el usuario puede ver. Solo si hace falta: el de una capa por URL es corto, pero
+     * el de una vectorial sin filas en {@code LAYERS_FEATURES} puede pesar megas. */
     @Query("""
             select c.jsonMetadata
             from VistaCapaEntity c

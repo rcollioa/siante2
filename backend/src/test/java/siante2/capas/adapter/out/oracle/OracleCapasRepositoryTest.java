@@ -1,6 +1,7 @@
 package siante2.capas.adapter.out.oracle;
 
 import jakarta.persistence.EntityManagerFactory;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,6 +102,51 @@ class OracleCapasRepositoryTest {
                 .contains(new OrigenServicio(TipoServicio.WMS, "https://ide.cl/wms"));
         assertThat(repositorio.servicioVisible(1, YO)).isEmpty();
         assertThat(repositorio.servicioVisible(5, YO)).isEmpty();
+    }
+
+    @Test
+    void unaCapaSinFilasEnLayersFeaturesTraeLosElementosDeSuPropioJson() {
+        capa(8, YO, "Sin migrar", "0", "1", """
+                {"type":"FeatureCollection","features":[
+                 {"type":"Feature","geometry":{"type":"Point","coordinates":[-70.65,-33.44]}},
+                 {"type":"Feature","geometry":{"type":"LineString","coordinates":[[-70.6,-33.4],[-70.5,-33.3]]}},
+                 {"type":"Feature","geometry":{"type":"Point"}}]}""");
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        Capa capa = repositorio.buscarVisible(8, YO).orElseThrow();
+
+        assertThat(capa.elementos()).extracting(elemento -> elemento.geometria().type()).containsExactly("Point", "LineString");
+        assertThat(sql.sentencias()).isEqualTo(3);
+    }
+
+    @Test
+    void conFilasEnLayersFeaturesNoSeLeeElJsonDeLaCapa() {
+        capa(8, YO, "Migrada", "0", "1", """
+                {"type":"FeatureCollection","features":[{"geometry":{"type":"Point","coordinates":[-1.0,-1.0]}}]}""");
+        elemento(8, 0, "{\"geometry\":{\"type\":\"LineString\",\"coordinates\":[[-70.6,-33.4],[-70.5,-33.3]]}}");
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        Capa capa = repositorio.buscarVisible(8, YO).orElseThrow();
+
+        assertThat(capa.elementos()).extracting(elemento -> elemento.geometria().type()).containsExactly("LineString");
+        assertThat(sql.sentencias()).isEqualTo(2);
+    }
+
+    @Test
+    void unaCapaEnBlancoNoLeeSuJson() {
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        assertThat(repositorio.buscarVisible(7, YO).orElseThrow().elementos()).isEmpty();
+        assertThat(sql.sentencias()).isEqualTo(2);
+    }
+
+    @Test
+    void enOracleUnTextoVacioLlegaComoNullYElDominioRecibeTextoVacio() {
+        assertThat(new FilaResumenCapa(1, null, null, "0").descripcion()).isEmpty();
+        assertThat(new FilaCapaVisible(1, null, null, "0", 7, null).descripcion()).isEmpty();
+        FilaCapaCatalogo catalogo = new FilaCapaCatalogo(1, null, null, "1", null, null, null, false);
+        assertThat(List.of(catalogo.nombre(), catalogo.descripcion(), catalogo.categoria(), catalogo.nombreDueno(), catalogo.apellidoDueno()))
+                .containsOnly("");
     }
 
     @Test

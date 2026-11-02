@@ -1,6 +1,7 @@
 package siante2.capas.adapter.out.oracle;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -12,6 +13,7 @@ import siante2.capas.domain.EstiloElemento;
 import siante2.capas.domain.Metadato;
 import siante2.compartido.domain.Geometria;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Lee el JSON con que SIATE guarda cada elemento en {@code LAYERS_FEATURES.JSON_METADATA}: un Feature con la
@@ -33,15 +35,44 @@ final class ElementoSiate {
             return Optional.empty();
         }
         try {
-            FeatureSiate feature = JSON.readValue(texto, FeatureSiate.class);
-            return geometria(feature.geometry()).map(geometria -> {
-                MetadataSiate metadata = Objects.requireNonNullElse(feature.metadata(), MetadataSiate.VACIA);
-                return new ElementoCapa(id, geometria, radio(feature.geometry()), texto(metadata.name()),
-                        texto(metadata.description()), estilo(feature.properties()), metadatos(metadata));
-            });
+            return deFeature(id, JSON.readValue(texto, FeatureSiate.class));
         } catch (JacksonException | IllegalArgumentException e) {
             return Optional.empty();
         }
+    }
+
+    /** Los elementos en {@code LAYERS.JSON_METADATA}, donde SIATE guarda la capa completa: una colección, un arreglo
+     * o un Feature. Numerados por posición; vacío en los que no se pueden dibujar y lista vacía si no es JSON. */
+    static List<Optional<ElementoCapa>> leerColeccion(String texto) {
+        List<JsonNode> features = new ArrayList<>();
+        try {
+            reunir(JSON.readTree(texto), features);
+        } catch (JacksonException e) {
+            return List.of();
+        }
+        List<Optional<ElementoCapa>> leidos = new ArrayList<>();
+        for (int id = 0; id < features.size(); id++) {
+            leidos.add(leer(id, features.get(id).toString()));
+        }
+        return leidos;
+    }
+
+    private static void reunir(JsonNode nodo, List<JsonNode> features) {
+        if (nodo.isArray()) {
+            nodo.forEach(hijo -> reunir(hijo, features));
+        } else if (nodo.has("features")) {
+            reunir(nodo.get("features"), features);
+        } else if (nodo.isObject()) {
+            features.add(nodo);
+        }
+    }
+
+    private static Optional<ElementoCapa> deFeature(int id, FeatureSiate feature) {
+        return geometria(feature.geometry()).map(geometria -> {
+            MetadataSiate metadata = Objects.requireNonNullElse(feature.metadata(), MetadataSiate.VACIA);
+            return new ElementoCapa(id, geometria, radio(feature.geometry()), texto(metadata.name()),
+                    texto(metadata.description()), estilo(feature.properties()), metadatos(metadata));
+        });
     }
 
     private static Optional<Geometria> geometria(GeometriaSiate g) {

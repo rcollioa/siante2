@@ -1,6 +1,7 @@
 package siante2.capas.adapter.out.oracle;
 
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.EstiloElemento;
@@ -11,6 +12,39 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /** Ejemplos con la forma exacta en que SIATE guarda los elementos ({@code convertOlToJsonMetadata}). */
 class ElementoSiateTest {
+
+    private static final String PUNTO = """
+            {"type":"Feature","geometry":{"type":"Point","coordinates":[-70.65,-33.44]},"metadata":{"name":"A"}}""";
+    private static final String LINEA = """
+            {"type":"Feature","geometry":{"type":"LineString","coordinates":[[-70.6,-33.4],[-70.5,-33.3]]}}""";
+
+    private static List<String> tiposDe(List<Optional<ElementoCapa>> leidos) {
+        return leidos.stream().map(e -> e.map(elemento -> elemento.geometria().type()).orElse("omitido")).toList();
+    }
+
+    @Test
+    void unaColeccionEnElJsonDeLaCapaEntregaSusElementosNumeradosPorPosicion() {
+        List<Optional<ElementoCapa>> leidos = ElementoSiate.leerColeccion(
+                "{\"type\":\"FeatureCollection\",\"features\":[" + PUNTO + "," + LINEA + "]}");
+
+        assertThat(tiposDe(leidos)).containsExactly("Point", "LineString");
+        assertThat(leidos.get(1).orElseThrow().id()).isEqualTo(1);
+        assertThat(leidos.get(0).orElseThrow().nombre()).isEqualTo("A");
+    }
+
+    @Test
+    void tambienLeeUnArregloDeElementosYUnElementoSolo() {
+        assertThat(tiposDe(ElementoSiate.leerColeccion("[" + PUNTO + "," + LINEA + "]"))).containsExactly("Point", "LineString");
+        assertThat(tiposDe(ElementoSiate.leerColeccion(PUNTO))).containsExactly("Point");
+    }
+
+    @Test
+    void enUnaColeccionMarcaLoQueNoSePuedeDibujarYSinJsonNoEntregaNada() {
+        assertThat(tiposDe(ElementoSiate.leerColeccion("{\"features\":[{\"geometry\":{\"type\":\"Point\"}}," + PUNTO + "]}")))
+                .containsExactly("omitido", "Point");
+        assertThat(ElementoSiate.leerColeccion("{\"type\":\"FeatureCollection\",\"features\":[]}")).isEmpty();
+        assertThat(ElementoSiate.leerColeccion("no es JSON")).isEmpty();
+    }
 
     @Test
     void leeUnMarcadorConSuIconoNombreDescripcionYMetadatos() {

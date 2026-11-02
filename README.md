@@ -119,14 +119,14 @@ ESLint (`no-restricted-imports` en `eslint.config.js`) verifica en cada build, y
 
 ### Prácticas de JPA / Hibernate (7.4, la versión la fija Spring Boot)
 
-- Lecturas: proyección directa al dominio (`select new ...(…)` o métodos derivados) en vez de cargar entidades para mapearlas; `coalesce` en la consulta para que el dominio no reciba null.
+- Lecturas: proyección directa al dominio (`select new ...(…)` o métodos derivados) en vez de cargar entidades para mapearlas; `coalesce` en la consulta para que el dominio no reciba null. En Oracle `''` es NULL, así que `coalesce(x, '')` no sirve: el texto vacío se normaliza en el record de la proyección (`FilaResumenCapa`).
 - Transacciones: adaptadores con `@Transactional(readOnly = true)` a nivel de clase; métodos que escriben con `@Transactional`; el caso de uso que combina lectura y escritura, `@Transactional` en el servicio.
 - Limitar en la base (`findFirstBy…OrderBy…`, paginación), nunca `.stream().findFirst()` sobre una lista.
 - Asociaciones siempre `LAZY` (también `@ManyToOne`); para cargarlas, `join fetch` o `@EntityGraph` en la consulta que las necesita. Sin `FetchType.EAGER`.
 - Entidades: atributos con el nombre de la columna en camelCase (`LAST_NAME` → `lastName`, `L_GROUP_ID` → `lGroupId`), sin `@Column`: los mapea la estrategia de nombres de Spring Boot. `@Column` solo cuando esa regla no da la columna (dos mayúsculas seguidas, p. ej. `PURE_X_PURE`). Clases con sufijo `Entity`; los nombres en español quedan en el dominio. `EntidadesSiateTest` verifica columna por columna.
 - Entidades: `@Immutable` mientras SIATE escriba en la tabla, constructor `protected` vacío, sin setters, IDs por trigger con `IDENTITY`.
 - Vistas (`V_*`): no tienen clave primaria y el `@Id` de su entidad se infiere del modelo de SIATE. Si se repitiera, Hibernate devolvería una instancia por clave y descartaría el resto sin aviso. Por eso se leen solo con proyecciones, desde un repositorio que extiende `Repository` y no `JpaRepository`, para que nadie use `findAll` ni `findById`.
-- CLOB: `JSON_METADATA` de una capa llega a 1.800.000 caracteres (el límite de SIATE antes de usar `SCHEDULER_DATA`). Los listados no seleccionan columnas CLOB; se leen por elemento cuando se necesitan.
+- CLOB: `JSON_METADATA` de una capa llega a 1.800.000 caracteres (el límite de SIATE antes de usar `SCHEDULER_DATA`). Los listados no seleccionan columnas CLOB; se leen por elemento cuando se necesitan. Al abrir una capa vectorial se leen sus filas de `LAYERS_FEATURES` y, si no tiene ninguna (SIATE las crea con su `migration`), la colección de su `JSON_METADATA`.
 - Tests de repositorio verifican la cantidad de SQL con `ContadorSql` (estadísticas de Hibernate solo en el perfil `test`).
 - Configuración global en `application.properties`: `jdbc.fetch_size=100` (Oracle trae 10 por defecto), lotes de 50, `default_batch_fetch_size`, `in_clause_parameter_padding`, `fail_on_pagination_over_collection_fetch` y `log_slow_query` (`SIANTE_LOG_CONSULTA_LENTA_MS`).
 

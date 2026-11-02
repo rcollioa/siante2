@@ -62,23 +62,34 @@ class OracleCapasRepository implements CapasReadPort {
         return vista.buscarVisible(capaId, usuarioId, ACTIVA, DE_TODOS).map(f -> {
             TipoCapa tipo = f.inicioJson() != null && POR_URL.matcher(f.inicioJson()).find() ? TipoCapa.URL : TipoCapa.VECTORIAL;
             return new Capa(f.id(), f.nombre(), f.descripcion(), visibilidad(f.visibilidad()),
-                    Objects.equals(f.dueno(), usuarioId), tipo, tipo == TipoCapa.URL ? List.of() : elementosDe(capaId),
-                    null);
+                    Objects.equals(f.dueno(), usuarioId), tipo,
+                    tipo == TipoCapa.URL ? List.of() : elementosDe(capaId, usuarioId, f.inicioJson()), null);
         });
     }
 
-    /** Un elemento que no se puede leer se omite: el resto de la capa se muestra igual. */
-    private List<ElementoCapa> elementosDe(int capaId) {
+    /** Una capa sin filas en {@code LAYERS_FEATURES} puede tener sus elementos en su propio JSON: {@code LayerService.migration}
+     * de SIATE los reparte recién después. El CLOB se lee solo en ese caso, y no si la capa está en blanco. */
+    private List<ElementoCapa> elementosDe(int capaId, int usuarioId, String inicioJson) {
         List<FilaElementoCapa> filas = elementos.buscarPorCapa(capaId);
-        List<ElementoCapa> leidos = filas.stream()
-                .map(fila -> ElementoSiate.leer(fila.id(), fila.json()))
-                .flatMap(Optional::stream)
-                .toList();
-        if (leidos.size() < filas.size()) {
-            log.warn("Capa {}: se omitieron {} de {} elementos que no tienen una geometría válida",
-                    capaId, filas.size() - leidos.size(), filas.size());
+        if (!filas.isEmpty()) {
+            return sinLosOmitidos(capaId, filas.stream().map(fila -> ElementoSiate.leer(fila.id(), fila.json())).toList());
         }
-        return leidos;
+        if (inicioJson == null || inicioJson.isBlank()) {
+            return List.of();
+        }
+        return vista.buscarJsonVisible(capaId, usuarioId, ACTIVA, DE_TODOS)
+                .map(json -> sinLosOmitidos(capaId, ElementoSiate.leerColeccion(json)))
+                .orElse(List.of());
+    }
+
+    /** Un elemento que no se puede leer se omite: el resto de la capa se muestra igual. */
+    private static List<ElementoCapa> sinLosOmitidos(int capaId, List<Optional<ElementoCapa>> leidos) {
+        List<ElementoCapa> validos = leidos.stream().flatMap(Optional::stream).toList();
+        if (validos.size() < leidos.size()) {
+            log.warn("Capa {}: se omitieron {} de {} elementos que no tienen una geometría válida",
+                    capaId, leidos.size() - validos.size(), leidos.size());
+        }
+        return validos;
     }
 
     @Override
