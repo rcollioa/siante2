@@ -85,6 +85,7 @@ describe('EditarCapaComponent', () => {
     expect(radio('PRIVADA').checked).toBe(true);
     expect(radio('PUBLICA').checked).toBe(false);
     expect(errores()).toEqual([]);
+    expect(document.activeElement).toBe(nombre());
   });
 
   it('guarda lo elegido y cierra', () => {

@@ -2,15 +2,17 @@ import { ChangeDetectionStrategy, Component, inject, viewChild } from '@angular/
 import { ConfirmacionComponent } from '../../../../../shared/confirmacion/confirmacion.component';
 import { mensajeDeEscritura, MisCapas } from '../../../application/mis-capas';
 import { CapaPropia, VisibilidadEditable } from '../../../domain/capa';
+import { CrearCapaComponent } from './crear-capa.component';
 import { EditarCapaComponent } from './editar-capa.component';
 import { ListaCapasComponent } from './lista-capas.component';
 
-/** "Mis capas" en el menú: las capas propias del usuario, que como en SIATE puede editar, publicar y eliminar. */
+/** "Mis capas" en el menú: las capas propias del usuario, que como en SIATE puede crear, editar, publicar y eliminar. */
 @Component({
   selector: 'app-mis-capas',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ListaCapasComponent, EditarCapaComponent, ConfirmacionComponent],
+  imports: [ListaCapasComponent, CrearCapaComponent, EditarCapaComponent, ConfirmacionComponent],
   template: `
+    <button type="button" class="crear" (click)="creador().abrir()">Crear capa</button>
     <app-lista-capas
       [capas]="misCapas.capas()"
       [estado]="misCapas.estado()"
@@ -25,10 +27,28 @@ import { ListaCapasComponent } from './lista-capas.component';
         <button type="button" class="opcion peligro" (click)="preguntarEliminacion(capa)">Eliminar</button>
       </ng-template>
     </app-lista-capas>
+    <app-crear-capa (creada)="lista().abrir($event)" />
     <app-editar-capa />
     <app-confirmacion />
   `,
   styles: `
+    .crear {
+      margin: 0.25rem 0.75rem 0.35rem;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--color-primary-ink);
+      font: inherit;
+      font-size: 0.875rem;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .crear:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
     .opcion {
       padding: 0.2rem 0.6rem;
       border: 1px solid var(--color-border);
@@ -56,6 +76,8 @@ import { ListaCapasComponent } from './lista-capas.component';
 })
 export class MisCapasComponent {
   protected readonly misCapas = inject(MisCapas);
+  protected readonly lista = viewChild.required(ListaCapasComponent);
+  protected readonly creador = viewChild.required(CrearCapaComponent);
   protected readonly editor = viewChild.required(EditarCapaComponent);
   private readonly confirmacion = viewChild.required(ConfirmacionComponent);
 

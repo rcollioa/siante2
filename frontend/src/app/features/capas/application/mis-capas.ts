@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Observable, Subscription, tap } from 'rxjs';
-import { CapaNoEncontrada, CapaPropia, EdicionCapa, ResumenCapa, VisibilidadEditable } from '../domain/capa';
+import { CapaNoEncontrada, CapaPropia, EdicionCapa, NuevaCapa, ResumenCapa, VisibilidadEditable } from '../domain/capa';
 import { CapasAbiertas } from './capas-abiertas';
 import { Favoritas } from './favoritas';
 import { CapasRepositorio } from './port/out/capas.repositorio';
@@ -29,6 +29,13 @@ export class MisCapas {
       },
       error: () => this.estadoActual.set('error')
     });
+  }
+
+  /** Entra a la lista en su lugar por nombre, sin volver a pedirla. */
+  crear(nueva: NuevaCapa): Observable<CapaPropia> {
+    return this.repositorio
+      .crear({ nombre: nueva.nombre.trim(), descripcion: nueva.descripcion.trim() })
+      .pipe(tap((capa) => this.lista.update((capas) => porNombre([...capas, capa]))));
   }
 
   editar(id: number, edicion: EdicionCapa): Observable<void> {

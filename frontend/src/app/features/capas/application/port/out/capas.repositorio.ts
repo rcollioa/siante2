@@ -6,6 +6,7 @@ import {
   CapaPropia,
   EdicionCapa,
   ElementoDeServicio,
+  NuevaCapa,
   ResumenCapa,
   SeccionCatalogo,
   VisibilidadEditable
@@ -26,6 +27,9 @@ export abstract class CapasRepositorio {
   /** Lo que el servidor WMS de la capa tiene en el punto; vacío si nada. Falla con ServidorDeMapasNoDisponible si no
    * responde. */
   abstract consultarPunto(punto: PuntoWms): Observable<ElementoDeServicio[]>;
+
+  /** Crea una capa privada y sin elementos; entrega la capa con su ID. */
+  abstract crear(nueva: NuevaCapa): Observable<CapaPropia>;
 
   /** Falla con CapaNoEncontrada si no existe o no es del usuario. */
   abstract editar(id: number, edicion: EdicionCapa): Observable<void>;

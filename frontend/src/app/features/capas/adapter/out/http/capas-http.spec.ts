@@ -20,6 +20,19 @@ describe('CapasHttp', () => {
   describe('escrituras', () => {
     const edicion: EdicionCapa = { nombre: 'Bodegas', descripcion: 'Región', categoriaId: 3, visibilidad: 'PUBLICA' };
 
+    it('crear es un POST con los datos, sin pantalla de carga, y entrega la capa creada', () => {
+      const creada = { id: 50, nombre: 'Bodegas', descripcion: '', visibilidad: 'PRIVADA', categoriaId: 0 };
+      let recibida: unknown;
+      servicio.crear({ nombre: 'Bodegas', descripcion: '' }).subscribe((capa) => (recibida = capa));
+
+      const pedido = http.expectOne('/siante2/api/capas');
+      expect(pedido.request.method).toBe('POST');
+      expect(pedido.request.body).toEqual({ nombre: 'Bodegas', descripcion: '' });
+      expect(pedido.request.context.get(SIN_PANTALLA_CARGA)).toBe(true);
+      pedido.flush(creada, { status: 201, statusText: 'Created' });
+      expect(recibida).toEqual(creada);
+    });
+
     it('editar es un PATCH con los datos, que termina al responder 204', () => {
       const terminado = vi.fn();
       servicio.editar(5, edicion).subscribe({ complete: terminado });

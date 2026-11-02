@@ -13,6 +13,7 @@ import {
   CapaPropia,
   EdicionCapa,
   ElementoDeServicio,
+  NuevaCapa,
   ResumenCapa,
   SeccionCatalogo,
   ServidorDeMapasNoDisponible,
@@ -24,6 +25,8 @@ type CapasResponse = components['schemas']['CapasResponse'];
 type CambioVisibilidad = components['schemas']['CambioVisibilidad'];
 type EdicionCapaDto = components['schemas']['EdicionCapa'];
 type MisCapasResponse = components['schemas']['MisCapasResponse'];
+type CapaPropiaDto = components['schemas']['CapaPropia'];
+type NuevaCapaDto = components['schemas']['NuevaCapa'];
 type CatalogoResponse = components['schemas']['CatalogoResponse'];
 type ElementosDeServicioResponse = components['schemas']['ElementosDeServicioResponse'];
 
@@ -41,6 +44,13 @@ export class CapasHttp extends CapasRepositorio {
   }
 
   /** Las escrituras van sin pantalla de carga: su diálogo muestra que se está guardando. */
+  crear(nueva: NuevaCapa): Observable<CapaPropia> {
+    const cuerpo: NuevaCapaDto = nueva;
+    return this.http
+      .post<CapaPropiaDto>(`${API_PREFIJO}/capas`, cuerpo, { context: sinPantallaDeCarga() })
+      .pipe(map((capa): CapaPropia => capa));
+  }
+
   editar(id: number, edicion: EdicionCapa): Observable<void> {
     const cuerpo: EdicionCapaDto = edicion;
     return this.escribir(id, this.http.patch<void>(`${API_PREFIJO}/capas/${id}`, cuerpo, { context: sinPantallaDeCarga() }));

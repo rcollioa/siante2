@@ -22,6 +22,7 @@ export class EditarCapaComponent {
   private readonly misCapas = inject(MisCapas);
   private readonly categoriasApi = inject(CategoriasApiService);
   private readonly dialogo = viewChild.required<ElementRef<HTMLDialogElement>>('dialogo');
+  private readonly campoNombre = viewChild.required<ElementRef<HTMLInputElement>>('campoNombre');
   private capaId = 0;
   private original: EdicionCapa | null = null;
 
@@ -58,6 +59,8 @@ export class EditarCapaComponent {
     this.error.set('');
     this.cargarCategorias();
     this.dialogo().nativeElement.showModal();
+    // El diálogo enfoca lo primero que encuentra, la ×: un Enter lo cerraría en vez de guardar.
+    this.campoNombre().nativeElement.focus();
   }
 
   protected cargarCategorias(): void {

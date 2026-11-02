@@ -41,6 +41,10 @@ export class ListaCapasComponent {
       this.capasAbiertas.cerrar(capa.id);
       return;
     }
+    this.abrir(capa);
+  }
+
+  abrir(capa: ResumenCapa): void {
     this.irAlMapa();
     this.capasAbiertas.abrir(capa.id);
   }

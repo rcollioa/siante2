@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
-import { CapaNoEncontrada, CapaPropia, EdicionCapa } from '../domain/capa';
+import { CapaNoEncontrada, CapaPropia, EdicionCapa, NuevaCapa } from '../domain/capa';
 import { CapasAbiertas } from './capas-abiertas';
 import { Favoritas } from './favoritas';
 import { mensajeDeEscritura, MisCapas } from './mis-capas';
@@ -12,6 +12,7 @@ describe('MisCapas', () => {
   const edicion: EdicionCapa = { nombre: 'Árboles', descripcion: 'Parques', categoriaId: 9, visibilidad: 'PUBLICA' };
   let listarMias: ReturnType<typeof vi.fn<() => Observable<CapaPropia[]>>>;
   const repositorio = {
+    crear: vi.fn<(nueva: NuevaCapa) => Observable<CapaPropia>>(),
     editar: vi.fn<(id: number, edicion: EdicionCapa) => Observable<void>>(),
     cambiarVisibilidad: vi.fn<(id: number, visibilidad: string) => Observable<void>>(),
     eliminar: vi.fn<(id: number) => Observable<void>>()
@@ -71,6 +72,27 @@ describe('MisCapas', () => {
     beforeEach(() => {
       servicio.cargar();
       listarMias.mockClear();
+    });
+
+    it('crear guarda sin espacios a los lados y agrega la capa en su lugar, sin volver a pedir la lista', () => {
+      const creada: CapaPropia = { id: 50, nombre: 'Árboles', descripcion: 'Parques', visibilidad: 'PRIVADA', categoriaId: 0 };
+      repositorio.crear.mockReturnValue(of(creada));
+      let recibida: CapaPropia | undefined;
+
+      servicio.crear({ nombre: ' Árboles ', descripcion: ' Parques ' }).subscribe((capa) => (recibida = capa));
+
+      expect(repositorio.crear).toHaveBeenCalledWith({ nombre: 'Árboles', descripcion: 'Parques' });
+      expect(recibida).toEqual(creada);
+      expect(nombres()).toEqual(['Árboles', 'Bodegas', 'Zona norte']);
+      expect(listarMias).not.toHaveBeenCalled();
+    });
+
+    it('si crear falla, la lista queda como estaba', () => {
+      repositorio.crear.mockReturnValue(throwError(() => new Error('sin conexión')));
+
+      servicio.crear({ nombre: 'Árboles', descripcion: '' }).subscribe({ error: () => undefined });
+
+      expect(nombres()).toEqual(['Bodegas', 'Zona norte']);
     });
 
     it('editar guarda sin espacios a los lados y reordena la lista por nombre, sin volver a pedirla', () => {

@@ -36,7 +36,13 @@ export interface EdicionCapa {
   visibilidad: VisibilidadEditable;
 }
 
-/** Los límites del formulario de SIATE; el backend exige los mismos. */
+/** Los "Datos básicos" de una capa en blanco, como en SIATE: su categoría y su visibilidad se eligen al editarla. */
+export interface NuevaCapa {
+  nombre: string;
+  descripcion: string;
+}
+
+/** Los límites de los formularios de SIATE; el backend exige los mismos. */
 export const MINIMO_NOMBRE = 4;
 export const MAXIMO_NOMBRE = 100;
 export const MAXIMO_DESCRIPCION = 200;
@@ -49,19 +55,25 @@ export interface ErroresEdicion {
 }
 
 /** Sin contar los espacios a los lados, que no se guardan: un nombre de solo espacios no es un nombre. */
-export function erroresDeEdicion({ nombre, descripcion, categoriaId }: EdicionCapa): ErroresEdicion {
+export function errorDeNombre(nombre: string): string {
   const largo = nombre.trim().length;
-  let errorNombre = '';
   if (largo === 0) {
-    errorNombre = 'Nombre requerido.';
-  } else if (largo < MINIMO_NOMBRE) {
-    errorNombre = `El nombre debe tener al menos ${MINIMO_NOMBRE} caracteres.`;
-  } else if (largo > MAXIMO_NOMBRE) {
-    errorNombre = `El nombre no puede tener más de ${MAXIMO_NOMBRE} caracteres.`;
+    return 'Nombre requerido.';
   }
+  if (largo < MINIMO_NOMBRE) {
+    return `El nombre debe tener al menos ${MINIMO_NOMBRE} caracteres.`;
+  }
+  return largo > MAXIMO_NOMBRE ? `El nombre no puede tener más de ${MAXIMO_NOMBRE} caracteres.` : '';
+}
+
+export function errorDeDescripcion(descripcion: string): string {
+  return descripcion.trim().length > MAXIMO_DESCRIPCION ? `La descripción no puede tener más de ${MAXIMO_DESCRIPCION} caracteres.` : '';
+}
+
+export function erroresDeEdicion({ nombre, descripcion, categoriaId }: EdicionCapa): ErroresEdicion {
   return {
-    nombre: errorNombre,
-    descripcion: descripcion.trim().length > MAXIMO_DESCRIPCION ? `La descripción no puede tener más de ${MAXIMO_DESCRIPCION} caracteres.` : '',
+    nombre: errorDeNombre(nombre),
+    descripcion: errorDeDescripcion(descripcion),
     categoria: categoriaId > 0 ? '' : 'Categoría requerida.'
   };
 }

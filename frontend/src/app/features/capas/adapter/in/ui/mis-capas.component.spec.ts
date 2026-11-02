@@ -6,7 +6,7 @@ import { MenuLateralService } from '../../../../../shared/menu-lateral/menu-late
 import { CategoriasApiService } from '../../../../categorias/categorias-api.service';
 import { CapaEnMapa, CapasAbiertas } from '../../../application/capas-abiertas';
 import { CapasRepositorio } from '../../../application/port/out/capas.repositorio';
-import { Capa, CapaPropia, ResumenCapa } from '../../../domain/capa';
+import { Capa, CapaPropia, NuevaCapa, ResumenCapa } from '../../../domain/capa';
 import { MisCapasComponent } from './mis-capas.component';
 
 describe('MisCapasComponent', () => {
@@ -17,6 +17,7 @@ describe('MisCapasComponent', () => {
     visible
   });
   let listarMias: ReturnType<typeof vi.fn<() => Observable<CapaPropia[]>>>;
+  const crearCapa = vi.fn<(nueva: NuevaCapa) => Observable<CapaPropia>>();
   const cambiarVisibilidad = vi.fn<(id: number, visibilidad: string) => Observable<void>>();
   const eliminar = vi.fn<(id: number) => Observable<void>>();
   const capasAbiertas = {
@@ -45,7 +46,7 @@ describe('MisCapasComponent', () => {
       providers: [
         provideRouter([{ path: '**', children: [] }]),
         // MisCapas real con un doble del repositorio: la pantalla y su caso de uso juntos, sin HTTP.
-        { provide: CapasRepositorio, useValue: { listarMias, cambiarVisibilidad, eliminar } },
+        { provide: CapasRepositorio, useValue: { listarMias, crear: crearCapa, cambiarVisibilidad, eliminar } },
         { provide: CapasAbiertas, useValue: capasAbiertas },
         { provide: MenuLateralService, useValue: menu },
         { provide: CategoriasApiService, useValue: { listar: () => of([{ id: 3, nombre: 'Agua', descripcion: '' }]) } }
@@ -80,6 +81,62 @@ describe('MisCapasComponent', () => {
     listarMias = vi.fn(() => of([bodegas, ide]));
     cambiarVisibilidad.mockReturnValue(of(undefined));
     eliminar.mockReturnValue(of(undefined));
+  });
+
+  describe('crear una capa', () => {
+    const nueva: CapaPropia = { id: 50, nombre: 'Aduanas', descripcion: '', visibilidad: 'PRIVADA', categoriaId: 0 };
+
+    function crearDesdeElDialogo(): void {
+      (elemento.querySelector('button.crear') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      const nombre = elemento.querySelector('#nombre-nueva-capa') as HTMLInputElement;
+      nombre.value = 'Aduanas';
+      nombre.dispatchEvent(new Event('input'));
+      (elemento.querySelector('app-crear-capa form') as HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true }));
+      fixture.detectChanges();
+    }
+
+    it('con el botón abre el diálogo "Nueva capa"', () => {
+      crear();
+
+      (elemento.querySelector('button.crear') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect((elemento.querySelector('app-crear-capa dialog') as HTMLDialogElement).open).toBe(true);
+    });
+
+    it('también se puede crear la primera capa, con la lista vacía', () => {
+      listarMias = vi.fn(() => of([]));
+      crear();
+
+      expect(elemento.textContent).toContain('Aún no tiene capas.');
+      expect(elemento.querySelector('button.crear')).not.toBeNull();
+    });
+
+    it('la capa creada entra a la lista en orden y se abre en el mapa, como en SIATE', async () => {
+      crearCapa.mockReturnValue(of(nueva));
+      crear();
+      await TestBed.inject(Router).navigateByUrl('/ayuda');
+
+      crearDesdeElDialogo();
+      await fixture.whenStable();
+
+      expect(crearCapa).toHaveBeenCalledWith({ nombre: 'Aduanas', descripcion: '' });
+      expect(botones().map((boton) => boton.querySelector('.nombre')?.textContent)).toEqual(['Aduanas', 'Bodegas', 'Servicio IDE']);
+      expect(capasAbiertas.abrir).toHaveBeenCalledWith(50);
+      expect(TestBed.inject(Router).url).toBe('/mapa');
+      expect(menu.alElegir).toHaveBeenCalled();
+    });
+
+    it('si falla no la agrega ni abre nada', () => {
+      crearCapa.mockReturnValue(throwError(() => new Error('sin conexión')));
+      crear();
+
+      crearDesdeElDialogo();
+
+      expect(botones()).toHaveLength(2);
+      expect(capasAbiertas.abrir).not.toHaveBeenCalled();
+    });
   });
 
   describe('opciones de una capa propia', () => {

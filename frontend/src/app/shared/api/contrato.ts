@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/siante2/api/capas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["crearCapa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/capas/catalogo": {
         parameters: {
             query?: never;
@@ -416,6 +432,10 @@ export interface components {
         MultimediaResponse: {
             data: components["schemas"]["Multimedia"][];
         };
+        NuevaCapa: {
+            descripcion: string;
+            nombre: string;
+        };
         ResumenCapa: {
             descripcion: string;
             /** Format: int32 */
@@ -454,6 +474,30 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    crearCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NuevaCapa"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapaPropia"];
+                };
+            };
+        };
+    };
     verCatalogoDeCapas: {
         parameters: {
             query: {

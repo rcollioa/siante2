@@ -1,0 +1,53 @@
+<dialog #dialogo aria-labelledby="titulo-crear-capa">
+  <div class="encabezado">
+    <h2 id="titulo-crear-capa">Nueva capa</h2>
+    <button type="button" class="cerrar" aria-label="Cerrar sin crear" title="Cerrar" (click)="cerrar()">
+      <span aria-hidden="true">×</span>
+    </button>
+  </div>
+  <form novalidate (submit)="guardar($event)">
+    <div class="campo">
+      <label for="nombre-nueva-capa">Nombre</label>
+      <input
+        #campoNombre
+        id="nombre-nueva-capa"
+        type="text"
+        autocomplete="off"
+        required
+        [attr.maxlength]="maximoNombre"
+        [value]="nombre()"
+        [attr.aria-invalid]="mostrarErrores() && errorNombre() !== ''"
+        [attr.aria-describedby]="mostrarErrores() && errorNombre() ? 'error-nombre-nueva-capa' : null"
+        (input)="nombre.set(texto($event))"
+        (blur)="mostrarErrores.set(true)" />
+      @if (mostrarErrores() && errorNombre()) {
+        <p id="error-nombre-nueva-capa" class="error">{{ errorNombre() }}</p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="descripcion-nueva-capa">Descripción</label>
+      <textarea
+        id="descripcion-nueva-capa"
+        rows="4"
+        [attr.maxlength]="maximoDescripcion"
+        [value]="descripcion()"
+        [attr.aria-invalid]="mostrarErrores() && errorDescripcion() !== ''"
+        [attr.aria-describedby]="mostrarErrores() && errorDescripcion() ? 'error-descripcion-nueva-capa' : null"
+        (input)="descripcion.set(texto($event))"></textarea>
+      @if (mostrarErrores() && errorDescripcion()) {
+        <p id="error-descripcion-nueva-capa" class="error">{{ errorDescripcion() }}</p>
+      }
+    </div>
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <div class="botones">
+      <button type="button" class="boton" (click)="cerrar()">Cancelar</button>
+      <button type="submit" class="boton aplicar" [disabled]="enviando()">
+        {{ enviando() ? 'Creando…' : 'Crear capa' }}
+      </button>
+    </div>
+  </form>
+</dialog>
