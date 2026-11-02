@@ -31,7 +31,11 @@ final class UrlWmts {
         if (ruta.endsWith(".xml") || minuscula.contains("request=getcapabilities")) {
             return URI.create(url);
         }
-        return armar(url, Map.of("SERVICE", "WMTS", "REQUEST", "GetCapabilities"));
+        // Con orden fijo: el de Map.of cambia en cada arranque de la JVM, y con él la URL pedida.
+        Map<String, String> wmts = new LinkedHashMap<>();
+        wmts.put("SERVICE", "WMTS");
+        wmts.put("REQUEST", "GetCapabilities");
+        return armar(url, wmts);
     }
 
     /** Con la plantilla REST de la capa si el servidor la publica; si no, por KVP en la URL de GetTile (o en la del
