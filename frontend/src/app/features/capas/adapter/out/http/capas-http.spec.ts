@@ -1,7 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Capa, CapaNoEncontrada, ServidorDeMapasNoDisponible } from '../../../domain/capa';
+import { SIN_PANTALLA_CARGA } from '../../../../../shared/pantalla-carga/pantalla-carga.interceptor';
+import { Capa, CapaNoEncontrada, EdicionCapa, ServidorDeMapasNoDisponible } from '../../../domain/capa';
 import { CapasHttp } from './capas-http';
 
 describe('CapasHttp', () => {
@@ -16,10 +17,65 @@ describe('CapasHttp', () => {
 
   afterEach(() => http.verify());
 
+  describe('escrituras', () => {
+    const edicion: EdicionCapa = { nombre: 'Bodegas', descripcion: 'Región', categoriaId: 3, visibilidad: 'PUBLICA' };
+
+    it('editar es un PATCH con los datos, que termina al responder 204', () => {
+      const terminado = vi.fn();
+      servicio.editar(5, edicion).subscribe({ complete: terminado });
+
+      const pedido = http.expectOne('/siante2/api/capas/5');
+      expect(pedido.request.method).toBe('PATCH');
+      expect(pedido.request.body).toEqual(edicion);
+      pedido.flush(null, { status: 204, statusText: 'No Content' });
+      expect(terminado).toHaveBeenCalled();
+    });
+
+    it('publicar es un PATCH con la visibilidad', () => {
+      servicio.cambiarVisibilidad(5, 'PRIVADA').subscribe();
+
+      const pedido = http.expectOne('/siante2/api/capas/5/visibilidad');
+      expect(pedido.request.method).toBe('PATCH');
+      expect(pedido.request.body).toEqual({ visibilidad: 'PRIVADA' });
+      pedido.flush(null, { status: 204, statusText: 'No Content' });
+    });
+
+    it('eliminar es un POST, porque WebSEAL solo deja pasar los verbos que ya usa SIATE', () => {
+      servicio.eliminar(5).subscribe();
+
+      const pedido = http.expectOne('/siante2/api/capas/5/eliminar');
+      expect(pedido.request.method).toBe('POST');
+      pedido.flush(null, { status: 204, statusText: 'No Content' });
+    });
+
+    it('no muestran la pantalla de carga: su diálogo avisa que está guardando', () => {
+      servicio.eliminar(5).subscribe();
+
+      const pedido = http.expectOne('/siante2/api/capas/5/eliminar');
+      expect(pedido.request.context.get(SIN_PANTALLA_CARGA)).toBe(true);
+      pedido.flush(null, { status: 204, statusText: 'No Content' });
+    });
+
+    it('un 404 es CapaNoEncontrada en las tres', () => {
+      const errores: unknown[] = [];
+      const guardar = { error: (error: unknown) => errores.push(error) };
+      servicio.editar(5, edicion).subscribe(guardar);
+      servicio.cambiarVisibilidad(5, 'PUBLICA').subscribe(guardar);
+      servicio.eliminar(5).subscribe(guardar);
+
+      const noEncontrada = { status: 404, statusText: 'Not Found' };
+      http.expectOne('/siante2/api/capas/5').flush({ code: 'NOT_FOUND', message: '' }, noEncontrada);
+      http.expectOne('/siante2/api/capas/5/visibilidad').flush({ code: 'NOT_FOUND', message: '' }, noEncontrada);
+      http.expectOne('/siante2/api/capas/5/eliminar').flush({ code: 'NOT_FOUND', message: '' }, noEncontrada);
+
+      expect(errores).toEqual([new CapaNoEncontrada(5), new CapaNoEncontrada(5), new CapaNoEncontrada(5)]);
+    });
+  });
+
   it('lista las capas del usuario sin guardarlas: cada vez pregunta, por si cambiaron en SIATE', () => {
     let recibidas: unknown;
     servicio.listarMias().subscribe((capas) => (recibidas = capas));
-    const capa = { id: 1, nombre: 'Bodegas', descripcion: '', visibilidad: 'PRIVADA' };
+    const capa = { id: 1, nombre: 'Bodegas', descripcion: '', visibilidad: 'PRIVADA', categoriaId: 3 };
     http.expectOne('/siante2/api/capas/mias').flush({ data: [capa] });
     expect(recibidas).toEqual([capa]);
 

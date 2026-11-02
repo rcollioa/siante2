@@ -1,23 +1,85 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { MisCapas } from '../../../application/mis-capas';
+import { ChangeDetectionStrategy, Component, inject, viewChild } from '@angular/core';
+import { ConfirmacionComponent } from '../../../../../shared/confirmacion/confirmacion.component';
+import { mensajeDeEscritura, MisCapas } from '../../../application/mis-capas';
+import { CapaPropia, VisibilidadEditable } from '../../../domain/capa';
+import { EditarCapaComponent } from './editar-capa.component';
 import { ListaCapasComponent } from './lista-capas.component';
 
-/** "Mis capas" en el menú: las capas propias del usuario. */
+/** "Mis capas" en el menú: las capas propias del usuario, que como en SIATE puede editar, publicar y eliminar. */
 @Component({
   selector: 'app-mis-capas',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ListaCapasComponent],
-  template: `<app-lista-capas
-    [capas]="misCapas.capas()"
-    [estado]="misCapas.estado()"
-    descripcion="sus capas"
-    vacia="Aún no tiene capas."
-    (reintentar)="misCapas.cargar()" />`
+  imports: [ListaCapasComponent, EditarCapaComponent, ConfirmacionComponent],
+  template: `
+    <app-lista-capas
+      [capas]="misCapas.capas()"
+      [estado]="misCapas.estado()"
+      descripcion="sus capas"
+      vacia="Aún no tiene capas."
+      (reintentar)="misCapas.cargar()">
+      <ng-template #gestion let-capa>
+        <button type="button" class="opcion" (click)="editor().abrir(capa)">Editar</button>
+        <button type="button" class="opcion" (click)="preguntarVisibilidad(capa)">
+          {{ capa.visibilidad === 'PUBLICA' ? 'Despublicar' : 'Publicar' }}
+        </button>
+        <button type="button" class="opcion peligro" (click)="preguntarEliminacion(capa)">Eliminar</button>
+      </ng-template>
+    </app-lista-capas>
+    <app-editar-capa />
+    <app-confirmacion />
+  `,
+  styles: `
+    .opcion {
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-ink);
+      font: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .opcion:hover {
+      background: var(--color-hover);
+    }
+
+    .peligro {
+      color: var(--color-danger);
+    }
+
+    .opcion:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 1px;
+    }
+  `
 })
 export class MisCapasComponent {
   protected readonly misCapas = inject(MisCapas);
+  protected readonly editor = viewChild.required(EditarCapaComponent);
+  private readonly confirmacion = viewChild.required(ConfirmacionComponent);
 
   constructor() {
     this.misCapas.cargar();
+  }
+
+  protected preguntarVisibilidad(capa: CapaPropia): void {
+    const publicar = capa.visibilidad !== 'PUBLICA';
+    const visibilidad: VisibilidadEditable = publicar ? 'PUBLICA' : 'PRIVADA';
+    this.confirmacion().preguntar({
+      mensaje: publicar ? '¿Desea publicar la capa?' : '¿Desea despublicar la capa?',
+      detalle: capa.nombre,
+      accion: () => this.misCapas.cambiarVisibilidad(capa.id, visibilidad),
+      mensajeDeError: mensajeDeEscritura
+    });
+  }
+
+  protected preguntarEliminacion(capa: CapaPropia): void {
+    this.confirmacion().preguntar({
+      mensaje: '¿Confirma el borrado de la capa?',
+      detalle: capa.nombre,
+      accion: () => this.misCapas.eliminar(capa.id),
+      mensajeDeError: mensajeDeEscritura
+    });
   }
 }

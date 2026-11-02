@@ -55,6 +55,29 @@
                 </button>
               </span>
             }
+            @let opciones = gestion();
+            @if (opciones && sePuedeGestionar(capa)) {
+              @let desplegadas = desplegada() === capa.id;
+              <button
+                type="button"
+                class="gestionar"
+                [attr.aria-expanded]="desplegadas"
+                [attr.aria-controls]="desplegadas ? 'opciones-capa-' + capa.id : null"
+                [attr.aria-label]="'Opciones de ' + capa.nombre"
+                title="Opciones"
+                (click)="alternarGestion(capa)">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+                  <circle cx="12" cy="5" r="2" fill="currentColor" />
+                  <circle cx="12" cy="12" r="2" fill="currentColor" />
+                  <circle cx="12" cy="19" r="2" fill="currentColor" />
+                </svg>
+              </button>
+              @if (desplegadas) {
+                <div class="opciones" role="group" [id]="'opciones-capa-' + capa.id" [attr.aria-label]="'Opciones de ' + capa.nombre">
+                  <ng-container [ngTemplateOutlet]="opciones" [ngTemplateOutletContext]="{ $implicit: capa }" />
+                </div>
+              }
+            }
           </li>
         }
       </ul>

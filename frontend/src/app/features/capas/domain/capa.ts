@@ -20,6 +20,57 @@ export interface ResumenCapa {
   visibilidad: Visibilidad;
 }
 
+/** Una capa del propio usuario en "Mis capas". Sin categoría, `categoriaId` es 0. */
+export interface CapaPropia extends ResumenCapa {
+  categoriaId: number;
+}
+
+/** Lo que el dueño puede elegir: SIATE solo ofrece público o privado. */
+export type VisibilidadEditable = 'PRIVADA' | 'PUBLICA';
+
+/** Los datos del formulario "Editar capa". */
+export interface EdicionCapa {
+  nombre: string;
+  descripcion: string;
+  categoriaId: number;
+  visibilidad: VisibilidadEditable;
+}
+
+/** Los límites del formulario de SIATE; el backend exige los mismos. */
+export const MINIMO_NOMBRE = 4;
+export const MAXIMO_NOMBRE = 100;
+export const MAXIMO_DESCRIPCION = 200;
+
+/** Qué falta corregir en cada campo; vacío si está bien. */
+export interface ErroresEdicion {
+  nombre: string;
+  descripcion: string;
+  categoria: string;
+}
+
+/** Sin contar los espacios a los lados, que no se guardan: un nombre de solo espacios no es un nombre. */
+export function erroresDeEdicion({ nombre, descripcion, categoriaId }: EdicionCapa): ErroresEdicion {
+  const largo = nombre.trim().length;
+  let errorNombre = '';
+  if (largo === 0) {
+    errorNombre = 'Nombre requerido.';
+  } else if (largo < MINIMO_NOMBRE) {
+    errorNombre = `El nombre debe tener al menos ${MINIMO_NOMBRE} caracteres.`;
+  } else if (largo > MAXIMO_NOMBRE) {
+    errorNombre = `El nombre no puede tener más de ${MAXIMO_NOMBRE} caracteres.`;
+  }
+  return {
+    nombre: errorNombre,
+    descripcion: descripcion.trim().length > MAXIMO_DESCRIPCION ? `La descripción no puede tener más de ${MAXIMO_DESCRIPCION} caracteres.` : '',
+    categoria: categoriaId > 0 ? '' : 'Categoría requerida.'
+  };
+}
+
+/** Su dueño edita, publica o elimina solo capas privadas o públicas: ni formales ni áreas de dibujo. */
+export function sePuedeGestionar({ visibilidad }: ResumenCapa): boolean {
+  return visibilidad === 'PRIVADA' || visibilidad === 'PUBLICA';
+}
+
 export interface Metadato {
   nombre: string;
   valor: string;

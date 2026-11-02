@@ -2,7 +2,15 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, map, of, Subscription } from 'rxjs';
 import { MapaPort } from '../../mapa/application/port/out/mapa.port';
-import { Capa, CapaNoEncontrada, ElementoCapa, ElementoDeServicio, extensionDe, ServidorDeMapasNoDisponible } from '../domain/capa';
+import {
+  Capa,
+  CapaNoEncontrada,
+  ElementoCapa,
+  ElementoDeServicio,
+  extensionDe,
+  ResumenCapa,
+  ServidorDeMapasNoDisponible
+} from '../domain/capa';
 import { CapasRepositorio } from './port/out/capas.repositorio';
 
 /** Una capa abierta en el mapa y si se está mostrando. */
@@ -144,6 +152,13 @@ export class CapasAbiertas {
     this.terminarPedido(id);
     this.lista.update((abiertas) => abiertas.filter(({ capa }) => capa.id !== id));
     this.mapa.quitarCapa(id);
+  }
+
+  /** El dueño editó la capa mientras estaba abierta: el panel muestra sus datos nuevos, sin volver a descargarla. */
+  actualizar(id: number, datos: Partial<ResumenCapa>): void {
+    this.lista.update((abiertas) =>
+      abiertas.map((abierta) => (abierta.capa.id === id ? { ...abierta, capa: { ...abierta.capa, ...datos } } : abierta))
+    );
   }
 
   alternarVisibilidad(id: number): void {

@@ -67,9 +67,9 @@ frontend/src/app/
   features/categorias/         servicio de API de categorías
   features/ayuda/              políticas de uso, manual (PDF) y guías animadas desde /multimedia
   features/direcciones/        buscador de direcciones sobre el mapa (geocodificación en el backend)
-  features/capas/              "Mis capas": lista en el menú, capa abierta en el mapa e información de sus elementos
+  features/capas/              "Mis capas", favoritos y catálogo: capas abiertas en el mapa; editar, publicar y eliminar las propias
   shared/api/contrato.ts       tipos generados desde el contrato OpenAPI (npm run api:tipos)
-  shared/                      api, cache, errores, pantalla-carga
+  shared/                      api, cache, confirmacion, errores, pantalla-carga
 k8s/dev, k8s/prod              kustomize: backend, frontend, ingress, secreto
 ```
 

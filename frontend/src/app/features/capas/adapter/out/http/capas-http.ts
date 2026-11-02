@@ -10,14 +10,20 @@ import {
   Capa,
   CapaCatalogo,
   CapaNoEncontrada,
+  CapaPropia,
+  EdicionCapa,
   ElementoDeServicio,
   ResumenCapa,
   SeccionCatalogo,
-  ServidorDeMapasNoDisponible
+  ServidorDeMapasNoDisponible,
+  VisibilidadEditable
 } from '../../../domain/capa';
 
 type CapaDto = components['schemas']['Capa'];
 type CapasResponse = components['schemas']['CapasResponse'];
+type CambioVisibilidad = components['schemas']['CambioVisibilidad'];
+type EdicionCapaDto = components['schemas']['EdicionCapa'];
+type MisCapasResponse = components['schemas']['MisCapasResponse'];
 type CatalogoResponse = components['schemas']['CatalogoResponse'];
 type ElementosDeServicioResponse = components['schemas']['ElementosDeServicioResponse'];
 
@@ -28,10 +34,35 @@ type ElementosDeServicioResponse = components['schemas']['ElementosDeServicioRes
 export class CapasHttp extends CapasRepositorio {
   private readonly http = inject(HttpClient);
 
-  listarMias(): Observable<ResumenCapa[]> {
+  listarMias(): Observable<CapaPropia[]> {
     return this.http
-      .get<CapasResponse>(`${API_PREFIJO}/capas/mias`, { context: sinPantallaDeCarga() })
-      .pipe(map((respuesta): ResumenCapa[] => respuesta.data));
+      .get<MisCapasResponse>(`${API_PREFIJO}/capas/mias`, { context: sinPantallaDeCarga() })
+      .pipe(map((respuesta): CapaPropia[] => respuesta.data));
+  }
+
+  /** Las escrituras van sin pantalla de carga: su diálogo muestra que se está guardando. */
+  editar(id: number, edicion: EdicionCapa): Observable<void> {
+    const cuerpo: EdicionCapaDto = edicion;
+    return this.escribir(id, this.http.patch<void>(`${API_PREFIJO}/capas/${id}`, cuerpo, { context: sinPantallaDeCarga() }));
+  }
+
+  cambiarVisibilidad(id: number, visibilidad: VisibilidadEditable): Observable<void> {
+    const cuerpo: CambioVisibilidad = { visibilidad };
+    return this.escribir(
+      id,
+      this.http.patch<void>(`${API_PREFIJO}/capas/${id}/visibilidad`, cuerpo, { context: sinPantallaDeCarga() })
+    );
+  }
+
+  eliminar(id: number): Observable<void> {
+    return this.escribir(
+      id,
+      this.http.post<void>(`${API_PREFIJO}/capas/${id}/eliminar`, null, { context: sinPantallaDeCarga() })
+    );
+  }
+
+  private escribir(id: number, pedido: Observable<void>): Observable<void> {
+    return pedido.pipe(catchError((error: unknown) => throwError(() => traducir(error, id))));
   }
 
   listarFavoritas(): Observable<ResumenCapa[]> {

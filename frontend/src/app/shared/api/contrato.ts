@@ -65,7 +65,39 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        patch: operations["editarCapa"];
+        trace?: never;
+    };
+    "/siante2/api/capas/{id}/eliminar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["eliminarCapa"];
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/siante2/api/capas/{id}/visibilidad": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["cambiarVisibilidadDeCapa"];
         trace?: never;
     };
     "/siante2/api/capas/{id}/wms": {
@@ -232,6 +264,10 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CambioVisibilidad: {
+            /** @enum {string} */
+            visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
+        };
         Capa: {
             descripcion: string;
             elementos: components["schemas"]["ElementoCapa"][];
@@ -261,6 +297,16 @@ export interface components {
             nombre: string;
             titulo: string;
         };
+        CapaPropia: {
+            /** Format: int32 */
+            categoriaId: number;
+            descripcion: string;
+            /** Format: int32 */
+            id: number;
+            nombre: string;
+            /** @enum {string} */
+            visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
+        };
         CapasResponse: {
             data: components["schemas"]["ResumenCapa"][];
         };
@@ -285,6 +331,14 @@ export interface components {
         };
         DireccionesResponse: {
             data: components["schemas"]["Direccion"][];
+        };
+        EdicionCapa: {
+            /** Format: int32 */
+            categoriaId: number;
+            descripcion: string;
+            nombre: string;
+            /** @enum {string} */
+            visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
         };
         ElementoCapa: {
             descripcion: string;
@@ -350,6 +404,9 @@ export interface components {
         Metadato: {
             nombre: string;
             valor: string;
+        };
+        MisCapasResponse: {
+            data: components["schemas"]["CapaPropia"][];
         };
         Multimedia: {
             descripcion: string;
@@ -454,7 +511,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CapasResponse"];
+                    "application/json": components["schemas"]["MisCapasResponse"];
                 };
             };
         };
@@ -478,6 +535,74 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Capa"];
                 };
+            };
+        };
+    };
+    editarCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EdicionCapa"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    eliminarCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cambiarVisibilidadDeCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambioVisibilidad"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

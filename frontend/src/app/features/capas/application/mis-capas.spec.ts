@@ -1,17 +1,40 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
-import { ResumenCapa } from '../domain/capa';
-import { MisCapas } from './mis-capas';
+import { CapaNoEncontrada, CapaPropia, EdicionCapa } from '../domain/capa';
+import { CapasAbiertas } from './capas-abiertas';
+import { Favoritas } from './favoritas';
+import { mensajeDeEscritura, MisCapas } from './mis-capas';
 import { CapasRepositorio } from './port/out/capas.repositorio';
 
 describe('MisCapas', () => {
-  const bodegas: ResumenCapa = { id: 1, nombre: 'Bodegas', descripcion: '', visibilidad: 'PRIVADA' };
-  let listarMias: ReturnType<typeof vi.fn<() => Observable<ResumenCapa[]>>>;
+  const bodegas: CapaPropia = { id: 1, nombre: 'Bodegas', descripcion: '', visibilidad: 'PRIVADA', categoriaId: 3 };
+  const zona: CapaPropia = { id: 2, nombre: 'Zona norte', descripcion: '', visibilidad: 'PUBLICA', categoriaId: 4 };
+  const edicion: EdicionCapa = { nombre: 'Árboles', descripcion: 'Parques', categoriaId: 9, visibilidad: 'PUBLICA' };
+  let listarMias: ReturnType<typeof vi.fn<() => Observable<CapaPropia[]>>>;
+  const repositorio = {
+    editar: vi.fn<(id: number, edicion: EdicionCapa) => Observable<void>>(),
+    cambiarVisibilidad: vi.fn<(id: number, visibilidad: string) => Observable<void>>(),
+    eliminar: vi.fn<(id: number) => Observable<void>>()
+  };
+  const capasAbiertas = { actualizar: vi.fn(), cerrar: vi.fn() };
+  const favoritas = { actualizar: vi.fn(), quitar: vi.fn() };
   let servicio: MisCapas;
 
+  const nombres = () => servicio.capas().map(({ nombre }) => nombre);
+
   beforeEach(() => {
-    listarMias = vi.fn(() => of([bodegas]));
-    TestBed.configureTestingModule({ providers: [{ provide: CapasRepositorio, useValue: { listarMias } }] });
+    vi.clearAllMocks();
+    listarMias = vi.fn(() => of([bodegas, zona]));
+    repositorio.editar.mockReturnValue(of(undefined));
+    repositorio.cambiarVisibilidad.mockReturnValue(of(undefined));
+    repositorio.eliminar.mockReturnValue(of(undefined));
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: CapasRepositorio, useValue: { listarMias, ...repositorio } },
+        { provide: CapasAbiertas, useValue: capasAbiertas },
+        { provide: Favoritas, useValue: favoritas }
+      ]
+    });
     servicio = TestBed.inject(MisCapas);
   });
 
@@ -19,11 +42,11 @@ describe('MisCapas', () => {
     servicio.cargar();
 
     expect(servicio.estado()).toBe('listo');
-    expect(servicio.capas()).toEqual([bodegas]);
+    expect(servicio.capas()).toEqual([bodegas, zona]);
   });
 
   it('indica que está cargando mientras llegan', () => {
-    const respuesta = new Subject<ResumenCapa[]>();
+    const respuesta = new Subject<CapaPropia[]>();
     listarMias.mockReturnValue(respuesta);
 
     servicio.cargar();
@@ -42,5 +65,85 @@ describe('MisCapas', () => {
     servicio.cargar();
     expect(servicio.estado()).toBe('listo');
     expect(listarMias).toHaveBeenCalledTimes(2);
+  });
+
+  describe('escrituras', () => {
+    beforeEach(() => {
+      servicio.cargar();
+      listarMias.mockClear();
+    });
+
+    it('editar guarda sin espacios a los lados y reordena la lista por nombre, sin volver a pedirla', () => {
+      servicio.editar(2, { ...edicion, nombre: '  Árboles ', descripcion: ' Parques ' }).subscribe();
+
+      expect(repositorio.editar).toHaveBeenCalledWith(2, edicion);
+      expect(nombres()).toEqual(['Árboles', 'Bodegas']);
+      expect(servicio.capas()[0]).toEqual({ id: 2, ...edicion });
+      expect(listarMias).not.toHaveBeenCalled();
+    });
+
+    it('editar actualiza la capa abierta y las favoritas', () => {
+      servicio.editar(2, edicion).subscribe();
+
+      const datos = { nombre: 'Árboles', descripcion: 'Parques', visibilidad: 'PUBLICA' };
+      expect(capasAbiertas.actualizar).toHaveBeenCalledWith(2, datos);
+      expect(favoritas.actualizar).toHaveBeenCalledWith(2, datos);
+    });
+
+    it('nada cambia hasta que la API confirma', () => {
+      const respuesta = new Subject<void>();
+      repositorio.editar.mockReturnValue(respuesta);
+
+      servicio.editar(2, edicion).subscribe();
+      expect(nombres()).toEqual(['Bodegas', 'Zona norte']);
+      expect(capasAbiertas.actualizar).not.toHaveBeenCalled();
+
+      respuesta.next();
+      expect(nombres()).toEqual(['Árboles', 'Bodegas']);
+    });
+
+    it('publicar cambia solo la visibilidad', () => {
+      servicio.cambiarVisibilidad(1, 'PUBLICA').subscribe();
+
+      expect(repositorio.cambiarVisibilidad).toHaveBeenCalledWith(1, 'PUBLICA');
+      expect(servicio.capas()[0]).toEqual({ ...bodegas, visibilidad: 'PUBLICA' });
+      expect(capasAbiertas.actualizar).toHaveBeenCalledWith(1, { visibilidad: 'PUBLICA' });
+      expect(favoritas.actualizar).toHaveBeenCalledWith(1, { visibilidad: 'PUBLICA' });
+    });
+
+    it('eliminar la saca de la lista, la cierra en el mapa y la quita de las favoritas', () => {
+      servicio.eliminar(1).subscribe();
+
+      expect(repositorio.eliminar).toHaveBeenCalledWith(1);
+      expect(nombres()).toEqual(['Zona norte']);
+      expect(capasAbiertas.cerrar).toHaveBeenCalledWith(1);
+      expect(favoritas.quitar).toHaveBeenCalledWith(1);
+    });
+
+    it('si la capa ya no existe entrega el error y vuelve a pedir la lista', () => {
+      repositorio.eliminar.mockReturnValue(throwError(() => new CapaNoEncontrada(1)));
+      listarMias.mockReturnValue(of([zona]));
+      let recibido: unknown;
+
+      servicio.eliminar(1).subscribe({ error: (error: unknown) => (recibido = error) });
+
+      expect(recibido).toBeInstanceOf(CapaNoEncontrada);
+      expect(nombres()).toEqual(['Zona norte']);
+      expect(capasAbiertas.cerrar).not.toHaveBeenCalled();
+    });
+
+    it('con otro error la lista queda como estaba, sin volver a pedirla', () => {
+      repositorio.eliminar.mockReturnValue(throwError(() => new Error('sin conexión')));
+
+      servicio.eliminar(1).subscribe({ error: () => undefined });
+
+      expect(nombres()).toEqual(['Bodegas', 'Zona norte']);
+      expect(listarMias).not.toHaveBeenCalled();
+    });
+  });
+
+  it('explica el error de una escritura', () => {
+    expect(mensajeDeEscritura(new CapaNoEncontrada(1))).toBe('La capa ya no existe o no tiene permiso para modificarla.');
+    expect(mensajeDeEscritura(new Error('sin conexión'))).toBe('No se pudo guardar el cambio. Intente nuevamente.');
   });
 });
