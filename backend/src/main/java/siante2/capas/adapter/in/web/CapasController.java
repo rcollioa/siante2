@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import siante2.capas.application.port.in.CambiarVisibilidadCapaUseCase;
 import siante2.capas.application.port.in.ConsultarPuntoUseCase;
+import siante2.capas.application.port.in.CrearCapaUseCase;
 import siante2.capas.application.port.in.EditarCapaUseCase;
 import siante2.capas.application.port.in.EliminarCapaUseCase;
 import siante2.capas.application.port.in.ListarFavoritasUseCase;
@@ -34,6 +35,7 @@ import siante2.capas.domain.ConsultaPunto;
 import siante2.capas.domain.EdicionCapa;
 import siante2.capas.domain.ElementoDeServicio;
 import siante2.capas.domain.ImagenMapa;
+import siante2.capas.domain.NuevaCapa;
 import siante2.capas.domain.PedidoMapa;
 import siante2.capas.domain.PedidoMosaico;
 import siante2.capas.domain.ResumenCapa;
@@ -53,14 +55,16 @@ public class CapasController {
     private final ObtenerMapaUseCase mapa;
     private final ConsultarPuntoUseCase consulta;
     private final ObtenerMosaicoUseCase mosaico;
+    private final CrearCapaUseCase crear;
     private final EditarCapaUseCase editar;
     private final CambiarVisibilidadCapaUseCase visibilidad;
     private final EliminarCapaUseCase eliminar;
 
     public CapasController(ListarMisCapasUseCase listar, VerCapaUseCase ver, ListarFavoritasUseCase favoritas,
                            VerCatalogoUseCase catalogo, ObtenerMapaUseCase mapa, ConsultarPuntoUseCase consulta,
-                           ObtenerMosaicoUseCase mosaico, EditarCapaUseCase editar,
+                           ObtenerMosaicoUseCase mosaico, CrearCapaUseCase crear, EditarCapaUseCase editar,
                            CambiarVisibilidadCapaUseCase visibilidad, EliminarCapaUseCase eliminar) {
+        this.crear = crear;
         this.editar = editar;
         this.visibilidad = visibilidad;
         this.eliminar = eliminar;
@@ -76,6 +80,14 @@ public class CapasController {
     @GetMapping("/mias")
     public MisCapasResponse listarMisCapas(Authentication autenticacion) {
         return new MisCapasResponse(listar.listar(autenticacion.getName()));
+    }
+
+    /** Una capa en blanco. Reemplaza a {@code POST /siante/api/layers} de SIATE, que tomaba el dueño del cuerpo
+     * ({@code OWNER}) y buscaba después el ID más alto del usuario para saber cuál había creado. */
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public CapaPropia crearCapa(@RequestBody NuevaCapa nueva, Authentication autenticacion) {
+        return crear.crear(autenticacion.getName(), nueva);
     }
 
     /** Reemplaza a {@code PATCH /siante/api/layers/:ID} de SIATE, que no verificaba el dueño y dejaba cambiar cualquier

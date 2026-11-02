@@ -289,7 +289,7 @@ Si PostgreSQL se creara con el DDL que Hibernate genera desde las entidades actu
 |---|---|---|
 | `JSON_METADATA`, `DATA` | `varchar(255)` | **Trunca** el JSON |
 | `MULTIMEDIA.ARCHIVO` | `oid` | Objeto grande aparte, que no se borra solo |
-| IDs (salvo `USERS`) | `integer` sin `identity` | Las escrituras no tendrían ID |
+| IDs (salvo `USERS` y `LAYERS`) | `integer` sin `identity` | Las escrituras no tendrían ID |
 | `LAYERS_CATEGORIES`, `LAYERS_FEATURES` | Clave primaria de una columna | No coincide con Oracle (hallazgos 3 y 4) |
 | Vistas `V_*` | `create table` | Hibernate no distingue una vista |
 

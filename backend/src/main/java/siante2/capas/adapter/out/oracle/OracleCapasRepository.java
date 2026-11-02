@@ -15,6 +15,7 @@ import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.EdicionCapa;
+import siante2.capas.domain.NuevaCapa;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.ResumenCapa;
@@ -65,6 +66,12 @@ class OracleCapasRepository implements CapasReadPort, CapasWritePort {
         return vista.buscarDe(usuarioId, ACTIVA, AREA_DE_DIBUJO).stream()
                 .map(f -> new CapaPropia(f.id(), f.nombre(), f.descripcion(), visibilidad(f.visibilidad()), f.categoriaId()))
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public int crear(int duenoId, NuevaCapa nueva) {
+        return capas.save(new CapaEntity(duenoId, nueva.nombre(), nueva.descripcion(), ACTIVA, PRIVADA)).getId();
     }
 
     @Override

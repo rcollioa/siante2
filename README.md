@@ -67,7 +67,7 @@ frontend/src/app/
   features/categorias/         servicio de API de categorías
   features/ayuda/              políticas de uso, manual (PDF) y guías animadas desde /multimedia
   features/direcciones/        buscador de direcciones sobre el mapa (geocodificación en el backend)
-  features/capas/              "Mis capas", favoritos y catálogo: capas abiertas en el mapa; editar, publicar y eliminar las propias
+  features/capas/              "Mis capas", favoritos y catálogo: capas abiertas en el mapa; crear, editar, publicar y eliminar las propias
   shared/api/contrato.ts       tipos generados desde el contrato OpenAPI (npm run api:tipos)
   shared/                      api, cache, confirmacion, errores, pantalla-carga
 k8s/dev, k8s/prod              kustomize: backend, frontend, ingress, secreto
@@ -125,7 +125,7 @@ ESLint (`no-restricted-imports` en `eslint.config.js`) verifica en cada build, y
 - Asociaciones siempre `LAZY` (también `@ManyToOne`); para cargarlas, `join fetch` o `@EntityGraph` en la consulta que las necesita. Sin `FetchType.EAGER`.
 - Entidades: atributos con el nombre de la columna en camelCase (`LAST_NAME` → `lastName`, `L_GROUP_ID` → `lGroupId`), sin `@Column`: los mapea la estrategia de nombres de Spring Boot. `@Column` solo cuando esa regla no da la columna (dos mayúsculas seguidas, p. ej. `PURE_X_PURE`). Clases con sufijo `Entity`; los nombres en español quedan en el dominio. `EntidadesSiateTest` verifica columna por columna.
 - Entidades: `@Immutable` mientras SIATE escriba en la tabla, constructor `protected` vacío, sin setters, IDs por trigger con `IDENTITY`.
-- Actualizar una tabla que SIATE también escribe (como `LAYERS`): la entidad deja de ser `@Immutable` porque Hibernate rechaza un `update` sobre ella, pero sigue sin setters. Se escribe solo con `@Modifying` y un `update` JPQL de las columnas que cambian, con el dueño en el `where`: así nunca se reescribe la fila completa ni se cargan sus CLOB, y 0 filas actualizadas es un 404. `ConsultasJpqlTest` también compila estos `update`.
+- Actualizar una tabla que SIATE también escribe (como `LAYERS`): la entidad deja de ser `@Immutable` porque Hibernate rechaza un `update` sobre ella, pero sigue sin setters. Se da de alta con un constructor, y se cambia solo con `@Modifying` y un `update` JPQL de las columnas que cambian, con el dueño en el `where`: así nunca se reescribe la fila completa ni se cargan sus CLOB, y 0 filas actualizadas es un 404. `ConsultasJpqlTest` también compila estos `update`.
 - Vistas (`V_*`): no tienen clave primaria y el `@Id` de su entidad se infiere del modelo de SIATE. Si se repitiera, Hibernate devolvería una instancia por clave y descartaría el resto sin aviso. Por eso se leen solo con proyecciones, desde un repositorio que extiende `Repository` y no `JpaRepository`, para que nadie use `findAll` ni `findById`.
 - CLOB: `JSON_METADATA` de una capa llega a 1.800.000 caracteres (el límite de SIATE antes de usar `SCHEDULER_DATA`). Los listados no seleccionan columnas CLOB; se leen por elemento cuando se necesitan. Al abrir una capa vectorial se leen sus filas de `LAYERS_FEATURES` y, si no tiene ninguna (SIATE las crea con su `migration`), la colección de su `JSON_METADATA`.
 - Tests de repositorio verifican la cantidad de SQL con `ContadorSql` (estadísticas de Hibernate solo en el perfil `test`).

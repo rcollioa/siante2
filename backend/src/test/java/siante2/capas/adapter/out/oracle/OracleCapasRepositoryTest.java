@@ -13,6 +13,7 @@ import siante2.ContadorSql;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.EdicionCapa;
+import siante2.capas.domain.NuevaCapa;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.ResumenCapa;
@@ -79,6 +80,24 @@ class OracleCapasRepositoryTest {
 
     private Map<String, Object> fila(int id) {
         return jdbc.queryForMap("select * from LAYERS where ID = ?", id);
+    }
+
+    @Test
+    void crearInsertaUnaCapaActivaPrivadaYEnBlancoEnUnaSentencia() {
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        int id = repositorio.crear(YO, new NuevaCapa("Nueva", "Región"));
+
+        assertThat(sql.sentencias()).isEqualTo(1);
+        assertThat(fila(id)).containsEntry("OWNER", YO).containsEntry("NAME", "Nueva").containsEntry("DESCRIPTION", "Región")
+                .containsEntry("STATUS", "1").containsEntry("VISIBILITY", "0").containsEntry("JSON_METADATA", null)
+                .containsEntry("ORIGIN", null).containsEntry("L_GROUP_ID", null).containsEntry("CATEGORY_ID", null);
+    }
+
+    @Test
+    void cadaCapaCreadaRecibeSuPropioId() {
+        assertThat(repositorio.crear(YO, new NuevaCapa("Primera", "")))
+                .isNotEqualTo(repositorio.crear(YO, new NuevaCapa("Segunda", "")));
     }
 
     @Test

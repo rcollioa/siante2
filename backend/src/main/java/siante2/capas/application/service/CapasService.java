@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import siante2.capas.application.port.in.CambiarVisibilidadCapaUseCase;
 import siante2.capas.application.port.in.ConsultarPuntoUseCase;
+import siante2.capas.application.port.in.CrearCapaUseCase;
 import siante2.capas.application.port.in.EditarCapaUseCase;
 import siante2.capas.application.port.in.EliminarCapaUseCase;
 import siante2.capas.application.port.in.ListarFavoritasUseCase;
@@ -32,6 +33,7 @@ import siante2.capas.domain.ConsultaPunto;
 import siante2.capas.domain.EdicionCapa;
 import siante2.capas.domain.ElementoDeServicio;
 import siante2.capas.domain.ImagenMapa;
+import siante2.capas.domain.NuevaCapa;
 import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.PedidoMapa;
 import siante2.capas.domain.PedidoMosaico;
@@ -51,13 +53,15 @@ import siante2.usuarios.application.port.in.IdentificarUsuarioUseCase;
 @Service
 public class CapasService
         implements ListarMisCapasUseCase, VerCapaUseCase, ListarFavoritasUseCase, VerCatalogoUseCase, ObtenerMapaUseCase,
-        ConsultarPuntoUseCase, ObtenerMosaicoUseCase, EditarCapaUseCase, CambiarVisibilidadCapaUseCase, EliminarCapaUseCase {
+        ConsultarPuntoUseCase, ObtenerMosaicoUseCase, CrearCapaUseCase, EditarCapaUseCase, CambiarVisibilidadCapaUseCase,
+        EliminarCapaUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(CapasService.class);
     private static final Locale ESPANOL = Locale.of("es", "CL");
     /** ID que ningún usuario tiene: sin registro en USERS no hay capas propias ni favoritas. */
     private static final int SIN_USUARIO = -1;
-    /** Los del formulario "Editar capa" de SIATE, que solo los validaba en el navegador. */
+    private static final int SIN_CATEGORIA = 0;
+    /** Los de los formularios de capa de SIATE, que solo los validaba en el navegador. */
     private static final int MINIMO_NOMBRE = 4;
     private static final int MAXIMO_NOMBRE = 100;
     private static final int MAXIMO_DESCRIPCION = 200;
@@ -82,6 +86,16 @@ public class CapasService
     @Override
     public List<CapaPropia> listar(String ivUser) {
         return porNombre(usuarios.idDe(ivUser).map(capas::listarDe).orElse(List.of()), CapaPropia::nombre);
+    }
+
+    @Override
+    public CapaPropia crear(String ivUser, NuevaCapa nueva) {
+        NuevaCapa valida = new NuevaCapa(nombreValido(nueva.nombre()), descripcionValida(nueva.descripcion()));
+        int dueno = usuarios.idDe(ivUser)
+                .orElseThrow(() -> new RecursoNoEncontradoException("El usuario no está registrado."));
+        int id = escritura.crear(dueno, valida);
+        log.info("Capa {} creada", id);
+        return new CapaPropia(id, valida.nombre(), valida.descripcion(), Visibilidad.PRIVADA, SIN_CATEGORIA);
     }
 
     @Override
@@ -115,9 +129,8 @@ public class CapasService
     }
 
     /** Sin espacios a los lados: SIATE aceptaba un nombre de solo espacios. */
-    private EdicionCapa validada(EdicionCapa edicion) {
-        String nombre = edicion.nombre() == null ? "" : edicion.nombre().trim();
-        String descripcion = edicion.descripcion() == null ? "" : edicion.descripcion().trim();
+    private static String nombreValido(String recibido) {
+        String nombre = recibido == null ? "" : recibido.trim();
         if (nombre.isEmpty()) {
             throw new SolicitudInvalidaException("Nombre requerido.");
         }
@@ -127,9 +140,20 @@ public class CapasService
         if (nombre.length() > MAXIMO_NOMBRE) {
             throw new SolicitudInvalidaException("El nombre no puede tener más de " + MAXIMO_NOMBRE + " caracteres.");
         }
+        return nombre;
+    }
+
+    private static String descripcionValida(String recibida) {
+        String descripcion = recibida == null ? "" : recibida.trim();
         if (descripcion.length() > MAXIMO_DESCRIPCION) {
             throw new SolicitudInvalidaException("La descripción no puede tener más de " + MAXIMO_DESCRIPCION + " caracteres.");
         }
+        return descripcion;
+    }
+
+    private EdicionCapa validada(EdicionCapa edicion) {
+        String nombre = nombreValido(edicion.nombre());
+        String descripcion = descripcionValida(edicion.descripcion());
         exigirPrivadaOPublica(edicion.visibilidad());
         if (categorias.listarActivas().stream().noneMatch(categoria -> categoria.id() == edicion.categoriaId())) {
             throw new SolicitudInvalidaException("La categoría no existe.");

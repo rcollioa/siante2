@@ -10,6 +10,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import siante2.capas.application.port.in.CambiarVisibilidadCapaUseCase;
 import siante2.capas.application.port.in.ConsultarPuntoUseCase;
+import siante2.capas.application.port.in.CrearCapaUseCase;
 import siante2.capas.application.port.in.EditarCapaUseCase;
 import siante2.capas.application.port.in.EliminarCapaUseCase;
 import siante2.capas.application.port.in.ListarFavoritasUseCase;
@@ -34,6 +35,7 @@ import siante2.capas.domain.TipoServicio;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.EstiloElemento;
 import siante2.capas.domain.Metadato;
+import siante2.capas.domain.NuevaCapa;
 import siante2.capas.domain.ResumenCapa;
 import siante2.capas.domain.SeccionCatalogo;
 import siante2.capas.domain.TipoCapa;
@@ -66,6 +68,33 @@ class CapasControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private CrearCapaUseCase crear;
+
+    @Test
+    void crearResponde201ConLaCapaYElDuenoSaleDeWebSeal() throws Exception {
+        when(crear.crear("prueba", new NuevaCapa("Bodegas", "Región")))
+                .thenReturn(new CapaPropia(50, "Bodegas", "Región", Visibilidad.PRIVADA, 0));
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nombre":"Bodegas","descripcion":"Región","dueno":"otro","owner":9}"""))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(50))
+                .andExpect(jsonPath("$.nombre").value("Bodegas"))
+                .andExpect(jsonPath("$.visibilidad").value("PRIVADA"))
+                .andExpect(jsonPath("$.categoriaId").value(0));
+    }
+
+    @Test
+    void crearConDatosInvalidosResponde400ConElMensaje() throws Exception {
+        when(crear.crear("prueba", new NuevaCapa("", ""))).thenThrow(new SolicitudInvalidaException("Nombre requerido."));
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nombre":"","descripcion":""}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Nombre requerido."));
+    }
 
     @MockitoBean
     private EditarCapaUseCase editar;

@@ -20,6 +20,7 @@ import siante2.capas.domain.GrillaWmts;
 import siante2.capas.domain.ImagenMapa;
 import siante2.capas.domain.MatrizMosaicos;
 import siante2.capas.domain.Metadato;
+import siante2.capas.domain.NuevaCapa;
 import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.PedidoMapa;
 import siante2.capas.domain.PedidoMosaico;
@@ -161,9 +162,18 @@ class CapasServiceTest {
         EdicionCapa editada;
         Visibilidad visibilidad;
         boolean eliminada;
+        NuevaCapa creada;
+        int duenoDeLaCreada;
 
         private static boolean esDelDueno(int capaId, int duenoId) {
             return capaId == 1 && duenoId == 7;
+        }
+
+        @Override
+        public int crear(int duenoId, NuevaCapa nueva) {
+            creada = nueva;
+            duenoDeLaCreada = duenoId;
+            return 50;
         }
 
         @Override
@@ -193,6 +203,40 @@ class CapasServiceTest {
 
     private static EdicionCapa edicion(String nombre, String descripcion) {
         return new EdicionCapa(nombre, descripcion, 3, Visibilidad.PUBLICA);
+    }
+
+    @Test
+    void crearGuardaAlUsuarioDeWebSealComoDuenoYEntregaLaCapaPrivadaYSinCategoria() {
+        CapaPropia capa = servicio.crear("jperez", new NuevaCapa("  Bodegas norte ", " Región "));
+
+        assertThat(escritura.duenoDeLaCreada).isEqualTo(7);
+        assertThat(escritura.creada).isEqualTo(new NuevaCapa("Bodegas norte", "Región"));
+        assertThat(capa).isEqualTo(new CapaPropia(50, "Bodegas norte", "Región", Visibilidad.PRIVADA, 0));
+    }
+
+    @Test
+    void crearSinDescripcionLaGuardaVacia() {
+        assertThat(servicio.crear("jperez", new NuevaCapa("Bodegas", null)).descripcion()).isEmpty();
+    }
+
+    @Test
+    void crearExigeLosMismosLimitesQueEditarSinEscribir() {
+        assertThatThrownBy(() -> servicio.crear("jperez", new NuevaCapa(null, "")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("Nombre requerido.");
+        assertThatThrownBy(() -> servicio.crear("jperez", new NuevaCapa(" abc ", "")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("El nombre debe tener al menos 4 caracteres.");
+        assertThatThrownBy(() -> servicio.crear("jperez", new NuevaCapa("a".repeat(101), "")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("El nombre no puede tener más de 100 caracteres.");
+        assertThatThrownBy(() -> servicio.crear("jperez", new NuevaCapa("Bodegas", "a".repeat(201))))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("La descripción no puede tener más de 200 caracteres.");
+        assertThat(escritura.creada).isNull();
+    }
+
+    @Test
+    void unUsuarioSinRegistroNoPuedeCrear() {
+        assertThatThrownBy(() -> servicio.crear("nuevo", new NuevaCapa("Bodegas", "")))
+                .isInstanceOf(RecursoNoEncontradoException.class).hasMessage("El usuario no está registrado.");
+        assertThat(escritura.creada).isNull();
     }
 
     @Test

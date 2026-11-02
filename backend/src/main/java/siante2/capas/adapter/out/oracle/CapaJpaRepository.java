@@ -9,6 +9,8 @@ import org.springframework.data.repository.Repository;
  * su {@code JSON_METADATA}. El dueño va en el where: una capa ajena no se toca y no se distingue de una que no existe. */
 interface CapaJpaRepository extends Repository<CapaEntity, Integer> {
 
+    CapaEntity save(CapaEntity capa);
+
     @Modifying
     @Query("""
             update CapaEntity c
