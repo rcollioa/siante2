@@ -11,12 +11,12 @@ import org.springframework.data.repository.Repository;
 interface VistaCapaJpaRepository extends Repository<VistaCapaEntity, Integer> {
 
     @Query("""
-            select new siante2.capas.adapter.out.oracle.FilaResumenCapa(
-                c.id, coalesce(c.name, ''), coalesce(c.description, ''), coalesce(c.visibility, '0'))
+            select new siante2.capas.adapter.out.oracle.FilaCapaPropia(
+                c.id, coalesce(c.name, ''), coalesce(c.description, ''), coalesce(c.visibility, '0'), coalesce(c.categoryId, 0))
             from VistaCapaEntity c
             where c.userId = :usuario and c.status = :activa and coalesce(c.visibility, '0') <> :areaDeDibujo
             order by c.id""")
-    List<FilaResumenCapa> buscarDe(int usuario, String activa, String areaDeDibujo);
+    List<FilaCapaPropia> buscarDe(int usuario, String activa, String areaDeDibujo);
 
     /** La visibilidad va en el where (README "Autorización"): una capa privada ajena no sale de la base. */
     @Query("""

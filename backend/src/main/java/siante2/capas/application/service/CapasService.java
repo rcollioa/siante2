@@ -7,8 +7,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import siante2.capas.application.port.in.CambiarVisibilidadCapaUseCase;
 import siante2.capas.application.port.in.ConsultarPuntoUseCase;
+import siante2.capas.application.port.in.EditarCapaUseCase;
+import siante2.capas.application.port.in.EliminarCapaUseCase;
 import siante2.capas.application.port.in.ListarFavoritasUseCase;
 import siante2.capas.application.port.in.ListarMisCapasUseCase;
 import siante2.capas.application.port.in.ObtenerMapaUseCase;
@@ -16,12 +21,15 @@ import siante2.capas.application.port.in.ObtenerMosaicoUseCase;
 import siante2.capas.application.port.in.VerCapaUseCase;
 import siante2.capas.application.port.in.VerCatalogoUseCase;
 import siante2.capas.application.port.out.CapasReadPort;
+import siante2.capas.application.port.out.CapasWritePort;
 import siante2.capas.application.port.out.ServiciosMapaPort;
 import siante2.capas.application.port.out.ServiciosWmtsPort;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.CapaDeServicio;
+import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.ConsultaPunto;
+import siante2.capas.domain.EdicionCapa;
 import siante2.capas.domain.ElementoDeServicio;
 import siante2.capas.domain.ImagenMapa;
 import siante2.capas.domain.OrigenServicio;
@@ -32,6 +40,8 @@ import siante2.capas.domain.SeccionCatalogo;
 import siante2.capas.domain.ServicioMapa;
 import siante2.capas.domain.TipoCapa;
 import siante2.capas.domain.TipoServicio;
+import siante2.capas.domain.Visibilidad;
+import siante2.categorias.application.port.in.ListarCategoriasUseCase;
 import siante2.compartido.domain.RecursoNoEncontradoException;
 import siante2.compartido.domain.ServicioExternoNoDisponibleException;
 import siante2.compartido.domain.SolicitudInvalidaException;
@@ -41,28 +51,97 @@ import siante2.usuarios.application.port.in.IdentificarUsuarioUseCase;
 @Service
 public class CapasService
         implements ListarMisCapasUseCase, VerCapaUseCase, ListarFavoritasUseCase, VerCatalogoUseCase, ObtenerMapaUseCase,
-        ConsultarPuntoUseCase, ObtenerMosaicoUseCase {
+        ConsultarPuntoUseCase, ObtenerMosaicoUseCase, EditarCapaUseCase, CambiarVisibilidadCapaUseCase, EliminarCapaUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(CapasService.class);
     private static final Locale ESPANOL = Locale.of("es", "CL");
     /** ID que ningún usuario tiene: sin registro en USERS no hay capas propias ni favoritas. */
     private static final int SIN_USUARIO = -1;
+    /** Los del formulario "Editar capa" de SIATE, que solo los validaba en el navegador. */
+    private static final int MINIMO_NOMBRE = 4;
+    private static final int MAXIMO_NOMBRE = 100;
+    private static final int MAXIMO_DESCRIPCION = 200;
 
     private final CapasReadPort capas;
+    private final CapasWritePort escritura;
     private final IdentificarUsuarioUseCase usuarios;
+    private final ListarCategoriasUseCase categorias;
     private final ServiciosMapaPort servicios;
     private final ServiciosWmtsPort mosaicos;
 
-    public CapasService(CapasReadPort capas, IdentificarUsuarioUseCase usuarios, ServiciosMapaPort servicios,
-                        ServiciosWmtsPort mosaicos) {
+    public CapasService(CapasReadPort capas, CapasWritePort escritura, IdentificarUsuarioUseCase usuarios,
+                        ListarCategoriasUseCase categorias, ServiciosMapaPort servicios, ServiciosWmtsPort mosaicos) {
         this.capas = capas;
+        this.escritura = escritura;
         this.usuarios = usuarios;
+        this.categorias = categorias;
         this.servicios = servicios;
         this.mosaicos = mosaicos;
     }
 
     @Override
-    public List<ResumenCapa> listar(String ivUser) {
-        return porNombre(usuarios.idDe(ivUser).map(capas::listarDe).orElse(List.of()), ResumenCapa::nombre);
+    public List<CapaPropia> listar(String ivUser) {
+        return porNombre(usuarios.idDe(ivUser).map(capas::listarDe).orElse(List.of()), CapaPropia::nombre);
+    }
+
+    @Override
+    public void editar(int capaId, String ivUser, EdicionCapa edicion) {
+        EdicionCapa valida = validada(edicion);
+        exigirCapaPropia(escritura.actualizar(capaId, dueno(ivUser), valida));
+        log.info("Capa {} editada", capaId);
+    }
+
+    @Override
+    public void cambiarVisibilidad(int capaId, String ivUser, Visibilidad visibilidad) {
+        exigirPrivadaOPublica(visibilidad);
+        exigirCapaPropia(escritura.cambiarVisibilidad(capaId, dueno(ivUser), visibilidad));
+        log.info("Capa {} ahora es {}", capaId, visibilidad);
+    }
+
+    @Override
+    public void eliminar(int capaId, String ivUser) {
+        exigirCapaPropia(escritura.eliminar(capaId, dueno(ivUser)));
+        log.info("Capa {} eliminada", capaId);
+    }
+
+    private int dueno(String ivUser) {
+        return usuarios.idDe(ivUser).orElseThrow(CapasService::noExiste);
+    }
+
+    private static void exigirCapaPropia(boolean actualizada) {
+        if (!actualizada) {
+            throw noExiste();
+        }
+    }
+
+    /** Sin espacios a los lados: SIATE aceptaba un nombre de solo espacios. */
+    private EdicionCapa validada(EdicionCapa edicion) {
+        String nombre = edicion.nombre() == null ? "" : edicion.nombre().trim();
+        String descripcion = edicion.descripcion() == null ? "" : edicion.descripcion().trim();
+        if (nombre.isEmpty()) {
+            throw new SolicitudInvalidaException("Nombre requerido.");
+        }
+        if (nombre.length() < MINIMO_NOMBRE) {
+            throw new SolicitudInvalidaException("El nombre debe tener al menos " + MINIMO_NOMBRE + " caracteres.");
+        }
+        if (nombre.length() > MAXIMO_NOMBRE) {
+            throw new SolicitudInvalidaException("El nombre no puede tener más de " + MAXIMO_NOMBRE + " caracteres.");
+        }
+        if (descripcion.length() > MAXIMO_DESCRIPCION) {
+            throw new SolicitudInvalidaException("La descripción no puede tener más de " + MAXIMO_DESCRIPCION + " caracteres.");
+        }
+        exigirPrivadaOPublica(edicion.visibilidad());
+        if (categorias.listarActivas().stream().noneMatch(categoria -> categoria.id() == edicion.categoriaId())) {
+            throw new SolicitudInvalidaException("La categoría no existe.");
+        }
+        return new EdicionCapa(nombre, descripcion, edicion.categoriaId(), edicion.visibilidad());
+    }
+
+    /** Formal y área de dibujo no se eligen: SIATE solo ofrece público o privado, y aceptaba cualquier código. */
+    private static void exigirPrivadaOPublica(Visibilidad visibilidad) {
+        if (visibilidad != Visibilidad.PRIVADA && visibilidad != Visibilidad.PUBLICA) {
+            throw new SolicitudInvalidaException("Una capa solo puede ser privada o pública.");
+        }
     }
 
     @Override

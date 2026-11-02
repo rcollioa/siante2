@@ -61,7 +61,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/CapasResponse"
+                  "$ref" : "#/components/schemas/MisCapasResponse"
                 }
               }
             },
@@ -93,6 +93,84 @@
               }
             },
             "description" : "OK"
+          }
+        },
+        "tags" : [ "capas-controller" ]
+      },
+      "patch" : {
+        "operationId" : "editarCapa",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EdicionCapa"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "tags" : [ "capas-controller" ]
+      }
+    },
+    "/siante2/api/capas/{id}/eliminar" : {
+      "post" : {
+        "operationId" : "eliminarCapa",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "tags" : [ "capas-controller" ]
+      }
+    },
+    "/siante2/api/capas/{id}/visibilidad" : {
+      "patch" : {
+        "operationId" : "cambiarVisibilidadDeCapa",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CambioVisibilidad"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
           }
         },
         "tags" : [ "capas-controller" ]
@@ -537,6 +615,16 @@
   },
   "components" : {
     "schemas" : {
+      "CambioVisibilidad" : {
+        "type" : "object",
+        "properties" : {
+          "visibilidad" : {
+            "type" : "string",
+            "enum" : [ "PRIVADA", "PUBLICA", "FORMAL", "AREA_DE_DIBUJO" ]
+          }
+        },
+        "required" : [ "visibilidad" ]
+      },
       "Capa" : {
         "type" : "object",
         "properties" : {
@@ -616,6 +704,30 @@
           }
         },
         "required" : [ "extension", "nombre", "titulo" ]
+      },
+      "CapaPropia" : {
+        "type" : "object",
+        "properties" : {
+          "categoriaId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "descripcion" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "visibilidad" : {
+            "type" : "string",
+            "enum" : [ "PRIVADA", "PUBLICA", "FORMAL", "AREA_DE_DIBUJO" ]
+          }
+        },
+        "required" : [ "categoriaId", "descripcion", "id", "nombre", "visibilidad" ]
       },
       "CapasResponse" : {
         "type" : "object",
@@ -697,6 +809,26 @@
           }
         },
         "required" : [ "data" ]
+      },
+      "EdicionCapa" : {
+        "type" : "object",
+        "properties" : {
+          "categoriaId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "descripcion" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "visibilidad" : {
+            "type" : "string",
+            "enum" : [ "PRIVADA", "PUBLICA", "FORMAL", "AREA_DE_DIBUJO" ]
+          }
+        },
+        "required" : [ "categoriaId", "descripcion", "nombre", "visibilidad" ]
       },
       "ElementoCapa" : {
         "type" : "object",
@@ -880,6 +1012,18 @@
           }
         },
         "required" : [ "nombre", "valor" ]
+      },
+      "MisCapasResponse" : {
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CapaPropia"
+            }
+          }
+        },
+        "required" : [ "data" ]
       },
       "Multimedia" : {
         "type" : "object",

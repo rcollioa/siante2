@@ -10,8 +10,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import siante2.capas.application.port.out.CapasReadPort;
+import siante2.capas.application.port.out.CapasWritePort;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
+import siante2.capas.domain.CapaPropia;
+import siante2.capas.domain.EdicionCapa;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.ResumenCapa;
@@ -21,12 +24,14 @@ import siante2.capas.domain.Visibilidad;
 
 @Repository
 @Transactional(readOnly = true)
-class OracleCapasRepository implements CapasReadPort {
+class OracleCapasRepository implements CapasReadPort, CapasWritePort {
 
     private static final Logger log = LoggerFactory.getLogger(OracleCapasRepository.class);
 
     /** Códigos de SIATE ({@code MessageConstants}): {@code STATUS} y {@code VISIBILITY}. */
     static final String ACTIVA = "1";
+    static final String INACTIVA = "0";
+    static final String PRIVADA = "0";
     static final String PUBLICA = "1";
     static final String FORMAL = "2";
     static final String AREA_DE_DIBUJO = "3";
@@ -37,24 +42,57 @@ class OracleCapasRepository implements CapasReadPort {
     /** Visibilidades que ve cualquier usuario, además de las propias. */
     private static final List<String> DE_TODOS = List.of(PUBLICA, FORMAL);
 
+    /** Visibilidades de las capas que su dueño gestiona: ni las formales ni las áreas de dibujo. */
+    private static final List<String> GESTIONABLES = List.of(PRIVADA, PUBLICA);
+
     private final VistaCapaJpaRepository vista;
     private final ElementoCapaJpaRepository elementos;
+    private final CapaJpaRepository capas;
     private final int usuarioCapasFormales;
 
     /** @param usuarioCapasFormales ID en USERS del usuario de sistema "SIANTE", dueño de las capas formales
      *     ({@code Config.IDSIANTE} del frontend de SIATE). */
-    OracleCapasRepository(VistaCapaJpaRepository vista, ElementoCapaJpaRepository elementos,
+    OracleCapasRepository(VistaCapaJpaRepository vista, ElementoCapaJpaRepository elementos, CapaJpaRepository capas,
                           @Value("${app.capas.usuario-formales:1}") int usuarioCapasFormales) {
         this.vista = vista;
         this.elementos = elementos;
+        this.capas = capas;
         this.usuarioCapasFormales = usuarioCapasFormales;
     }
 
     @Override
-    public List<ResumenCapa> listarDe(int usuarioId) {
+    public List<CapaPropia> listarDe(int usuarioId) {
         return vista.buscarDe(usuarioId, ACTIVA, AREA_DE_DIBUJO).stream()
-                .map(f -> new ResumenCapa(f.id(), f.nombre(), f.descripcion(), visibilidad(f.visibilidad())))
+                .map(f -> new CapaPropia(f.id(), f.nombre(), f.descripcion(), visibilidad(f.visibilidad()), f.categoriaId()))
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public boolean actualizar(int capaId, int duenoId, EdicionCapa edicion) {
+        return capas.actualizar(capaId, duenoId, edicion.nombre(), edicion.descripcion(), edicion.categoriaId(),
+                codigo(edicion.visibilidad()), ACTIVA, GESTIONABLES) > 0;
+    }
+
+    @Override
+    @Transactional
+    public boolean cambiarVisibilidad(int capaId, int duenoId, Visibilidad visibilidad) {
+        return capas.cambiarVisibilidad(capaId, duenoId, codigo(visibilidad), ACTIVA, GESTIONABLES) > 0;
+    }
+
+    @Override
+    @Transactional
+    public boolean eliminar(int capaId, int duenoId) {
+        return capas.desactivar(capaId, duenoId, INACTIVA, ACTIVA, GESTIONABLES) > 0;
+    }
+
+    private static String codigo(Visibilidad visibilidad) {
+        return switch (visibilidad) {
+            case PRIVADA -> PRIVADA;
+            case PUBLICA -> PUBLICA;
+            case FORMAL -> FORMAL;
+            case AREA_DE_DIBUJO -> AREA_DE_DIBUJO;
+        };
     }
 
     @Override

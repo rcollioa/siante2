@@ -4,15 +4,23 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import siante2.capas.application.port.in.CambiarVisibilidadCapaUseCase;
 import siante2.capas.application.port.in.ConsultarPuntoUseCase;
+import siante2.capas.application.port.in.EditarCapaUseCase;
+import siante2.capas.application.port.in.EliminarCapaUseCase;
 import siante2.capas.application.port.in.ListarFavoritasUseCase;
 import siante2.capas.application.port.in.ListarMisCapasUseCase;
 import siante2.capas.application.port.in.ObtenerMapaUseCase;
@@ -21,13 +29,16 @@ import siante2.capas.application.port.in.VerCapaUseCase;
 import siante2.capas.application.port.in.VerCatalogoUseCase;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
+import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.ConsultaPunto;
+import siante2.capas.domain.EdicionCapa;
 import siante2.capas.domain.ElementoDeServicio;
 import siante2.capas.domain.ImagenMapa;
 import siante2.capas.domain.PedidoMapa;
 import siante2.capas.domain.PedidoMosaico;
 import siante2.capas.domain.ResumenCapa;
 import siante2.capas.domain.SeccionCatalogo;
+import siante2.capas.domain.Visibilidad;
 
 /** Reemplaza a {@code GET /siante/api/users/:ID/layers} y {@code GET /siante/api/layers/:ID} de SIATE. El usuario
  * sale de WebSEAL y no de la URL; sin {@code @Catalogo}, porque son datos de cada usuario. */
@@ -42,10 +53,17 @@ public class CapasController {
     private final ObtenerMapaUseCase mapa;
     private final ConsultarPuntoUseCase consulta;
     private final ObtenerMosaicoUseCase mosaico;
+    private final EditarCapaUseCase editar;
+    private final CambiarVisibilidadCapaUseCase visibilidad;
+    private final EliminarCapaUseCase eliminar;
 
     public CapasController(ListarMisCapasUseCase listar, VerCapaUseCase ver, ListarFavoritasUseCase favoritas,
                            VerCatalogoUseCase catalogo, ObtenerMapaUseCase mapa, ConsultarPuntoUseCase consulta,
-                           ObtenerMosaicoUseCase mosaico) {
+                           ObtenerMosaicoUseCase mosaico, EditarCapaUseCase editar,
+                           CambiarVisibilidadCapaUseCase visibilidad, EliminarCapaUseCase eliminar) {
+        this.editar = editar;
+        this.visibilidad = visibilidad;
+        this.eliminar = eliminar;
         this.listar = listar;
         this.ver = ver;
         this.favoritas = favoritas;
@@ -56,8 +74,31 @@ public class CapasController {
     }
 
     @GetMapping("/mias")
-    public CapasResponse listarMisCapas(Authentication autenticacion) {
-        return new CapasResponse(listar.listar(autenticacion.getName()));
+    public MisCapasResponse listarMisCapas(Authentication autenticacion) {
+        return new MisCapasResponse(listar.listar(autenticacion.getName()));
+    }
+
+    /** Reemplaza a {@code PATCH /siante/api/layers/:ID} de SIATE, que no verificaba el dueño y dejaba cambiar cualquier
+     * campo, incluido {@code OWNER}. Aquí, solo los del formulario y solo en capas propias. */
+    @PatchMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void editarCapa(@PathVariable int id, @RequestBody EdicionCapa edicion, Authentication autenticacion) {
+        editar.editar(id, autenticacion.getName(), edicion);
+    }
+
+    /** Publicar y despublicar, los botones de "Mis capas" en SIATE. */
+    @PatchMapping("/{id}/visibilidad")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cambiarVisibilidadDeCapa(@PathVariable int id, @RequestBody CambioVisibilidad cambio, Authentication autenticacion) {
+        visibilidad.cambiarVisibilidad(id, autenticacion.getName(), cambio.visibilidad());
+    }
+
+    /** POST y no DELETE: SIATE solo usa POST y PATCH, los únicos verbos que se sabe que WebSEAL deja pasar. Reemplaza al
+     * {@code PATCH} con {@code STATUS=0}: como en SIATE, la capa queda inactiva y no se borra. */
+    @PostMapping("/{id}/eliminar")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminarCapa(@PathVariable int id, Authentication autenticacion) {
+        eliminar.eliminar(id, autenticacion.getName());
     }
 
     /** Reemplaza a {@code users/:ID/favourites} y {@code users/:ID/favourites/formallayers} de SIATE: las dos listas
@@ -127,7 +168,13 @@ public class CapasController {
         return ver.ver(id, autenticacion.getName());
     }
 
+    public record MisCapasResponse(List<CapaPropia> data) {
+    }
+
     public record CapasResponse(List<ResumenCapa> data) {
+    }
+
+    public record CambioVisibilidad(Visibilidad visibilidad) {
     }
 
     public record ElementosDeServicioResponse(List<ElementoDeServicio> data) {

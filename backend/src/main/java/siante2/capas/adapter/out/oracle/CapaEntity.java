@@ -3,12 +3,11 @@ package siante2.capas.adapter.out.oracle;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.Immutable;
 
-/** Capa: tabla {@code LAYERS} de SIATE (modelo {@code Layer}), solo lectura.
- * Sin {@code FILE_BASE64}: el archivo original se lee aparte, solo cuando se necesita. */
+/** Capa: tabla {@code LAYERS} de SIATE (modelo {@code Layer}). Sin {@code @Immutable} porque se actualiza, solo con los
+ * {@code update} de {@link CapaJpaRepository}; sin setters, para que nunca se reescriba la fila completa, que SIATE
+ * también escribe. Sin {@code FILE_BASE64}: el archivo original se lee aparte, solo cuando se necesita. */
 @Entity
-@Immutable
 @Table(name = "LAYERS")
 public class CapaEntity {
 

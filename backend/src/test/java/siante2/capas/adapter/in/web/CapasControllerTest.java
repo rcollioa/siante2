@@ -5,9 +5,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import siante2.capas.application.port.in.CambiarVisibilidadCapaUseCase;
 import siante2.capas.application.port.in.ConsultarPuntoUseCase;
+import siante2.capas.application.port.in.EditarCapaUseCase;
+import siante2.capas.application.port.in.EliminarCapaUseCase;
 import siante2.capas.application.port.in.ListarFavoritasUseCase;
 import siante2.capas.application.port.in.ListarMisCapasUseCase;
 import siante2.capas.application.port.in.ObtenerMapaUseCase;
@@ -17,6 +21,8 @@ import siante2.capas.application.port.in.VerCatalogoUseCase;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.CapaDeServicio;
+import siante2.capas.domain.CapaPropia;
+import siante2.capas.domain.EdicionCapa;
 import siante2.capas.domain.ConsultaPunto;
 import siante2.capas.domain.ElementoDeServicio;
 import siante2.capas.domain.Extension;
@@ -35,14 +41,19 @@ import siante2.capas.domain.Visibilidad;
 import siante2.compartido.adapter.in.web.UsuarioDePrueba;
 import siante2.compartido.domain.Geometria;
 import siante2.compartido.domain.RecursoNoEncontradoException;
+import siante2.compartido.domain.SolicitudInvalidaException;
 
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -55,6 +66,78 @@ class CapasControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private EditarCapaUseCase editar;
+
+    @MockitoBean
+    private CambiarVisibilidadCapaUseCase visibilidad;
+
+    @MockitoBean
+    private EliminarCapaUseCase eliminar;
+
+    @Test
+    void editarResponde204YElUsuarioSaleDeWebSeal() throws Exception {
+        mockMvc.perform(patch(RUTA + "/7").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nombre":"Bodegas","descripcion":"Región","categoriaId":3,"visibilidad":"PUBLICA"}"""))
+                .andExpect(status().isNoContent());
+
+        verify(editar).editar(7, "prueba", new EdicionCapa("Bodegas", "Región", 3, Visibilidad.PUBLICA));
+    }
+
+    @Test
+    void elCuerpoNoPuedeElegirAlDueno() throws Exception {
+        mockMvc.perform(patch(RUTA + "/7").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nombre":"Bodegas","descripcion":"","categoriaId":3,"visibilidad":"PRIVADA","dueno":"otro","owner":9}"""))
+                .andExpect(status().isNoContent());
+
+        verify(editar).editar(7, "prueba", new EdicionCapa("Bodegas", "", 3, Visibilidad.PRIVADA));
+    }
+
+    @Test
+    void datosInvalidosResponden400ConElMensaje() throws Exception {
+        doThrow(new SolicitudInvalidaException("Nombre requerido.")).when(editar).editar(eq(7), eq("prueba"), argThat(e -> e.nombre().isEmpty()));
+
+        mockMvc.perform(patch(RUTA + "/7").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nombre":"","descripcion":"","categoriaId":3,"visibilidad":"PRIVADA"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").value("Nombre requerido."));
+    }
+
+    @Test
+    void unaVisibilidadQueNoExisteResponde400SinLlegarAlCasoDeUso() throws Exception {
+        mockMvc.perform(patch(RUTA + "/7/visibilidad").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"visibilidad":"OTRA"}"""))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(visibilidad);
+    }
+
+    @Test
+    void publicarResponde204() throws Exception {
+        mockMvc.perform(patch(RUTA + "/7/visibilidad").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"visibilidad":"PUBLICA"}"""))
+                .andExpect(status().isNoContent());
+
+        verify(visibilidad).cambiarVisibilidad(7, "prueba", Visibilidad.PUBLICA);
+    }
+
+    @Test
+    void eliminarResponde204() throws Exception {
+        mockMvc.perform(post(RUTA + "/7/eliminar")).andExpect(status().isNoContent());
+
+        verify(eliminar).eliminar(7, "prueba");
+    }
+
+    @Test
+    void escribirEnUnaCapaAjenaResponde404() throws Exception {
+        doThrow(new RecursoNoEncontradoException("La capa no existe.")).when(eliminar).eliminar(8, "prueba");
+
+        mockMvc.perform(post(RUTA + "/8/eliminar"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
 
     @MockitoBean
     private ListarMisCapasUseCase listar;
@@ -197,13 +280,14 @@ class CapasControllerTest {
 
     @Test
     void listaLasCapasDelUsuarioDeWebSealYNoSeGuardanEnElNavegador() throws Exception {
-        when(listar.listar("prueba")).thenReturn(List.of(new ResumenCapa(1, "Bodegas", "Región", Visibilidad.PRIVADA)));
+        when(listar.listar("prueba")).thenReturn(List.of(new CapaPropia(1, "Bodegas", "Región", Visibilidad.PRIVADA, 9)));
 
         mockMvc.perform(get(RUTA + "/mias"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", startsWith("no-cache")))
                 .andExpect(jsonPath("$.data[0].nombre").value("Bodegas"))
-                .andExpect(jsonPath("$.data[0].visibilidad").value("PRIVADA"));
+                .andExpect(jsonPath("$.data[0].visibilidad").value("PRIVADA"))
+                .andExpect(jsonPath("$.data[0].categoriaId").value(9));
     }
 
     @Test
