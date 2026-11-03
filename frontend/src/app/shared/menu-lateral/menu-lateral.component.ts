@@ -1,8 +1,9 @@
 import { DatePipe, NgComponentOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DOCUMENT, inject, signal, Type } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DOCUMENT, effect, inject, signal, Type, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { catchError, of } from 'rxjs';
+import { ArchivosSoltados } from '../archivos-soltados/archivos-soltados.service';
 import { SesionService } from '../sesion/sesion.service';
 import { VersionApiService } from '../version/version-api.service';
 import { MenuLateralService } from './menu-lateral.service';
@@ -29,20 +30,47 @@ export class MenuLateralComponent {
   });
   private readonly router = inject(Router);
   private readonly ventana = inject(DOCUMENT).defaultView;
+  private readonly soltados = inject(ArchivosSoltados);
+
+  constructor() {
+    // El formulario que recibe un archivo soltado vive dentro de un panel: si está oculto, el diálogo no se vería.
+    effect(() => {
+      const hayArchivos = this.soltados.pendientes().length > 0;
+      const receptora = SECCIONES.find((seccion) => seccion.recibeArchivos);
+      if (hayArchivos && receptora) {
+        untracked(() => {
+          this.abierto.set(true);
+          this.desplegar(receptora);
+        });
+      }
+    });
+  }
 
   protected alNavegar(): void {
     this.menu.alElegir();
   }
 
   protected alternar(seccion: Seccion): void {
-    const desplegar = !this.desplegadas().has(seccion.nombre);
-    this.marcar(seccion.nombre, desplegar);
-    if (desplegar && seccion.panel && !this.paneles()[seccion.nombre]) {
+    if (this.desplegadas().has(seccion.nombre)) {
+      this.marcar(seccion.nombre, false);
+    } else {
+      this.desplegar(seccion);
+    }
+  }
+
+  private desplegar(seccion: Seccion): void {
+    this.marcar(seccion.nombre, true);
+    if (seccion.panel && !this.paneles()[seccion.nombre]) {
       seccion
         .panel()
         .then((componente) => this.paneles.update((paneles) => ({ ...paneles, [seccion.nombre]: componente })))
-        // Sin conexión no se descarga: queda plegada para volver a intentarlo.
-        .catch(() => this.marcar(seccion.nombre, false));
+        .catch(() => {
+          // Sin conexión no se descarga: queda plegada para volver a intentarlo, sin el archivo que esperaba.
+          this.marcar(seccion.nombre, false);
+          if (seccion.recibeArchivos) {
+            this.soltados.pendientes.set([]);
+          }
+        });
     }
   }
 

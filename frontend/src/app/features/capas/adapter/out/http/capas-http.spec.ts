@@ -17,6 +17,42 @@ describe('CapasHttp', () => {
 
   afterEach(() => http.verify());
 
+  describe('importar', () => {
+    const elemento: ElementoCapa = {
+      id: -1,
+      geometria: { type: 'Point', coordinates: [-70.65, -33.44] },
+      radio: 0,
+      nombre: '',
+      descripcion: '',
+      estilo: { color: '', grosor: 0, relleno: '', icono: '' },
+      metadatos: []
+    };
+
+    it('es un POST con la capa y sus elementos, y entrega la capa creada', () => {
+      const creada = { id: 50, nombre: 'Bodegas', descripcion: '', visibilidad: 'PRIVADA', categoriaId: 0 };
+      let recibida: unknown;
+      servicio.importar({ nombre: 'Bodegas', descripcion: '' }, 'KML', [elemento]).subscribe((capa) => (recibida = capa));
+
+      const pedido = http.expectOne('/siante2/api/capas/importar');
+      expect(pedido.request.method).toBe('POST');
+      expect(pedido.request.body).toEqual({ nombre: 'Bodegas', descripcion: '', origen: 'KML', elementos: [elemento] });
+      expect(pedido.request.context.get(SIN_PANTALLA_CARGA)).toBe(true);
+      pedido.flush(creada, { status: 201, statusText: 'Created' });
+      expect(recibida).toEqual(creada);
+    });
+
+    it('un 400 entrega el mensaje del backend', () => {
+      let error: unknown;
+      servicio.importar({ nombre: 'Bodegas', descripcion: '' }, 'KML', [elemento]).subscribe({ error: (e: unknown) => (error = e) });
+
+      http
+        .expectOne('/siante2/api/capas/importar')
+        .flush({ code: 'INVALID_REQUEST', message: 'Nombre requerido.' }, { status: 400, statusText: 'Bad Request' });
+
+      expect(error).toEqual(new CambiosRechazados('Nombre requerido.'));
+    });
+  });
+
   describe('guardarElementos', () => {
     const nuevo: ElementoCapa = {
       id: -1,

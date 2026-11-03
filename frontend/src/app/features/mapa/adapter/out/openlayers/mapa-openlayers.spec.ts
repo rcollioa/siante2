@@ -32,6 +32,15 @@ describe('MapaOpenLayers', () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
+  it('lee un KML sin mostrar sus elementos', async () => {
+    const leidos = await servicio.leerKml(
+      '<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><Point><coordinates>-70.65,-33.44</coordinates></Point></Placemark></kml>'
+    );
+
+    expect(leidos.map(({ geometria }) => geometria.coordinates)).toEqual([[-70.65, -33.44]]);
+    expect(abiertas()).toEqual([]);
+  });
+
   it('parte con el mapa como capa base y el satelital oculto', () => {
     expect(servicio.capaBase()).toBe('mapa');
     expect(visibles()).toEqual([true, false]);

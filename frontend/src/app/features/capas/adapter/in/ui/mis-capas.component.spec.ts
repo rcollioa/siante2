@@ -1,13 +1,17 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter, Router } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
+import { ArchivosSoltados } from '../../../../../shared/archivos-soltados/archivos-soltados.service';
 import { MenuLateralService } from '../../../../../shared/menu-lateral/menu-lateral.service';
 import { CategoriasApiService } from '../../../../categorias/categorias-api.service';
 import { CapaEnMapa, CapasAbiertas } from '../../../application/capas-abiertas';
 import { EdicionElementos } from '../../../application/edicion-elementos';
+import { LectorArchivos } from '../../../application/lector-archivos';
 import { CapasRepositorio } from '../../../application/port/out/capas.repositorio';
 import { Capa, CapaPropia, NuevaCapa, ResumenCapa } from '../../../domain/capa';
+import { CrearCapaComponent } from './crear-capa.component';
 import { MisCapasComponent } from './mis-capas.component';
 
 describe('MisCapasComponent', () => {
@@ -32,6 +36,7 @@ describe('MisCapasComponent', () => {
   };
   const edicion = { capa: signal<Capa | null>(null), iniciar: vi.fn(), terminar: vi.fn() };
   const menu = { alElegir: vi.fn() };
+  const leer = vi.fn();
   let fixture: ComponentFixture<MisCapasComponent>;
   let elemento: HTMLElement;
 
@@ -42,7 +47,7 @@ describe('MisCapasComponent', () => {
   const opcion = (texto: string) => opciones().find((boton) => boton.textContent?.trim() === texto) as HTMLButtonElement;
   const confirmacion = () => elemento.querySelector('app-confirmacion dialog') as HTMLDialogElement;
 
-  function crear(): void {
+  function crear(antesDeCrear?: () => void): void {
     TestBed.configureTestingModule({
       imports: [MisCapasComponent],
       providers: [
@@ -51,10 +56,12 @@ describe('MisCapasComponent', () => {
         { provide: CapasRepositorio, useValue: { listarMias, crear: crearCapa, cambiarVisibilidad, eliminar } },
         { provide: CapasAbiertas, useValue: capasAbiertas },
         { provide: EdicionElementos, useValue: edicion },
+        { provide: LectorArchivos, useValue: { leer } },
         { provide: MenuLateralService, useValue: menu },
         { provide: CategoriasApiService, useValue: { listar: () => of([{ id: 3, nombre: 'Agua', descripcion: '' }]) } }
       ]
     });
+    antesDeCrear?.();
     fixture = TestBed.createComponent(MisCapasComponent);
     fixture.detectChanges();
     elemento = fixture.nativeElement;
@@ -129,6 +136,17 @@ describe('MisCapasComponent', () => {
       expect(edicion.iniciar).toHaveBeenCalledWith(50);
       expect(TestBed.inject(Router).url).toBe('/mapa');
       expect(menu.alElegir).toHaveBeenCalled();
+    });
+
+    it('una capa importada se abre para ver sus elementos, sin entrar a dibujar', async () => {
+      crear();
+
+      fixture.debugElement.query(By.directive(CrearCapaComponent)).componentInstance.importada.emit({ ...bodegas, id: 50 });
+      await fixture.whenStable();
+
+      expect(capasAbiertas.abrir).toHaveBeenCalledWith(50);
+      expect(edicion.iniciar).not.toHaveBeenCalled();
+      expect(TestBed.inject(Router).url).toBe('/mapa');
     });
 
     it('si falla no la agrega ni abre nada', () => {
@@ -274,6 +292,39 @@ describe('MisCapasComponent', () => {
       expect(confirmacion().open).toBe(true);
       expect(confirmacion().querySelector('[role="alert"]')?.textContent).toBe('No se pudo guardar el cambio. Intente nuevamente.');
       expect(botones()).toHaveLength(2);
+    });
+  });
+
+  describe('un archivo soltado en la ventana', () => {
+    const formulario = () => elemento.querySelector('app-crear-capa dialog') as HTMLDialogElement;
+    const archivo = { name: 'Bodegas.kml' } as File;
+
+    beforeEach(() => {
+      leer.mockReset();
+      leer.mockResolvedValue({ origen: 'KML', elementos: [], omitidos: 0, enCarpetas: false });
+      listarMias = vi.fn(() => of([bodegas]));
+    });
+
+    afterEach(() => formulario().close());
+
+    it('llega al formulario de crear capa y deja de estar pendiente', async () => {
+      crear();
+      const soltados = TestBed.inject(ArchivosSoltados);
+
+      soltados.pendientes.set([archivo]);
+      await fixture.whenStable();
+
+      expect(formulario().open).toBe(true);
+      expect(leer).toHaveBeenCalledWith(archivo);
+      expect(soltados.pendientes()).toEqual([]);
+    });
+
+    it('llega también si fue lo que hizo aparecer este panel', async () => {
+      crear(() => TestBed.inject(ArchivosSoltados).pendientes.set([archivo]));
+      await fixture.whenStable();
+
+      expect(formulario().open).toBe(true);
+      expect(leer).toHaveBeenCalledTimes(1);
     });
   });
 

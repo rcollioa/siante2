@@ -25,6 +25,7 @@ import {
   CapaBase,
   CapaWms,
   CapaWmts,
+  ElementoLeido,
   ElementoMapa,
   ElementoSeleccionado,
   Extension,
@@ -407,6 +408,12 @@ export class MapaOpenLayers extends MapaPort {
 
   descartarAvisoUbicacion(): void {
     this.avisoUbicacion.set(null);
+  }
+
+  /** Con import dinámico: el lector de KML pesa, y solo lo necesita quien importa un archivo. */
+  async leerKml(texto: string): Promise<ElementoLeido[]> {
+    const { leerKml } = await import('./lector-kml');
+    return leerKml(texto);
   }
 
   /** Sin animación si el usuario reduce el movimiento. */

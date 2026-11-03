@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/siante2/api/capas/importar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["importarCapa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/capas/mias": {
         parameters: {
             query?: never;
@@ -335,6 +351,13 @@ export interface components {
             nombre: string;
             titulo: string;
         };
+        CapaImportada: {
+            descripcion: string;
+            elementos: components["schemas"]["ElementoCapa"][];
+            nombre: string;
+            /** @enum {string} */
+            origen: "KML" | "GEOJSON";
+        };
         CapaPropia: {
             /** Format: int32 */
             categoriaId: number;
@@ -561,6 +584,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CapasResponse"];
+                };
+            };
+        };
+    };
+    importarCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CapaImportada"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapaPropia"];
                 };
             };
         };

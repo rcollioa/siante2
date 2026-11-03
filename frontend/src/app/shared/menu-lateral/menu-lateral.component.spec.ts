@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { proveerCapas } from '../../features/capas/capas.providers';
 import { proveerMapa } from '../../features/mapa/mapa.providers';
+import { ArchivosSoltados } from '../archivos-soltados/archivos-soltados.service';
 import { SesionService } from '../sesion/sesion.service';
 import { MenuLateralComponent } from './menu-lateral.component';
 
@@ -96,6 +97,66 @@ describe('MenuLateralComponent', () => {
     fixture.detectChanges();
     expect(boton.getAttribute('aria-expanded')).toBe('false');
     expect(elemento.querySelector('app-mis-capas')).toBeNull();
+  });
+
+  describe('con un archivo soltado en la ventana', () => {
+    const geojson = '{"type":"Point","coordinates":[-70.65,-33.44]}';
+    const archivo = { name: 'Bodegas.geojson', size: geojson.length, arrayBuffer: async () => new TextEncoder().encode(geojson).buffer } as unknown as File;
+
+    // jsdom no siempre implementa el diálogo modal: basta con marcarlo abierto o cerrado.
+    beforeAll(() => {
+      if (!HTMLDialogElement.prototype.showModal) {
+        HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+          this.open = true;
+        };
+        HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+          this.open = false;
+        };
+      }
+    });
+
+    beforeEach(() => {
+      vi.stubGlobal('ResizeObserver', class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn(); });
+    });
+
+    it('abre el menú y despliega "Mis capas", que descarga su panel y abre el formulario con el archivo', async () => {
+      pantallaChica();
+      const fixture = crear();
+      const elemento: HTMLElement = fixture.nativeElement;
+      expect(elemento.querySelector('.menu')?.classList).not.toContain('abierto');
+
+      TestBed.inject(ArchivosSoltados).pendientes.set([archivo]);
+      fixture.detectChanges();
+
+      expect(elemento.querySelector('.menu')?.classList).toContain('abierto');
+      expect(elemento.querySelector('button.desplegable')?.getAttribute('aria-expanded')).toBe('true');
+      await vi.waitFor(() => {
+        fixture.detectChanges();
+        expect(elemento.querySelector<HTMLDialogElement>('app-crear-capa dialog')?.open).toBe(true);
+      });
+      await vi.waitFor(() => {
+        fixture.detectChanges();
+        expect(elemento.querySelector('app-crear-capa [role="status"]')?.textContent).toContain('Se importará 1 elemento.');
+      });
+      expect(elemento.querySelector<HTMLInputElement>('#nombre-nueva-capa')?.value).toBe('Bodegas');
+    });
+
+    it('si "Mis capas" ya estaba desplegada no la pliega', async () => {
+      const fixture = crear();
+      const elemento: HTMLElement = fixture.nativeElement;
+      const boton = elemento.querySelector<HTMLButtonElement>('button.desplegable')!;
+      boton.click();
+      await vi.waitFor(() => {
+        fixture.detectChanges();
+        expect(elemento.querySelector('app-mis-capas')).not.toBeNull();
+      });
+
+      TestBed.inject(ArchivosSoltados).pendientes.set([archivo]);
+      fixture.detectChanges();
+
+      expect(boton.getAttribute('aria-expanded')).toBe('true');
+      expect(elemento.querySelector<HTMLDialogElement>('app-crear-capa dialog')?.open).toBe(true);
+    });
   });
 
   it('mientras se consulta la sesión reserva la franja del usuario, sin Salir ni datos', () => {

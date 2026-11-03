@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Observable, Subscription, tap } from 'rxjs';
+import { ArchivoLeido } from '../domain/archivo-geografico';
 import { CapaNoEncontrada, CapaPropia, EdicionCapa, NuevaCapa, ResumenCapa, VisibilidadEditable } from '../domain/capa';
 import { CapasAbiertas } from './capas-abiertas';
 import { Favoritas } from './favoritas';
@@ -33,9 +34,15 @@ export class MisCapas {
 
   /** Entra a la lista en su lugar por nombre, sin volver a pedirla. */
   crear(nueva: NuevaCapa): Observable<CapaPropia> {
-    return this.repositorio
-      .crear({ nombre: nueva.nombre.trim(), descripcion: nueva.descripcion.trim() })
-      .pipe(tap((capa) => this.lista.update((capas) => porNombre([...capas, capa]))));
+    return this.repositorio.crear(limpia(nueva)).pipe(tap((capa) => this.agregar(capa)));
+  }
+
+  importar(nueva: NuevaCapa, { origen, elementos }: ArchivoLeido): Observable<CapaPropia> {
+    return this.repositorio.importar(limpia(nueva), origen, elementos).pipe(tap((capa) => this.agregar(capa)));
+  }
+
+  private agregar(capa: CapaPropia): void {
+    this.lista.update((capas) => porNombre([...capas, capa]));
   }
 
   editar(id: number, edicion: EdicionCapa): Observable<void> {
@@ -81,6 +88,10 @@ export class MisCapas {
     this.capasAbiertas.actualizar(id, datos);
     this.favoritas.actualizar(id, datos);
   }
+}
+
+function limpia({ nombre, descripcion }: NuevaCapa): NuevaCapa {
+  return { nombre: nombre.trim(), descripcion: descripcion.trim() };
 }
 
 /** El mismo orden de la API, que ordena en español: "Árboles" junto a "Arroyos". */

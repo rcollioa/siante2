@@ -40,8 +40,7 @@ export class ListaCapasComponent {
   /** Elegir una capa abierta la cierra. Desde otra página (Ayuda), primero vuelve al mapa. */
   protected alternar(capa: ResumenCapa): void {
     if (!this.abiertasPorId().has(capa.id)) {
-      this.irAlMapa();
-      this.capasAbiertas.abrir(capa.id);
+      this.abrir(capa);
     } else if (this.edicion.capa()?.id === capa.id) {
       // Si tiene cambios sin guardar, la barra de dibujo pregunta qué hacer: tiene que estar a la vista.
       this.irAlMapa();
@@ -49,6 +48,11 @@ export class ListaCapasComponent {
     } else {
       this.capasAbiertas.cerrar(capa.id);
     }
+  }
+
+  abrir(capa: ResumenCapa): void {
+    this.irAlMapa();
+    this.capasAbiertas.abrir(capa.id);
   }
 
   protected alternarGestion(capa: ResumenCapa): void {

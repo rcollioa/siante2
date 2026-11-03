@@ -13,6 +13,7 @@ import {
   CapaNoEncontrada,
   CapaPropia,
   EdicionCapa,
+  ElementoCapa,
   ElementoDeServicio,
   NuevaCapa,
   ResumenCapa,
@@ -20,6 +21,7 @@ import {
   ServidorDeMapasNoDisponible,
   VisibilidadEditable
 } from '../../../domain/capa';
+import { OrigenArchivo } from '../../../domain/archivo-geografico';
 import { CambiosElementos } from '../../../domain/cambios-elementos';
 
 type CapaDto = components['schemas']['Capa'];
@@ -32,6 +34,7 @@ type NuevaCapaDto = components['schemas']['NuevaCapa'];
 type CatalogoResponse = components['schemas']['CatalogoResponse'];
 type ElementosDeServicioResponse = components['schemas']['ElementosDeServicioResponse'];
 type CambiosElementosDto = components['schemas']['CambiosElementos'];
+type CapaImportadaDto = components['schemas']['CapaImportada'];
 type ElementosGuardados = components['schemas']['ElementosGuardados'];
 
 /** Sin CacheConsultas: las capas de cada usuario cambian (también desde SIATE) y el ETag ya evita volver a
@@ -53,6 +56,15 @@ export class CapasHttp extends CapasRepositorio {
     return this.http
       .post<CapaPropiaDto>(`${API_PREFIJO}/capas`, cuerpo, { context: sinPantallaDeCarga() })
       .pipe(map((capa): CapaPropia => capa));
+  }
+
+  /** El contrato marca `geometries` como obligatorio, pero una geometría leída de un archivo no lo lleva. */
+  importar(nueva: NuevaCapa, origen: OrigenArchivo, elementos: readonly ElementoCapa[]): Observable<CapaPropia> {
+    const cuerpo = { ...nueva, origen, elementos } as unknown as CapaImportadaDto;
+    return this.http.post<CapaPropiaDto>(`${API_PREFIJO}/capas/importar`, cuerpo, { context: sinPantallaDeCarga() }).pipe(
+      map((capa): CapaPropia => capa),
+      catchError((error: unknown) => throwError(() => traducirRechazo(error, 0)))
+    );
   }
 
   editar(id: number, edicion: EdicionCapa): Observable<void> {

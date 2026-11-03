@@ -47,6 +47,11 @@ export const MINIMO_NOMBRE = 4;
 export const MAXIMO_NOMBRE = 100;
 export const MAXIMO_DESCRIPCION = 200;
 
+/** Los límites de un elemento; el backend exige los mismos. Holgados: la descripción de un KML puede ser una tabla en HTML. */
+export const MAXIMO_NOMBRE_ELEMENTO = 500;
+export const MAXIMO_TEXTO_ELEMENTO = 65536;
+export const MAXIMO_METADATOS = 1000;
+
 /** Qué falta corregir en cada campo; vacío si está bien. */
 export interface ErroresEdicion {
   nombre: string;

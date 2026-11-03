@@ -4,6 +4,7 @@ import {
   CapaBase,
   CapaWms,
   CapaWmts,
+  ElementoLeido,
   ElementoMapa,
   ElementoSeleccionado,
   HerramientaDibujo,
@@ -59,6 +60,9 @@ export abstract class MapaPort {
   /** Cambia los datos o el estilo de un elemento mostrado; su forma es la que ya tiene en el mapa. */
   abstract reemplazarElemento(capa: number, anterior: ElementoMapa, nuevo: ElementoMapa): void;
   abstract quitarElemento(capa: number, elemento: ElementoMapa): void;
+
+  /** Los elementos de un KML, sin mostrarlos; vacío si no se puede leer. Quien lee KML es la librería del mapa. */
+  abstract leerKml(texto: string): Promise<ElementoLeido[]>;
 
   /** Centra el mapa en el punto (EPSG:4326) y lo marca. */
   abstract irA(longitud: number, latitud: number): void;

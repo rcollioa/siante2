@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
-import { CapaNoEncontrada, CapaPropia, EdicionCapa, NuevaCapa } from '../domain/capa';
+import { CapaNoEncontrada, CapaPropia, EdicionCapa, NuevaCapa, ElementoCapa } from '../domain/capa';
 import { CapasAbiertas } from './capas-abiertas';
 import { Favoritas } from './favoritas';
 import { mensajeDeEscritura, MisCapas } from './mis-capas';
@@ -13,6 +13,7 @@ describe('MisCapas', () => {
   let listarMias: ReturnType<typeof vi.fn<() => Observable<CapaPropia[]>>>;
   const repositorio = {
     crear: vi.fn<(nueva: NuevaCapa) => Observable<CapaPropia>>(),
+    importar: vi.fn<(nueva: NuevaCapa, origen: string, elementos: readonly ElementoCapa[]) => Observable<CapaPropia>>(),
     editar: vi.fn<(id: number, edicion: EdicionCapa) => Observable<void>>(),
     cambiarVisibilidad: vi.fn<(id: number, visibilidad: string) => Observable<void>>(),
     eliminar: vi.fn<(id: number) => Observable<void>>()
@@ -69,6 +70,17 @@ describe('MisCapas', () => {
   });
 
   describe('escrituras', () => {
+    it('importar envía los datos sin espacios a los lados y la capa entra a la lista en su lugar', () => {
+      const importada: CapaPropia = { id: 50, nombre: 'Árboles', descripcion: 'Parques', visibilidad: 'PRIVADA', categoriaId: 0 };
+      repositorio.importar.mockReturnValue(of(importada));
+      servicio.cargar();
+
+      servicio.importar({ nombre: ' Árboles ', descripcion: ' Parques ' }, { origen: 'KML', elementos: [], omitidos: 0, enCarpetas: false }).subscribe();
+
+      expect(repositorio.importar).toHaveBeenCalledWith({ nombre: 'Árboles', descripcion: 'Parques' }, 'KML', []);
+      expect(servicio.capas().map(({ nombre }) => nombre)[0]).toBe('Árboles');
+    });
+
     beforeEach(() => {
       servicio.cargar();
       listarMias.mockClear();

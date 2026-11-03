@@ -5,12 +5,14 @@ import {
   CapaCatalogo,
   CapaPropia,
   EdicionCapa,
+  ElementoCapa,
   ElementoDeServicio,
   NuevaCapa,
   ResumenCapa,
   SeccionCatalogo,
   VisibilidadEditable
 } from '../../../domain/capa';
+import { OrigenArchivo } from '../../../domain/archivo-geografico';
 import { CambiosElementos } from '../../../domain/cambios-elementos';
 
 /** Las capas guardadas en SIATE. */
@@ -31,6 +33,10 @@ export abstract class CapasRepositorio {
 
   /** Crea una capa privada y sin elementos; entrega la capa con su ID. */
   abstract crear(nueva: NuevaCapa): Observable<CapaPropia>;
+
+  /** Crea una capa privada con los elementos de un archivo, todos o ninguno. Falla con CambiosRechazados si los datos no
+   * son válidos. */
+  abstract importar(nueva: NuevaCapa, origen: OrigenArchivo, elementos: readonly ElementoCapa[]): Observable<CapaPropia>;
 
   /** Falla con CapaNoEncontrada si no existe o no es del usuario. */
   abstract editar(id: number, edicion: EdicionCapa): Observable<void>;

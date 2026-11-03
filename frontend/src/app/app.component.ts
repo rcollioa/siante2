@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { GuardsCheckEnd, NavigationCancel, NavigationError, Router, RouterOutlet } from '@angular/router';
 import { first, map } from 'rxjs';
+import { SoltarArchivosComponent } from './shared/archivos-soltados/soltar-archivos.component';
 import { MenuLateralComponent } from './shared/menu-lateral/menu-lateral.component';
 import { PantallaCargaComponent } from './shared/pantalla-carga/pantalla-carga.component';
 import { SesionService } from './shared/sesion/sesion.service';
@@ -9,7 +10,7 @@ import { SesionService } from './shared/sesion/sesion.service';
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, PantallaCargaComponent, MenuLateralComponent],
+  imports: [RouterOutlet, PantallaCargaComponent, MenuLateralComponent, SoltarArchivosComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })

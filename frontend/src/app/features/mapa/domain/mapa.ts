@@ -115,3 +115,17 @@ export interface OyenteEdicion {
 export const COLOR_POR_DEFECTO = '#71aecb';
 export const RELLENO_POR_DEFECTO = 'rgba(230, 248, 253, 0.35)';
 export const GROSOR_POR_DEFECTO = 2;
+
+/** Un elemento leído de un archivo: lo que el mapa dibuja, más su información. */
+export interface ElementoLeido extends ElementoMapa {
+  nombre: string;
+  descripcion: string;
+  metadatos: { nombre: string; valor: string }[];
+}
+
+/** Solo longitud y latitud, como guarda SIATE: un KML o un GeoJSON suelen traer también la altura. */
+export function sinAltura(coordenadas: unknown[]): unknown[] {
+  return typeof coordenadas[0] === 'number'
+    ? coordenadas.slice(0, 2)
+    : coordenadas.map((hijo) => (Array.isArray(hijo) ? sinAltura(hijo) : hijo));
+}

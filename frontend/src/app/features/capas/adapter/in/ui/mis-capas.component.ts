@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, viewChild } from '@angular/core';
+import { afterRenderEffect, ChangeDetectionStrategy, Component, inject, untracked, viewChild } from '@angular/core';
+import { ArchivosSoltados } from '../../../../../shared/archivos-soltados/archivos-soltados.service';
 import { ConfirmacionComponent } from '../../../../../shared/confirmacion/confirmacion.component';
 import { EdicionElementos } from '../../../application/edicion-elementos';
 import { mensajeDeEscritura, MisCapas } from '../../../application/mis-capas';
@@ -29,7 +30,7 @@ import { ListaCapasComponent } from './lista-capas.component';
         <button type="button" class="opcion peligro" (click)="preguntarEliminacion(capa)">Eliminar</button>
       </ng-template>
     </app-lista-capas>
-    <app-crear-capa (creada)="dibujar($event)" />
+    <app-crear-capa (creada)="dibujar($event)" (importada)="lista().abrir($event)" />
     <app-editar-capa />
     <app-confirmacion />
   `,
@@ -79,6 +80,7 @@ import { ListaCapasComponent } from './lista-capas.component';
 export class MisCapasComponent {
   protected readonly misCapas = inject(MisCapas);
   private readonly edicion = inject(EdicionElementos);
+  private readonly soltados = inject(ArchivosSoltados);
   protected readonly lista = viewChild.required(ListaCapasComponent);
   protected readonly creador = viewChild.required(CrearCapaComponent);
   protected readonly editor = viewChild.required(EditarCapaComponent);
@@ -86,6 +88,16 @@ export class MisCapasComponent {
 
   constructor() {
     this.misCapas.cargar();
+    // Después de dibujar: si el archivo fue lo que desplegó este panel, el formulario recién existe en ese momento.
+    afterRenderEffect(() => {
+      const archivos = this.soltados.pendientes();
+      if (archivos.length > 0) {
+        untracked(() => {
+          this.soltados.pendientes.set([]);
+          this.creador().recibirArchivos(archivos);
+        });
+      }
+    });
   }
 
   /** La capa se abre si hace falta y queda lista para dibujar. Una recién creada, como en SIATE, ya está en este modo. */

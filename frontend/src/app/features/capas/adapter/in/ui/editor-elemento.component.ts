@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { COLOR_POR_DEFECTO, GROSOR_POR_DEFECTO, RELLENO_POR_DEFECTO } from '../../../../mapa/domain/mapa';
 import { EdicionElementos } from '../../../application/edicion-elementos';
 import { aHexadecimal, rellenoDe } from '../../../domain/cambios-elementos';
-import { ElementoCapa, Metadato } from '../../../domain/capa';
+import { ElementoCapa, MAXIMO_NOMBRE_ELEMENTO, MAXIMO_TEXTO_ELEMENTO, Metadato } from '../../../domain/capa';
 
 /** El panel de edición de SIATE para el elemento seleccionado: "General", "Estilos" y "Metadata". */
 @Component({
@@ -15,8 +15,8 @@ export class EditorElementoComponent {
   private readonly edicion = inject(EdicionElementos);
   readonly elemento = input.required<ElementoCapa>();
 
-  protected readonly maximoNombre = 500;
-  protected readonly maximoTexto = 4000;
+  protected readonly maximoNombre = MAXIMO_NOMBRE_ELEMENTO;
+  protected readonly maximoTexto = MAXIMO_TEXTO_ELEMENTO;
   protected readonly esPunto = computed(() => {
     const { geometria, radio } = this.elemento();
     return radio === 0 && (geometria.type === 'Point' || geometria.type === 'MultiPoint');
