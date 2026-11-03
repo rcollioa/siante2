@@ -191,7 +191,7 @@ class CapasControllerTest {
 
     @Test
     void unaCapaWmsTraeLasCapasDeSuServidorSinSuUrl() throws Exception {
-        when(ver.ver(7, "prueba")).thenReturn(new Capa(7, "IDE", "", Visibilidad.PUBLICA, false, TipoCapa.URL, List.of(),
+        when(ver.ver(7, "prueba")).thenReturn(new Capa(7, "IDE", "", Visibilidad.PUBLICA, false, false, TipoCapa.URL, List.of(),
                 new ServicioMapa(TipoServicio.WMS, List.of(new CapaDeServicio("rios", "Ríos", new Extension(-76, -56, -66, -17))))));
 
         mockMvc.perform(get(RUTA + "/7"))
@@ -324,7 +324,7 @@ class CapasControllerTest {
         ElementoCapa circulo = new ElementoCapa(0, Geometria.simple("Point", List.of(-70.65, -33.44)), 500, "Radio",
                 "", new EstiloElemento("#3399CC", 2, "", ""), List.of(new Metadato("Fuente", "Terreno")));
         when(ver.ver(5, "prueba")).thenReturn(
-                new Capa(5, "Bodegas", "", Visibilidad.PUBLICA, true, TipoCapa.VECTORIAL, List.of(circulo), null));
+                new Capa(5, "Bodegas", "", Visibilidad.PUBLICA, true, true, TipoCapa.VECTORIAL, List.of(circulo), null));
 
         mockMvc.perform(get(RUTA + "/5"))
                 .andExpect(status().isOk())

@@ -66,8 +66,8 @@ class CapasServiceTest {
                 return Optional.empty();
             }
             return switch (capaId) {
-                case 1 -> Optional.of(new Capa(1, "Bodegas", "", Visibilidad.PRIVADA, true, TipoCapa.VECTORIAL, List.of(), null));
-                case 20, 21, 22, 23 -> Optional.of(new Capa(capaId, "IDE", "", Visibilidad.PUBLICA, false, TipoCapa.URL, List.of(), null));
+                case 1 -> Optional.of(new Capa(1, "Bodegas", "", Visibilidad.PRIVADA, true, true, TipoCapa.VECTORIAL, List.of(), null));
+                case 20, 21, 22, 23 -> Optional.of(new Capa(capaId, "IDE", "", Visibilidad.PUBLICA, false, false, TipoCapa.URL, List.of(), null));
                 default -> Optional.empty();
             };
         }

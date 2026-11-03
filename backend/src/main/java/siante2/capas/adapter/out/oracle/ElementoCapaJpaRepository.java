@@ -1,6 +1,8 @@
 package siante2.capas.adapter.out.oracle;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 
@@ -14,4 +16,14 @@ interface ElementoCapaJpaRepository extends Repository<ElementoCapaEntity, Eleme
             where e.idLayer = :capa
             order by e.idFeature""")
     List<FilaElementoCapa> buscarPorCapa(int capa);
+
+    @Query("""
+            select new siante2.capas.adapter.out.oracle.FilaElementoCapa(coalesce(e.idFeature, 0), e.jsonMetadata)
+            from ElementoCapaEntity e
+            where e.idLayer = :capa and e.idFeature in :ids""")
+    List<FilaElementoCapa> buscarPorCapaEIds(int capa, Collection<Integer> ids);
+
+    /** Vacío si la capa no tiene filas. */
+    @Query("select max(e.idFeature) from ElementoCapaEntity e where e.idLayer = :capa")
+    Optional<Integer> ultimoId(int capa);
 }

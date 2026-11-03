@@ -3,7 +3,6 @@ package siante2.capas.adapter.out.oracle;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,14 +36,11 @@ class OracleCapasRepository implements CapasReadPort, CapasWritePort {
     static final String FORMAL = "2";
     static final String AREA_DE_DIBUJO = "3";
 
-    /** SIATE guarda una capa por URL como {@code {"type":"WMS","url":...}}. */
-    private static final Pattern POR_URL = Pattern.compile("\"type\"\\s*:\\s*\"(WMS|WFS|WMTS)\"", Pattern.CASE_INSENSITIVE);
-
     /** Visibilidades que ve cualquier usuario, además de las propias. */
     private static final List<String> DE_TODOS = List.of(PUBLICA, FORMAL);
 
     /** Visibilidades de las capas que su dueño gestiona: ni las formales ni las áreas de dibujo. */
-    private static final List<String> GESTIONABLES = List.of(PRIVADA, PUBLICA);
+    static final List<String> GESTIONABLES = List.of(PRIVADA, PUBLICA);
 
     private final VistaCapaJpaRepository vista;
     private final ElementoCapaJpaRepository elementos;
@@ -105,9 +101,12 @@ class OracleCapasRepository implements CapasReadPort, CapasWritePort {
     @Override
     public Optional<Capa> buscarVisible(int capaId, int usuarioId) {
         return vista.buscarVisible(capaId, usuarioId, ACTIVA, DE_TODOS).map(f -> {
-            TipoCapa tipo = f.inicioJson() != null && POR_URL.matcher(f.inicioJson()).find() ? TipoCapa.URL : TipoCapa.VECTORIAL;
-            return new Capa(f.id(), f.nombre(), f.descripcion(), visibilidad(f.visibilidad()),
-                    Objects.equals(f.dueno(), usuarioId), tipo,
+            TipoCapa tipo = InicioJsonCapa.esPorUrl(f.inicioJson()) ? TipoCapa.URL : TipoCapa.VECTORIAL;
+            Visibilidad visibilidad = visibilidad(f.visibilidad());
+            boolean propia = Objects.equals(f.dueno(), usuarioId);
+            boolean editable = propia && (visibilidad == Visibilidad.PRIVADA || visibilidad == Visibilidad.PUBLICA)
+                    && InicioJsonCapa.sePuedeDibujar(f.inicioJson());
+            return new Capa(f.id(), f.nombre(), f.descripcion(), visibilidad, propia, editable, tipo,
                     tipo == TipoCapa.URL ? List.of() : elementosDe(capaId, usuarioId, f.inicioJson()), null);
         });
     }

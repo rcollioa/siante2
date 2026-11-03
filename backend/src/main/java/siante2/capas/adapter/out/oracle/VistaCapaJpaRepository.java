@@ -22,7 +22,8 @@ interface VistaCapaJpaRepository extends Repository<VistaCapaEntity, Integer> {
     @Query("""
             select new siante2.capas.adapter.out.oracle.FilaCapaVisible(
                 c.id, coalesce(c.name, ''), coalesce(c.description, ''), coalesce(c.visibility, '0'), c.userId,
-                substring(c.jsonMetadata, 1, 100))
+                substring(c.jsonMetadata, 1, """ + InicioJsonCapa.LARGO + """
+            ))
             from VistaCapaEntity c
             where c.id = :capa and c.status = :activa and (c.userId = :usuario or c.visibility in :deTodos)
             limit 1""")

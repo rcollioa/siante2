@@ -154,6 +154,43 @@
         "tags" : [ "capas-controller" ]
       }
     },
+    "/siante2/api/capas/{id}/elementos" : {
+      "post" : {
+        "operationId" : "guardarElementosDeCapa",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CambiosElementos"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ElementosGuardados"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "elementos-controller" ]
+      }
+    },
     "/siante2/api/capas/{id}/eliminar" : {
       "post" : {
         "operationId" : "eliminarCapa",
@@ -653,11 +690,39 @@
         },
         "required" : [ "visibilidad" ]
       },
+      "CambiosElementos" : {
+        "type" : "object",
+        "properties" : {
+          "eliminados" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "modificados" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ElementoCapa"
+            }
+          },
+          "nuevos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ElementoCapa"
+            }
+          }
+        },
+        "required" : [ "eliminados", "modificados", "nuevos" ]
+      },
       "Capa" : {
         "type" : "object",
         "properties" : {
           "descripcion" : {
             "type" : "string"
+          },
+          "editable" : {
+            "type" : "boolean"
           },
           "elementos" : {
             "type" : "array",
@@ -687,7 +752,7 @@
             "enum" : [ "PRIVADA", "PUBLICA", "FORMAL", "AREA_DE_DIBUJO" ]
           }
         },
-        "required" : [ "descripcion", "elementos", "id", "nombre", "propia", "servicio", "tipo", "visibilidad" ]
+        "required" : [ "descripcion", "editable", "elementos", "id", "nombre", "propia", "servicio", "tipo", "visibilidad" ]
       },
       "CapaCatalogo" : {
         "type" : "object",
@@ -916,6 +981,19 @@
           }
         },
         "required" : [ "data" ]
+      },
+      "ElementosGuardados" : {
+        "type" : "object",
+        "properties" : {
+          "nuevos" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "nuevos" ]
       },
       "EstiloElemento" : {
         "type" : "object",

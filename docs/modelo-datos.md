@@ -216,6 +216,8 @@ erDiagram
 8. **`MULTIMEDIA.DESCRIPCION` es `VARCHAR2(20)`**: descripciones muy cortas para títulos de manuales y guías.
 9. **Códigos guardados como texto:** `STATUS` y `VISIBILITY` son `VARCHAR2(20)` en `LAYERS`, pero `STATUS` es `NUMBER` en `LAYERS_GROUPS`.
 10. **Cinco tablas sin uso en el código del legacy** (`USERS_GROUPS`, `USERS_GROUPS_USERS`, `LAYERS_USERS_GROUPS`, `PUBLIC_REPORTS_TEMPORAL` y `PARAMETROS`): puede ser funcionalidad abandonada o algo que usa otro sistema.
+11. **`SPATIAL_OBJECT` de un círculo:** SIATE guarda un círculo de Oracle con el radio en metros o kilómetros como si fueran grados, así que su análisis espacial no lo ubica bien. siante2 guarda un polígono de 64 lados calculado en EPSG:3857, que coincide con lo que se ve en el mapa; `JSON_METADATA` sigue con `center` y `radius`.
+12. **Coordenadas de `LAYERS.JSON_METADATA`:** `LayerService.migration` de SIATE las convierte desde EPSG:3857 antes de crear las filas, así que una capa antigua sin migrar podría tenerlas en metros. siante2 las lee como EPSG:4326: las capas de DESA se ven bien, pero falta confirmar que no quede ninguna así en producción.
 
 ## Construcción en PostgreSQL: dos pasos
 
@@ -310,12 +312,12 @@ Por eso **el esquema de PostgreSQL lo maneja Flyway** (partiendo de `V1__esquema
 | Correlativos de reportes (`nextval_public_reports` sobre la secuencia de `identity`) | ✅ Sin cambios |
 | Multimedia: leer `ARCHIVO` | ❌ **Brecha:** con `@Lob`, Hibernate lo lee como `oid` y en PostgreSQL es `bytea`. Se resuelve en el adaptador de PostgreSQL (`@JdbcTypeCode(SqlTypes.VARBINARY)`); el test queda `@Disabled` hasta entonces |
 
-**Conclusión:** con el esquema espejo, casi todo el acceso a datos actual funciona igual en PostgreSQL. Las brechas concretas son la multimedia (`bytea`), las vistas de análisis sin definir y las vistas `v_layers` / `v_layers_groups`, que hoy son inferidas. Falta todavía la escritura de geometrías (`GeometriaAWkt` usa `SDO_UTIL`), que se probará cuando haya escrituras (SIS-201-b).
+**Conclusión:** con el esquema espejo, casi todo el acceso a datos actual funciona igual en PostgreSQL. Las brechas concretas son la multimedia (`bytea`), las vistas de análisis sin definir y las vistas `v_layers` / `v_layers_groups`, que hoy son inferidas. Falta todavía la escritura de geometrías: `OracleElementosRepository` calcula `SPATIAL_OBJECT` con `SDO_UTIL`, y el esquema de PostgreSQL no tiene esa columna.
 
 ## Pendientes para el DBA
 1. Definición SQL de las vistas `V_LAYERS`, `V_LAYERS_GROUPS`, `V_LF_TYPE_FILTER`, `V_SELECT_AREA` y `V_MEASURE_DISTANCE`.
 2. Triggers y secuencias de los IDs.
-3. Si `JSON_METADATA` de `LAYERS_FEATURES` trae siempre la geometría, para confirmar que `SPATIAL_OBJECT` se puede dejar fuera sin perder datos.
+3. Si `SPATIAL_OBJECT` admite NULL y tiene un índice espacial. siante2 lo deja en NULL solo al pasar a filas un elemento de `LAYERS.JSON_METADATA` cuya geometría Oracle Spatial no aceptaría, para no perderlo.
 4. Si otro sistema usa las 5 tablas sin uso conocido y `USERS.SUPERUSER`.
 5. Volumen: filas por tabla y tamaño de los `CLOB`/`BLOB`, para dimensionar PostgreSQL y la carga inicial.
 6. Valores de `CREATE_TYPE`, `ORIGIN` y `SCHEDULER_DATA.STATUS`.

@@ -1,0 +1,136 @@
+package siante2.capas.application.service;
+
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.Test;
+import siante2.capas.application.port.out.ElementosWritePort;
+import siante2.capas.domain.CambiosElementos;
+import siante2.capas.domain.ElementoCapa;
+import siante2.capas.domain.EstiloElemento;
+import siante2.capas.domain.Metadato;
+import siante2.compartido.domain.Geometria;
+import siante2.compartido.domain.RecursoNoEncontradoException;
+import siante2.compartido.domain.SolicitudInvalidaException;
+import siante2.usuarios.application.port.in.IdentificarUsuarioUseCase;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class ElementosServiceTest {
+
+    private static final Geometria PUNTO = Geometria.simple("Point", List.of(-70.65, -33.44));
+
+    private final EscrituraEnMemoria escritura = new EscrituraEnMemoria();
+    private final IdentificarUsuarioUseCase usuarios = ivUser -> "ana".equals(ivUser) ? Optional.of(7) : Optional.empty();
+    private final ElementosService servicio = new ElementosService(escritura, usuarios);
+
+    private static class EscrituraEnMemoria implements ElementosWritePort {
+        Integer duenoRecibido;
+        CambiosElementos cambiosRecibidos;
+        boolean sePuedeEditar = true;
+
+        @Override
+        public Optional<List<Integer>> guardar(int capaId, int duenoId, CambiosElementos cambios) {
+            duenoRecibido = duenoId;
+            cambiosRecibidos = cambios;
+            return sePuedeEditar ? Optional.of(List.of(10)) : Optional.empty();
+        }
+    }
+
+    private static ElementoCapa elemento(int id, Geometria geometria, double radio, String nombre, EstiloElemento estilo,
+                                         List<Metadato> metadatos) {
+        return new ElementoCapa(id, geometria, radio, nombre, "", estilo, metadatos);
+    }
+
+    private static ElementoCapa punto() {
+        return elemento(-1, PUNTO, 0, "", EstiloElemento.SIN_ESTILO, List.of());
+    }
+
+    private static CambiosElementos nuevo(ElementoCapa elemento) {
+        return new CambiosElementos(List.of(elemento), List.of(), List.of());
+    }
+
+    private void exigirRechazo(ElementoCapa elemento) {
+        assertThatThrownBy(() -> servicio.guardar(5, "ana", nuevo(elemento))).isInstanceOf(SolicitudInvalidaException.class);
+        assertThat(escritura.cambiosRecibidos).isNull();
+    }
+
+    @Test
+    void elDuenoSaleDeWebSealYEntregaLosIdDeLosNuevos() {
+        assertThat(servicio.guardar(5, "ana", nuevo(punto()))).containsExactly(10);
+
+        assertThat(escritura.duenoRecibido).isEqualTo(7);
+    }
+
+    @Test
+    void unUsuarioSinRegistroNoSeDistingueDeUnaCapaAjena() {
+        assertThatThrownBy(() -> servicio.guardar(5, "otro", nuevo(punto()))).isInstanceOf(RecursoNoEncontradoException.class);
+    }
+
+    @Test
+    void unaCapaQueNoSePuedeEditarResponde404() {
+        escritura.sePuedeEditar = false;
+
+        assertThatThrownBy(() -> servicio.guardar(5, "ana", nuevo(punto()))).isInstanceOf(RecursoNoEncontradoException.class);
+    }
+
+    @Test
+    void sinCambiosNoEscribeNada() {
+        assertThat(servicio.guardar(5, "ana", new CambiosElementos(null, null, null))).isEmpty();
+
+        assertThat(escritura.cambiosRecibidos).isNull();
+    }
+
+    @Test
+    void rechazaGeometriasQueNoSeDibujan() {
+        exigirRechazo(elemento(-1, null, 0, "", null, null));
+        exigirRechazo(elemento(-1, Geometria.simple("Hexagono", List.of()), 0, "", null, null));
+        exigirRechazo(elemento(-1, Geometria.coleccion(List.of(PUNTO)), 0, "", null, null));
+    }
+
+    @Test
+    void elRadioSoloCorrespondeAUnPunto() {
+        exigirRechazo(elemento(-1, PUNTO, -1, "", null, null));
+        exigirRechazo(elemento(-1, Geometria.simple("LineString", List.of()), 5, "", null, null));
+    }
+
+    @Test
+    void rechazaColoresYGrosoresInvalidos() {
+        exigirRechazo(elemento(-1, PUNTO, 0, "", new EstiloElemento("url(http://x)", 0, "", ""), null));
+        exigirRechazo(elemento(-1, PUNTO, 0, "", new EstiloElemento("", 0, "<script>", ""), null));
+        exigirRechazo(elemento(-1, PUNTO, 0, "", new EstiloElemento("", -1, "", ""), null));
+        exigirRechazo(elemento(-1, PUNTO, 0, "", new EstiloElemento("", 1001, "", ""), null));
+    }
+
+    @Test
+    void aceptaLosColoresQueGuardaSiate() {
+        for (String color : List.of("#71aecb", "#FFF", "rgba(230, 248, 253, 0.35)", "rgb(1,2,3)", "red", "")) {
+            assertThat(servicio.guardar(5, "ana", nuevo(elemento(-1, PUNTO, 0, "", new EstiloElemento(color, 2, color, ""), null))))
+                    .containsExactly(10);
+        }
+    }
+
+    @Test
+    void rechazaTextosDemasiadoLargos() {
+        exigirRechazo(elemento(-1, PUNTO, 0, "x".repeat(501), null, null));
+        exigirRechazo(new ElementoCapa(-1, PUNTO, 0, "", "x".repeat(4001), null, null));
+        exigirRechazo(elemento(-1, PUNTO, 0, "", null, List.of(new Metadato("x".repeat(501), ""))));
+        exigirRechazo(elemento(-1, PUNTO, 0, "", null, List.of(new Metadato("Fuente", "x".repeat(4001)))));
+    }
+
+    @Test
+    void rechazaDemasiadosCambiosOMetadatos() {
+        List<ElementoCapa> demasiados = java.util.Collections.nCopies(1001, punto());
+        assertThatThrownBy(() -> servicio.guardar(5, "ana", new CambiosElementos(demasiados, List.of(), List.of())))
+                .isInstanceOf(SolicitudInvalidaException.class);
+        exigirRechazo(elemento(-1, PUNTO, 0, "", null, java.util.Collections.nCopies(1001, new Metadato("a", "b"))));
+    }
+
+    @Test
+    void rechazaIdentificadoresInvalidos() {
+        assertThatThrownBy(() -> servicio.guardar(5, "ana", new CambiosElementos(List.of(), List.of(punto()), List.of())))
+                .isInstanceOf(SolicitudInvalidaException.class);
+        assertThatThrownBy(() -> servicio.guardar(5, "ana", new CambiosElementos(List.of(), List.of(), List.of(-3))))
+                .isInstanceOf(SolicitudInvalidaException.class);
+    }
+}

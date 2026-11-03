@@ -188,6 +188,18 @@ class OracleCapasRepositoryTest {
     }
 
     @Test
+    void soloSeDibujaEnLasCapasPropiasPrivadasOPublicasConElementosPropios() {
+        capa(8, YO, "Propia formal", "2", "1", "");
+        capa(9, YO, "Colección traída de una URL", "0", "1", "{\"type\":\"FeatureCollection\",\"url\":\"https://ide.cl/kml\",\"features\":[]}");
+
+        assertThat(repositorio.buscarVisible(1, YO).orElseThrow().editable()).isTrue();
+        assertThat(repositorio.buscarVisible(4, YO).orElseThrow().editable()).as("por URL").isFalse();
+        assertThat(repositorio.buscarVisible(6, YO).orElseThrow().editable()).as("ajena").isFalse();
+        assertThat(repositorio.buscarVisible(8, YO).orElseThrow().editable()).as("formal").isFalse();
+        assertThat(repositorio.buscarVisible(9, YO).orElseThrow().editable()).as("se sincroniza").isFalse();
+    }
+
+    @Test
     void unaCapaPrivadaAjenaOBorradaNoSaleDeLaBase() {
         assertThat(repositorio.buscarVisible(5, YO)).isEmpty();
         assertThat(repositorio.buscarVisible(3, YO)).isEmpty();
