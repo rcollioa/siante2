@@ -41,11 +41,17 @@ public class CapaEntity {
 
     /** Lo que guarda SIATE para una capa en blanco: sin {@code JSON_METADATA}, origen ni categoría. */
     CapaEntity(int owner, String name, String description, String status, String visibility) {
+        this(owner, name, description, status, visibility, null);
+    }
+
+    /** Una capa importada de un archivo: sus elementos van solo en {@code LAYERS_FEATURES}, como los dibujados. */
+    CapaEntity(int owner, String name, String description, String status, String visibility, String origin) {
         this.owner = owner;
         this.name = name;
         this.description = description;
         this.status = status;
         this.visibility = visibility;
+        this.origin = origin;
     }
 
     public Integer getId() {

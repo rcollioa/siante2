@@ -129,7 +129,7 @@ public class CapasService
     }
 
     /** Sin espacios a los lados: SIATE aceptaba un nombre de solo espacios. */
-    private static String nombreValido(String recibido) {
+    static String nombreValido(String recibido) {
         String nombre = recibido == null ? "" : recibido.trim();
         if (nombre.isEmpty()) {
             throw new SolicitudInvalidaException("Nombre requerido.");
@@ -143,7 +143,7 @@ public class CapasService
         return nombre;
     }
 
-    private static String descripcionValida(String recibida) {
+    static String descripcionValida(String recibida) {
         String descripcion = recibida == null ? "" : recibida.trim();
         if (descripcion.length() > MAXIMO_DESCRIPCION) {
             throw new SolicitudInvalidaException("La descripción no puede tener más de " + MAXIMO_DESCRIPCION + " caracteres.");

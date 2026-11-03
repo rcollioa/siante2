@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.sql.Clob;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,9 +16,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import siante2.capas.domain.CambiosElementos;
+import siante2.capas.domain.CapaImportada;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.EstiloElemento;
 import siante2.capas.domain.Metadato;
+import siante2.capas.domain.OrigenArchivo;
 import siante2.compartido.domain.Geometria;
 import siante2.compartido.domain.SolicitudInvalidaException;
 import tools.jackson.databind.JsonNode;
@@ -349,6 +352,79 @@ public class OracleElementosRepositoryTest {
         capa(51, YO, "0", "1", "{\"type\":\"FeatureCollection\",\"features\":[]}");
 
         assertThat(repositorio.guardar(51, YO, nuevos(punto(-1, -70.1, -33.1)))).contains(List.of(0));
+    }
+
+    @Test
+    void laAlturaDeUnArchivoNoLlegaALaGeometriaEspacial() {
+        ElementoCapa conAltura = new ElementoCapa(-1, Geometria.simple("LineString",
+                List.of(List.of(-70.6, -33.4, 120.0), List.of(-70.5, -33.3, 130.0))), 0, "", "", EstiloElemento.SIN_ESTILO, List.of());
+
+        repositorio.guardar(CAPA, YO, nuevos(conAltura));
+
+        assertThat(espacial(CAPA, 0)).isEqualTo("4326:LINESTRING (-70.6 -33.4, -70.5 -33.3)");
+    }
+
+    @Test
+    void unaGeometriaLargaVaComoClobJuntoAOtrasCortas() {
+        List<List<Double>> vertices = new ArrayList<>();
+        for (int i = 0; i < 200; i++) {
+            vertices.add(List.of(-70.123456789 - i * 0.001, -33.123456789 - i * 0.0005));
+        }
+        ElementoCapa larga = new ElementoCapa(-2, Geometria.simple("LineString", vertices), 0, "", "", EstiloElemento.SIN_ESTILO, List.of());
+
+        assertThat(repositorio.guardar(CAPA, YO, nuevos(punto(-1, -70.65, -33.44), larga, punto(-3, -70.1, -33.1)))).contains(List.of(0, 1, 2));
+
+        assertThat(espacial(CAPA, 0)).isEqualTo("4326:POINT (-70.65 -33.44)");
+        assertThat(espacial(CAPA, 1)).startsWith("4326:LINESTRING").hasSizeGreaterThan(1000);
+        assertThat(jsonGuardado(CAPA, 1).at("/geometry/coordinates")).hasSize(200);
+        assertThat(espacial(CAPA, 2)).isEqualTo("4326:POINT (-70.1 -33.1)");
+    }
+
+    @Test
+    void importarCreaUnaCapaPrivadaConSusElementosComoFilas() {
+        int id = repositorio.importar(YO, new CapaImportada("Bodegas", "Región", OrigenArchivo.KML, List.of(punto(-1, -70.65, -33.44), linea(-2))));
+
+        assertThat(jdbc.queryForMap("select * from LAYERS where ID = ?", id))
+                .containsEntry("OWNER", YO).containsEntry("NAME", "Bodegas").containsEntry("DESCRIPTION", "Región")
+                .containsEntry("STATUS", "1").containsEntry("VISIBILITY", "0").containsEntry("ORIGIN", "KML")
+                .containsEntry("JSON_METADATA", null).containsEntry("CATEGORY_ID", null);
+        assertThat(filaGuardada(id, 0)).containsEntry("TYPE", "Point");
+        assertThat(filaGuardada(id, 1)).containsEntry("TYPE", "LineString");
+        assertThat(espacial(id, 0)).isEqualTo("4326:POINT (-70.65 -33.44)");
+        assertThat(jsonGuardado(id, 1).at("/metadata/name").asString()).isEqualTo("Ruta");
+    }
+
+    @Test
+    void unaCapaDeUnArchivoJsonNoLlevaOrigenComoEnSiate() {
+        int id = repositorio.importar(YO, new CapaImportada("Bodegas", "", OrigenArchivo.GEOJSON, List.of(punto(-1, -70.65, -33.44))));
+
+        assertThat(jdbc.queryForMap("select * from LAYERS where ID = ?", id)).containsEntry("ORIGIN", null);
+    }
+
+    @Test
+    void importaMasElementosQueUnLoteDeEscritura() {
+        List<ElementoCapa> muchos = new ArrayList<>();
+        for (int i = 0; i < 1201; i++) {
+            muchos.add(punto(-1 - i, -70 - i * 0.001, -33));
+        }
+
+        int id = repositorio.importar(YO, new CapaImportada("Bodegas", "", OrigenArchivo.GEOJSON, muchos));
+
+        assertThat(filasDe(id)).isEqualTo(1201);
+        assertThat(filaGuardada(id, 1200)).isNotNull();
+    }
+
+    /** Sin la transacción del test: si un elemento no se puede guardar, tampoco queda la capa. */
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void siUnElementoNoSePuedeGuardarNoQuedaLaCapa() {
+        int antes = jdbc.queryForObject("select count(*) from LAYERS", Integer.class);
+
+        assertThatThrownBy(() -> repositorio.importar(YO, new CapaImportada("Bodegas", "", OrigenArchivo.KML,
+                List.of(punto(-1, -70.65, -33.44), punto(-2, 500, 500)))))
+                .isInstanceOf(SolicitudInvalidaException.class);
+
+        assertThat(jdbc.queryForObject("select count(*) from LAYERS", Integer.class)).isEqualTo(antes);
     }
 
     @Test

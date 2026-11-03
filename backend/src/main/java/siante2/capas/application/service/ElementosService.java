@@ -7,25 +7,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import siante2.capas.application.port.in.GuardarElementosUseCase;
+import siante2.capas.application.port.in.ImportarCapaUseCase;
 import siante2.capas.application.port.out.ElementosWritePort;
 import siante2.capas.domain.CambiosElementos;
+import siante2.capas.domain.CapaImportada;
+import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.EstiloElemento;
 import siante2.capas.domain.Metadato;
+import siante2.capas.domain.Visibilidad;
 import siante2.compartido.domain.RecursoNoEncontradoException;
 import siante2.compartido.domain.SolicitudInvalidaException;
 import siante2.usuarios.application.port.in.IdentificarUsuarioUseCase;
 
-/** Dibujar y editar los elementos de una capa propia. SIATE no validaba nada de esto en el servidor. */
+/** Dibujar, editar e importar los elementos de una capa propia. SIATE no validaba nada de esto en el servidor. */
 @Service
-public class ElementosService implements GuardarElementosUseCase {
+public class ElementosService implements GuardarElementosUseCase, ImportarCapaUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(ElementosService.class);
     /** Mucho más de lo que se dibuja a mano entre dos guardados; también respeta el límite de 1000 de un IN en Oracle. */
     private static final int MAXIMO_CAMBIOS = 1000;
-    /** Holgados: un elemento importado de un Excel puede traer textos largos, y no debe impedir editarlo. */
+    private static final int SIN_CATEGORIA = 0;
+    /** Se insertan de una vez: lo que SIATE deja para su proceso nocturno (más de 1,8 MB de JSON) ronda esta cantidad. */
+    private static final int MAXIMO_IMPORTADOS = 10000;
+    /** Holgados: la descripción de un KML puede ser una tabla en HTML, y no debe impedir importarlo ni editarlo. */
     private static final int MAXIMO_NOMBRE = 500;
-    private static final int MAXIMO_TEXTO = 4000;
+    private static final int MAXIMO_TEXTO = 65536;
     private static final int MAXIMO_METADATOS = 1000;
     private static final double MAXIMO_GROSOR = 1000;
     private static final Set<String> GEOMETRIAS =
@@ -52,6 +59,32 @@ public class ElementosService implements GuardarElementosUseCase {
         log.info("Capa {}: {} elementos nuevos, {} modificados y {} eliminados", capaId, cambios.nuevos().size(),
                 cambios.modificados().size(), cambios.eliminados().size());
         return ids;
+    }
+
+    @Override
+    public CapaPropia importar(String ivUser, CapaImportada capa) {
+        CapaImportada valida = validada(capa);
+        int dueno = usuarios.idDe(ivUser)
+                .orElseThrow(() -> new RecursoNoEncontradoException("El usuario no está registrado."));
+        int id = escritura.importar(dueno, valida);
+        log.info("Capa {} importada de un archivo {} con {} elementos", id, valida.origen(), valida.elementos().size());
+        return new CapaPropia(id, valida.nombre(), valida.descripcion(), Visibilidad.PRIVADA, SIN_CATEGORIA);
+    }
+
+    private static CapaImportada validada(CapaImportada capa) {
+        String nombre = CapasService.nombreValido(capa.nombre());
+        String descripcion = CapasService.descripcionValida(capa.descripcion());
+        if (capa.origen() == null) {
+            throw new SolicitudInvalidaException("El tipo de archivo no es válido.");
+        }
+        if (capa.elementos().isEmpty()) {
+            throw new SolicitudInvalidaException("El archivo no tiene geometrías.");
+        }
+        if (capa.elementos().size() > MAXIMO_IMPORTADOS) {
+            throw new SolicitudInvalidaException("No se pueden importar más de " + MAXIMO_IMPORTADOS + " elementos.");
+        }
+        capa.elementos().forEach(ElementosService::validar);
+        return new CapaImportada(nombre, descripcion, capa.origen(), capa.elementos());
     }
 
     private static void validar(CambiosElementos cambios) {

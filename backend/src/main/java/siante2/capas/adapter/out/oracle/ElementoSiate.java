@@ -172,7 +172,20 @@ final class ElementoSiate {
     /** Lo que va en {@code SPATIAL_OBJECT}, para el análisis espacial de SIATE. Un círculo va como polígono: WKT no tiene
      * círculos, y SIATE guardaba el radio en metros o kilómetros como si fueran grados. */
     static Geometria geometriaEspacial(ElementoCapa elemento) {
-        return elemento.radio() > 0 ? circuloComoPoligono(elemento.geometria(), elemento.radio()) : elemento.geometria();
+        return elemento.radio() > 0
+                ? circuloComoPoligono(elemento.geometria(), elemento.radio())
+                : Geometria.simple(elemento.geometria().type(), sinAltura(elemento.geometria().coordinates()));
+    }
+
+    /** Solo longitud y latitud, como {@code extractCoordinates} de SIATE: un KML o un GeoJSON suelen traer la altura. */
+    private static List<?> sinAltura(List<?> coordenadas) {
+        if (coordenadas == null || coordenadas.isEmpty()) {
+            return coordenadas;
+        }
+        if (coordenadas.getFirst() instanceof Number) {
+            return coordenadas.size() > 2 ? coordenadas.subList(0, 2) : coordenadas;
+        }
+        return coordenadas.stream().map(hijo -> hijo instanceof List<?> lista ? sinAltura(lista) : hijo).toList();
     }
 
     /** Se calcula en EPSG:3857, donde está el radio, para que coincida con el círculo que se ve en el mapa. */

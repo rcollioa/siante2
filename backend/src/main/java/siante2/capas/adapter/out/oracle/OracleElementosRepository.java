@@ -19,7 +19,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import siante2.capas.application.port.out.ElementosWritePort;
 import siante2.capas.domain.CambiosElementos;
+import siante2.capas.domain.CapaImportada;
 import siante2.capas.domain.ElementoCapa;
+import siante2.capas.domain.OrigenArchivo;
 import siante2.compartido.adapter.out.oracle.GeometriaAWkt;
 import siante2.compartido.domain.SolicitudInvalidaException;
 
@@ -38,6 +40,9 @@ class OracleElementosRepository implements ElementosWritePort {
     private static final String ACTUALIZAR = "update LAYERS_FEATURES set JSON_METADATA = ?, SPATIAL_OBJECT = "
             + GeometriaAWkt.SQL_ESCRIBIR + ", DATE_MODIFY = ? where ID_FEATURE = ? and ID_LAYER = ?";
     private static final String ELIMINAR = "delete from LAYERS_FEATURES where ID_FEATURE = ? and ID_LAYER = ?";
+    /** Un WKT de más de 4000 bytes no cabe en el VARCHAR2 de una función de SQL; un carácter ocupa hasta 4 bytes. */
+    private static final int MAXIMO_EN_TEXTO = 1000;
+    private static final int FILAS_POR_LOTE = 500;
 
     private final CapaJpaRepository capas;
     private final ElementoCapaJpaRepository elementos;
@@ -66,6 +71,20 @@ class OracleElementosRepository implements ElementosWritePort {
         eliminar(capaId, cambios.eliminados());
         actualizar(capaId, cambios.modificados(), ahora);
         return Optional.of(insertarNuevos(capaId, cambios.nuevos(), ahora));
+    }
+
+    @Override
+    @Transactional
+    public int importar(int duenoId, CapaImportada capa) {
+        int capaId = capas.save(new CapaEntity(duenoId, capa.nombre(), capa.descripcion(), OracleCapasRepository.ACTIVA,
+                OracleCapasRepository.PRIVADA, origenEnSiate(capa.origen()))).getId();
+        insertarNuevos(capaId, capa.elementos(), LocalDateTime.now());
+        return capaId;
+    }
+
+    /** SIATE deja vacío {@code ORIGIN} en una capa de un archivo JSON. */
+    private static String origenEnSiate(OrigenArchivo origen) {
+        return origen == OrigenArchivo.GEOJSON ? null : origen.name();
     }
 
     /** Una capa sin filas muestra los elementos de su JSON, pero con la primera fila dejaría de hacerlo: como
@@ -123,9 +142,9 @@ class OracleElementosRepository implements ElementosWritePort {
             filas.add(new FilaElemento(elemento.id(), ElementoSiate.tipo(elemento), json,
                     GeometriaAWkt.escribir(ElementoSiate.geometriaEspacial(elemento))));
         }
-        enLote(ACTUALIZAR, filas, (sentencia, fila, conexion, textos) -> {
-            sentencia.setClob(1, clob(conexion, fila.json(), textos));
-            sentencia.setClob(2, clob(conexion, fila.wkt(), textos));
+        enLote(ACTUALIZAR, filas, (sentencia, fila, textos) -> {
+            textos.asignar(sentencia, 1, fila.json());
+            textos.asignar(sentencia, 2, fila.wkt());
             sentencia.setTimestamp(3, Timestamp.valueOf(ahora));
             sentencia.setInt(4, fila.id());
             sentencia.setInt(5, capaId);
@@ -146,61 +165,99 @@ class OracleElementosRepository implements ElementosWritePort {
     }
 
     private void insertar(int capaId, List<FilaElemento> filas, LocalDateTime ahora) {
-        enLote(INSERTAR, filas, (sentencia, fila, conexion, textos) -> {
-            datosDeInsercion(sentencia, fila, capaId, ahora, conexion, textos);
-            sentencia.setClob(7, clob(conexion, fila.wkt(), textos));
+        enLote(INSERTAR, filas, (sentencia, fila, textos) -> {
+            datosDeInsercion(sentencia, fila, capaId, ahora, textos);
+            textos.asignar(sentencia, 7, fila.wkt());
         });
     }
 
     private void insertarSinGeometria(int capaId, List<FilaElemento> filas, LocalDateTime ahora) {
         enLote(INSERTAR_SIN_GEOMETRIA, filas,
-                (sentencia, fila, conexion, textos) -> datosDeInsercion(sentencia, fila, capaId, ahora, conexion, textos));
+                (sentencia, fila, textos) -> datosDeInsercion(sentencia, fila, capaId, ahora, textos));
     }
 
     private static void datosDeInsercion(PreparedStatement sentencia, FilaElemento fila, int capaId, LocalDateTime ahora,
-                                         Connection conexion, List<Clob> textos) throws SQLException {
+                                         Textos textos) throws SQLException {
         sentencia.setInt(1, fila.id());
         sentencia.setInt(2, capaId);
         sentencia.setString(3, fila.tipo());
         sentencia.setTimestamp(4, Timestamp.valueOf(ahora));
         sentencia.setTimestamp(5, Timestamp.valueOf(ahora));
-        sentencia.setClob(6, clob(conexion, fila.json(), textos));
+        textos.asignar(sentencia, 6, fila.json());
     }
 
+    /** Las filas cortas van aparte, sin CLOB: crear uno es un viaje a la base por cada texto, y cambiar el tipo de un
+     * parámetro dentro de un lote obliga a Oracle a reabrirlo. */
     private void enLote(String sql, List<FilaElemento> filas, Parametros parametros) {
+        Map<Boolean, List<FilaElemento>> porLargo = filas.stream().collect(Collectors.partitioningBy(FilaElemento::corta));
+        escribir(sql, porLargo.get(true), parametros, false);
+        escribir(sql, porLargo.get(false), parametros, true);
+    }
+
+    private void escribir(String sql, List<FilaElemento> filas, Parametros parametros, boolean comoClob) {
         if (filas.isEmpty()) {
             return;
         }
         jdbc.execute((ConnectionCallback<Void>) conexion -> {
-            List<Clob> textos = new ArrayList<>();
+            Textos textos = new Textos(comoClob ? conexion : null);
             try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
+                int pendientes = 0;
                 for (FilaElemento fila : filas) {
-                    parametros.asignar(sentencia, fila, conexion, textos);
+                    parametros.asignar(sentencia, fila, textos);
                     sentencia.addBatch();
+                    if (++pendientes == FILAS_POR_LOTE) {
+                        sentencia.executeBatch();
+                        textos.liberar();
+                        pendientes = 0;
+                    }
                 }
-                sentencia.executeBatch();
+                if (pendientes > 0) {
+                    sentencia.executeBatch();
+                }
             } finally {
-                for (Clob texto : textos) {
-                    texto.free();
-                }
+                textos.liberar();
             }
             return null;
         });
     }
 
-    /** Como CLOB y no como texto: un WKT de más de 4000 bytes no cabe en el VARCHAR2 de una función de SQL. */
-    private static Clob clob(Connection conexion, String texto, List<Clob> textos) throws SQLException {
-        Clob clob = conexion.createClob();
-        clob.setString(1, texto);
-        textos.add(clob);
-        return clob;
-    }
-
     private record FilaElemento(int id, String tipo, String json, String wkt) {
+
+        boolean corta() {
+            return json.length() <= MAXIMO_EN_TEXTO && (wkt == null || wkt.length() <= MAXIMO_EN_TEXTO);
+        }
     }
 
     @FunctionalInterface
     private interface Parametros {
-        void asignar(PreparedStatement sentencia, FilaElemento fila, Connection conexion, List<Clob> textos) throws SQLException;
+        void asignar(PreparedStatement sentencia, FilaElemento fila, Textos textos) throws SQLException;
+    }
+
+    /** Asigna cada texto como VARCHAR2 o, con una conexión, como CLOB, y libera los CLOB que creó. */
+    private static final class Textos {
+        private final Connection paraClob;
+        private final List<Clob> creados = new ArrayList<>();
+
+        Textos(Connection paraClob) {
+            this.paraClob = paraClob;
+        }
+
+        void asignar(PreparedStatement sentencia, int indice, String texto) throws SQLException {
+            if (paraClob == null) {
+                sentencia.setString(indice, texto);
+                return;
+            }
+            Clob clob = paraClob.createClob();
+            clob.setString(1, texto);
+            creados.add(clob);
+            sentencia.setClob(indice, clob);
+        }
+
+        void liberar() throws SQLException {
+            for (Clob clob : creados) {
+                clob.free();
+            }
+            creados.clear();
+        }
     }
 }

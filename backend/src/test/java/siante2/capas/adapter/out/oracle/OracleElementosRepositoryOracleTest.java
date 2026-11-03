@@ -12,8 +12,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import siante2.OracleFreeDePrueba;
 import siante2.capas.domain.CambiosElementos;
+import siante2.capas.domain.CapaImportada;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.EstiloElemento;
+import siante2.capas.domain.OrigenArchivo;
 import siante2.compartido.domain.Geometria;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -102,6 +104,26 @@ class OracleElementosRepositoryOracleTest {
         assertThat(wkt(0)).contains("-71.5").contains("-34.5");
         assertThat(jdbc.queryForObject("select count(*) from LAYERS_FEATURES where ID_FEATURE = 0 and DATE_MODIFY is not null"
                 + " and dbms_lob.instr(JSON_METADATA, '-71.5') > 0", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void importaUnaCapaConElIdDelTriggerYSuGeometriaEspacial() {
+        jdbc.execute("create sequence SEQ_LAYERS_IMPORTADAS start with 900");
+        jdbc.execute("create or replace trigger TRG_LAYERS_IMPORTADAS before insert on LAYERS for each row"
+                + " when (new.ID is null) begin :new.ID := SEQ_LAYERS_IMPORTADAS.nextval; end;");
+        List<List<Double>> vertices = new ArrayList<>();
+        for (int i = 0; i < 500; i++) {
+            vertices.add(List.of(-70.123456789 - i * 0.001, -33.123456789 - i * 0.0005));
+        }
+
+        int id = repositorio.importar(YO, new CapaImportada("Bodegas", "", OrigenArchivo.KML, List.of(
+                elemento(-1, "Point", List.of(-70.65, -33.44, 120.0), 0),
+                elemento(-2, "LineString", vertices, 0))));
+
+        assertThat(id).isGreaterThanOrEqualTo(900);
+        assertThat(jdbc.queryForObject("select ORIGIN from LAYERS where ID = ?", String.class, id)).isEqualTo("KML");
+        assertThat(jdbc.queryForList("select SDO_GEOM.VALIDATE_GEOMETRY_WITH_CONTEXT(SPATIAL_OBJECT, 0.005) from LAYERS_FEATURES"
+                + " where ID_LAYER = ?", String.class, id)).containsExactly("TRUE", "TRUE");
     }
 
     @Test

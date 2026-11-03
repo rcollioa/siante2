@@ -2,6 +2,10 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: siante2
+  annotations:
+    # Una capa importada de un archivo: nginx corta por omisión en 1 MB y 60 s.
+    nginx.ingress.kubernetes.io/proxy-body-size: "32m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
   namespace: sisgeob-prod
 spec:
   ingressClassName: nginx

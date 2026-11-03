@@ -81,6 +81,34 @@
         "tags" : [ "capas-controller" ]
       }
     },
+    "/siante2/api/capas/importar" : {
+      "post" : {
+        "operationId" : "importarCapa",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CapaImportada"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CapaPropia"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "elementos-controller" ]
+      }
+    },
     "/siante2/api/capas/mias" : {
       "get" : {
         "operationId" : "listarMisCapas",
@@ -797,6 +825,28 @@
           }
         },
         "required" : [ "extension", "nombre", "titulo" ]
+      },
+      "CapaImportada" : {
+        "type" : "object",
+        "properties" : {
+          "descripcion" : {
+            "type" : "string"
+          },
+          "elementos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ElementoCapa"
+            }
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "origen" : {
+            "type" : "string",
+            "enum" : [ "KML", "GEOJSON" ]
+          }
+        },
+        "required" : [ "descripcion", "elementos", "nombre", "origen" ]
       },
       "CapaPropia" : {
         "type" : "object",

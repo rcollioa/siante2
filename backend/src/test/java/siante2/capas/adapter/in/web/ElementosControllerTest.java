@@ -9,10 +9,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import siante2.capas.application.port.in.GuardarElementosUseCase;
+import siante2.capas.application.port.in.ImportarCapaUseCase;
 import siante2.capas.domain.CambiosElementos;
+import siante2.capas.domain.CapaImportada;
+import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.EstiloElemento;
 import siante2.capas.domain.Metadato;
+import siante2.capas.domain.OrigenArchivo;
+import siante2.capas.domain.Visibilidad;
 import siante2.compartido.adapter.in.web.UsuarioDePrueba;
 import siante2.compartido.domain.Geometria;
 import siante2.compartido.domain.RecursoNoEncontradoException;
@@ -40,6 +45,42 @@ class ElementosControllerTest {
 
     @MockitoBean
     private GuardarElementosUseCase guardar;
+
+    @MockitoBean
+    private ImportarCapaUseCase importar;
+
+    @Test
+    void importarResponde201ConLaCapaYElDuenoSaleDeWebSeal() throws Exception {
+        ElementoCapa punto = new ElementoCapa(-1, Geometria.simple("Point", List.of(-70.65, -33.44)), 0, "Bodega", "",
+                new EstiloElemento("", 0, "", ""), List.of());
+        when(importar.importar("prueba", new CapaImportada("Bodegas", "Región", OrigenArchivo.KML, List.of(punto))))
+                .thenReturn(new CapaPropia(50, "Bodegas", "Región", Visibilidad.PRIVADA, 0));
+
+        mockMvc.perform(post("/siante2/api/capas/importar").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nombre":"Bodegas","descripcion":"Región","origen":"KML","dueno":"otro","owner":9,
+                         "elementos":[{"id":-1,"geometria":{"type":"Point","coordinates":[-70.65,-33.44]},"radio":0,"nombre":"Bodega",
+                          "descripcion":"","estilo":{"color":"","grosor":0,"relleno":"","icono":""},"metadatos":[]}]}"""))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(50))
+                .andExpect(jsonPath("$.visibilidad").value("PRIVADA"));
+    }
+
+    @Test
+    void importarConDatosInvalidosResponde400ConElMensaje() throws Exception {
+        when(importar.importar(eq("prueba"), any())).thenThrow(new SolicitudInvalidaException("El archivo no tiene geometrías."));
+
+        mockMvc.perform(post("/siante2/api/capas/importar").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nombre":"Bodegas","descripcion":"","origen":"GEOJSON","elementos":[]}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("El archivo no tiene geometrías."));
+    }
+
+    @Test
+    void unTipoDeArchivoDesconocidoResponde400() throws Exception {
+        mockMvc.perform(post("/siante2/api/capas/importar").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nombre":"Bodegas","descripcion":"","origen":"SHP","elementos":[]}"""))
+                .andExpect(status().isBadRequest());
+    }
 
     @Test
     void guardaLosCambiosConElUsuarioDeWebSealYEntregaLosIdDeLosNuevos() throws Exception {

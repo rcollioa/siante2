@@ -217,7 +217,8 @@ erDiagram
 9. **Códigos guardados como texto:** `STATUS` y `VISIBILITY` son `VARCHAR2(20)` en `LAYERS`, pero `STATUS` es `NUMBER` en `LAYERS_GROUPS`.
 10. **Cinco tablas sin uso en el código del legacy** (`USERS_GROUPS`, `USERS_GROUPS_USERS`, `LAYERS_USERS_GROUPS`, `PUBLIC_REPORTS_TEMPORAL` y `PARAMETROS`): puede ser funcionalidad abandonada o algo que usa otro sistema.
 11. **`SPATIAL_OBJECT` de un círculo:** SIATE guarda un círculo de Oracle con el radio en metros o kilómetros como si fueran grados, así que su análisis espacial no lo ubica bien. siante2 guarda un polígono de 64 lados calculado en EPSG:3857, que coincide con lo que se ve en el mapa; `JSON_METADATA` sigue con `center` y `radius`.
-12. **Coordenadas de `LAYERS.JSON_METADATA`:** `LayerService.migration` de SIATE las convierte desde EPSG:3857 antes de crear las filas, así que una capa antigua sin migrar podría tenerlas en metros. siante2 las lee como EPSG:4326: las capas de DESA se ven bien, pero falta confirmar que no quede ninguna así en producción.
+12. **`LAYERS.FILE_BASE64`:** SIATE guarda ahí el archivo importado, pero nada lo lee. siante2 no lo escribe, ni copia la colección en `LAYERS.JSON_METADATA`: una capa importada solo tiene filas en `LAYERS_FEATURES`, como una dibujada. `ORIGIN` queda en `KML` o vacío, como en SIATE con un archivo JSON.
+13. **Coordenadas de `LAYERS.JSON_METADATA`:** `LayerService.migration` de SIATE las convierte desde EPSG:3857 antes de crear las filas, así que una capa antigua sin migrar podría tenerlas en metros. siante2 las lee como EPSG:4326: las capas de DESA se ven bien, pero falta confirmar que no quede ninguna así en producción.
 
 ## Construcción en PostgreSQL: dos pasos
 
