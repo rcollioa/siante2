@@ -10,6 +10,19 @@
   font-size: 0.875rem;
 }
 
+/* El formulario de un elemento es más largo que su información, y mientras se edita es lo que importa. */
+.editor {
+  display: block;
+  max-height: 70vh;
+}
+
+/* Con el mapa angosto no debe alcanzar la barra de dibujo, que queda abajo. */
+@container (max-width: 44rem) {
+  .editor {
+    max-height: 32vh;
+  }
+}
+
 .encabezado {
   display: flex;
   align-items: flex-start;

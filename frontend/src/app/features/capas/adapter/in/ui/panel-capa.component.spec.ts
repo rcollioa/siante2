@@ -3,6 +3,7 @@ import { registerLocaleData } from '@angular/common';
 import localeEsCl from '@angular/common/locales/es-CL';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CapaEnMapa, CapasAbiertas, ElementoElegido, PuntoConsultado } from '../../../application/capas-abiertas';
+import { EdicionElementos } from '../../../application/edicion-elementos';
 import { Capa, ElementoCapa } from '../../../domain/capa';
 import { PanelCapaComponent } from './panel-capa.component';
 
@@ -22,6 +23,7 @@ describe('PanelCapaComponent', () => {
     descripcion: '',
     visibilidad: 'PRIVADA',
     propia: true,
+    editable: true,
     tipo: 'VECTORIAL',
     elementos: Array.from({ length: 1234 }, () => elemento),
     servicio: null,
@@ -39,6 +41,7 @@ describe('PanelCapaComponent', () => {
     deseleccionar: vi.fn(),
     descartarError: vi.fn()
   };
+  const edicion = { capa: signal<Capa | null>(null), seleccionado: signal<ElementoCapa | null>(null), cambiarDatos: vi.fn() };
   let fixture: ComponentFixture<PanelCapaComponent>;
   const texto = () => (fixture.nativeElement as HTMLElement).textContent?.replace(/\s+/g, ' ').trim() ?? '';
 
@@ -53,9 +56,48 @@ describe('PanelCapaComponent', () => {
     servicio.sinRespuesta.set([]);
     TestBed.configureTestingModule({
       imports: [PanelCapaComponent],
-      providers: [{ provide: CapasAbiertas, useValue: servicio }, { provide: LOCALE_ID, useValue: 'es-CL' }]
+      providers: [
+        { provide: CapasAbiertas, useValue: servicio },
+        { provide: EdicionElementos, useValue: edicion },
+        { provide: LOCALE_ID, useValue: 'es-CL' }
+      ]
     });
     fixture = TestBed.createComponent(PanelCapaComponent);
+  });
+
+  describe('mientras se dibuja', () => {
+    afterEach(() => {
+      edicion.capa.set(null);
+      edicion.seleccionado.set(null);
+    });
+
+    it('un elemento de la capa en edición se edita, en vez de solo mostrar su información', () => {
+      edicion.capa.set(capa());
+      edicion.seleccionado.set(elemento);
+      servicio.elegido.set({ capa: capa(), elemento });
+      fixture.detectChanges();
+
+      const nombre = (fixture.nativeElement as HTMLElement).querySelector('#nombre-elemento') as HTMLInputElement;
+      expect(nombre.value).toBe('Bodega central');
+    });
+
+    it('un elemento de otra capa abierta solo se puede mirar', () => {
+      edicion.capa.set(capa({ id: 2 }));
+      servicio.elegido.set({ capa: capa(), elemento });
+      fixture.detectChanges();
+
+      expect((fixture.nativeElement as HTMLElement).querySelector('#nombre-elemento')).toBeNull();
+      expect(texto()).toContain('Bodega central');
+      servicio.elegido.set(null);
+    });
+
+    it('no repite cómo elegir un elemento: lo indica la barra de dibujo', () => {
+      edicion.capa.set(capa());
+      servicio.abiertas.set([{ capa: capa(), visible: true }]);
+      fixture.detectChanges();
+
+      expect(texto()).toBe('');
+    });
   });
 
   it('sin capas abiertas no muestra nada', () => {

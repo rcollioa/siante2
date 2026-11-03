@@ -1,17 +1,20 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { CapasAbiertas } from '../../../application/capas-abiertas';
+import { EdicionElementos } from '../../../application/edicion-elementos';
+import { EditorElementoComponent } from './editor-elemento.component';
 
 /** Sobre el mapa: la información del elemento elegido con un clic y su capa, o cómo elegir uno. */
 @Component({
   selector: 'app-panel-capa',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe],
+  imports: [DecimalPipe, EditorElementoComponent],
   templateUrl: './panel-capa.component.html',
   styleUrl: './panel-capa.component.css'
 })
 export class PanelCapaComponent {
   protected readonly servicio = inject(CapasAbiertas);
+  protected readonly edicion = inject(EdicionElementos);
   protected readonly elementosVisibles = computed(() =>
     this.servicio
       .abiertas()
@@ -26,8 +29,11 @@ export class PanelCapaComponent {
   protected readonly hayWms = computed(() =>
     this.servicio.abiertas().some(({ capa }) => capa.servicio?.tipo === 'WMS' || capa.servicio?.tipo === 'WMTS')
   );
-  /** Con solo capas WMS o WMTS que responden no hay nada que decir: el panel no ocupa el mapa. */
+  /** Con solo capas WMS o WMTS que responden no hay nada que decir: el panel no ocupa el mapa. Tampoco mientras se dibuja,
+   * porque la barra de dibujo ya indica qué hacer. */
   protected readonly hayAviso = computed(
-    () => this.servicio.sinRespuesta().length > 0 || this.elementosVisibles() > 0 || this.hayPorUrl() || !this.hayWms()
+    () =>
+      this.servicio.sinRespuesta().length > 0 ||
+      (!this.edicion.capa() && (this.elementosVisibles() > 0 || this.hayPorUrl() || !this.hayWms()))
   );
 }

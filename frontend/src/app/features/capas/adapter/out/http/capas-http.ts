@@ -7,6 +7,7 @@ import { sinPantallaDeCarga } from '../../../../../shared/pantalla-carga/pantall
 import { CapasRepositorio } from '../../../application/port/out/capas.repositorio';
 import { PuntoWms } from '../../../../mapa/domain/mapa';
 import {
+  CambiosRechazados,
   Capa,
   CapaCatalogo,
   CapaNoEncontrada,
@@ -19,6 +20,7 @@ import {
   ServidorDeMapasNoDisponible,
   VisibilidadEditable
 } from '../../../domain/capa';
+import { CambiosElementos } from '../../../domain/cambios-elementos';
 
 type CapaDto = components['schemas']['Capa'];
 type CapasResponse = components['schemas']['CapasResponse'];
@@ -29,6 +31,8 @@ type CapaPropiaDto = components['schemas']['CapaPropia'];
 type NuevaCapaDto = components['schemas']['NuevaCapa'];
 type CatalogoResponse = components['schemas']['CatalogoResponse'];
 type ElementosDeServicioResponse = components['schemas']['ElementosDeServicioResponse'];
+type CambiosElementosDto = components['schemas']['CambiosElementos'];
+type ElementosGuardados = components['schemas']['ElementosGuardados'];
 
 /** Sin CacheConsultas: las capas de cada usuario cambian (también desde SIATE) y el ETag ya evita volver a
  * descargarlas si siguen iguales. Los DTO del contrato se entregan como dominio sin conversión: si el contrato
@@ -69,6 +73,17 @@ export class CapasHttp extends CapasRepositorio {
       id,
       this.http.post<void>(`${API_PREFIJO}/capas/${id}/eliminar`, null, { context: sinPantallaDeCarga() })
     );
+  }
+
+  /** Con pantalla de carga, como en SIATE: mientras se guarda no se puede seguir dibujando. El contrato marca `geometries`
+   * como obligatorio, pero una geometría dibujada no lo lleva. */
+  guardarElementos(id: number, cambios: CambiosElementos): Observable<number[]> {
+    return this.http
+      .post<ElementosGuardados>(`${API_PREFIJO}/capas/${id}/elementos`, cambios as unknown as CambiosElementosDto)
+      .pipe(
+        map((respuesta) => respuesta.nuevos),
+        catchError((error: unknown) => throwError(() => traducirRechazo(error, id)))
+      );
   }
 
   private escribir(id: number, pedido: Observable<void>): Observable<void> {
@@ -133,6 +148,13 @@ function aCapa(capa: CapaDto): Capa {
         }
       : null
   };
+}
+
+/** Un 400 trae el mensaje que explica qué dato no sirvió. */
+function traducirRechazo(error: unknown, id: number): unknown {
+  return error instanceof HttpErrorResponse && error.status === 400 && typeof error.error?.message === 'string'
+    ? new CambiosRechazados(error.error.message)
+    : traducir(error, id);
 }
 
 function traducir(error: unknown, id: number): unknown {

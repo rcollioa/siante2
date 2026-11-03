@@ -11,6 +11,7 @@ import {
   SeccionCatalogo,
   VisibilidadEditable
 } from '../../../domain/capa';
+import { CambiosElementos } from '../../../domain/cambios-elementos';
 
 /** Las capas guardadas en SIATE. */
 export abstract class CapasRepositorio {
@@ -39,4 +40,8 @@ export abstract class CapasRepositorio {
 
   /** Falla con CapaNoEncontrada si no existe o no es del usuario. */
   abstract eliminar(id: number): Observable<void>;
+
+  /** Aplica todos los cambios o ninguno y entrega los ID de los nuevos, en el mismo orden. Falla con CapaNoEncontrada si
+   * ya no se puede dibujar en ella y con CambiosRechazados si los datos no son válidos. */
+  abstract guardarElementos(id: number, cambios: CambiosElementos): Observable<number[]>;
 }

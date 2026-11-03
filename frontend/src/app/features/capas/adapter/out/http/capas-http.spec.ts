@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { SIN_PANTALLA_CARGA } from '../../../../../shared/pantalla-carga/pantalla-carga.interceptor';
-import { Capa, CapaNoEncontrada, EdicionCapa, ServidorDeMapasNoDisponible } from '../../../domain/capa';
+import { CambiosRechazados, Capa, CapaNoEncontrada, EdicionCapa, ElementoCapa, ServidorDeMapasNoDisponible } from '../../../domain/capa';
 import { CapasHttp } from './capas-http';
 
 describe('CapasHttp', () => {
@@ -16,6 +16,44 @@ describe('CapasHttp', () => {
   });
 
   afterEach(() => http.verify());
+
+  describe('guardarElementos', () => {
+    const nuevo: ElementoCapa = {
+      id: -1,
+      geometria: { type: 'Point', coordinates: [-70.65, -33.44] },
+      radio: 0,
+      nombre: 'Bodega',
+      descripcion: '',
+      estilo: { color: '', grosor: 0, relleno: '', icono: '' },
+      metadatos: []
+    };
+    const cambios = { nuevos: [nuevo], modificados: [], eliminados: [3] };
+
+    it('es un POST con los cambios, con pantalla de carga, y entrega los ID de los nuevos', () => {
+      let ids: number[] = [];
+      servicio.guardarElementos(5, cambios).subscribe((recibidos) => (ids = recibidos));
+
+      const pedido = http.expectOne('/siante2/api/capas/5/elementos');
+      expect(pedido.request.method).toBe('POST');
+      expect(pedido.request.body).toEqual(cambios);
+      expect(pedido.request.context.get(SIN_PANTALLA_CARGA)).toBe(false);
+      pedido.flush({ nuevos: [12] });
+      expect(ids).toEqual([12]);
+    });
+
+    it('un 404 es CapaNoEncontrada y un 400 entrega el mensaje del backend', () => {
+      const errores: unknown[] = [];
+      const guardar = { error: (error: unknown) => errores.push(error) };
+      servicio.guardarElementos(5, cambios).subscribe(guardar);
+      http.expectOne('/siante2/api/capas/5/elementos').flush({ code: 'NOT_FOUND', message: '' }, { status: 404, statusText: 'Not Found' });
+      servicio.guardarElementos(5, cambios).subscribe(guardar);
+      http
+        .expectOne('/siante2/api/capas/5/elementos')
+        .flush({ code: 'INVALID_REQUEST', message: 'El color no es válido.' }, { status: 400, statusText: 'Bad Request' });
+
+      expect(errores).toEqual([new CapaNoEncontrada(5), new CambiosRechazados('El color no es válido.')]);
+    });
+  });
 
   describe('escrituras', () => {
     const edicion: EdicionCapa = { nombre: 'Bodegas', descripcion: 'Región', categoriaId: 3, visibilidad: 'PUBLICA' };
@@ -116,11 +154,11 @@ describe('CapasHttp', () => {
     servicio.ver(7).subscribe((capa) => (wms = capa));
     servicio.ver(8).subscribe((capa) => (vectorial = capa));
     http.expectOne('/siante2/api/capas/7').flush({
-      id: 7, nombre: 'IDE', descripcion: '', visibilidad: 'PUBLICA', propia: false, tipo: 'URL', elementos: [],
+      id: 7, nombre: 'IDE', descripcion: '', visibilidad: 'PUBLICA', propia: false, editable: false, tipo: 'URL', elementos: [],
       servicio: { tipo: 'WMS', capas: [{ nombre: 'rios', titulo: 'Ríos', extension: null }], disponible: false }
     });
     http.expectOne('/siante2/api/capas/8').flush({
-      id: 8, nombre: 'Bodegas', descripcion: '', visibilidad: 'PRIVADA', propia: true, tipo: 'VECTORIAL', elementos: [],
+      id: 8, nombre: 'Bodegas', descripcion: '', visibilidad: 'PRIVADA', propia: true, editable: true, tipo: 'VECTORIAL', elementos: [],
       servicio: null
     });
 
@@ -142,7 +180,7 @@ describe('CapasHttp', () => {
     let wmts: Capa | undefined;
     servicio.ver(9).subscribe((capa) => (wmts = capa));
     http.expectOne('/siante2/api/capas/9').flush({
-      id: 9, nombre: 'Orto', descripcion: '', visibilidad: 'PRIVADA', propia: true, tipo: 'URL', elementos: [],
+      id: 9, nombre: 'Orto', descripcion: '', visibilidad: 'PRIVADA', propia: true, editable: false, tipo: 'URL', elementos: [],
       servicio: { tipo: 'WMTS', capas: [], disponible: true, grilla }
     });
 

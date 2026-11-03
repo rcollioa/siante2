@@ -5,6 +5,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { MenuLateralService } from '../../../../../shared/menu-lateral/menu-lateral.service';
 import { CategoriasApiService } from '../../../../categorias/categorias-api.service';
 import { CapaEnMapa, CapasAbiertas } from '../../../application/capas-abiertas';
+import { EdicionElementos } from '../../../application/edicion-elementos';
 import { CapasRepositorio } from '../../../application/port/out/capas.repositorio';
 import { Capa, CapaPropia, NuevaCapa, ResumenCapa } from '../../../domain/capa';
 import { MisCapasComponent } from './mis-capas.component';
@@ -13,7 +14,7 @@ describe('MisCapasComponent', () => {
   const bodegas: CapaPropia = { id: 1, nombre: 'Bodegas', descripcion: 'Región', visibilidad: 'PRIVADA', categoriaId: 3 };
   const ide: CapaPropia = { id: 2, nombre: 'Servicio IDE', descripcion: '', visibilidad: 'PUBLICA', categoriaId: 3 };
   const enMapa = (resumen: ResumenCapa, visible = true): CapaEnMapa => ({
-    capa: { ...resumen, propia: true, tipo: 'VECTORIAL', elementos: [], servicio: null } as Capa,
+    capa: { ...resumen, propia: true, editable: true, tipo: 'VECTORIAL', elementos: [], servicio: null } as Capa,
     visible
   });
   let listarMias: ReturnType<typeof vi.fn<() => Observable<CapaPropia[]>>>;
@@ -29,6 +30,7 @@ describe('MisCapasComponent', () => {
     alternarVisibilidad: vi.fn(),
     acercar: vi.fn()
   };
+  const edicion = { capa: signal<Capa | null>(null), iniciar: vi.fn(), terminar: vi.fn() };
   const menu = { alElegir: vi.fn() };
   let fixture: ComponentFixture<MisCapasComponent>;
   let elemento: HTMLElement;
@@ -48,6 +50,7 @@ describe('MisCapasComponent', () => {
         // MisCapas real con un doble del repositorio: la pantalla y su caso de uso juntos, sin HTTP.
         { provide: CapasRepositorio, useValue: { listarMias, crear: crearCapa, cambiarVisibilidad, eliminar } },
         { provide: CapasAbiertas, useValue: capasAbiertas },
+        { provide: EdicionElementos, useValue: edicion },
         { provide: MenuLateralService, useValue: menu },
         { provide: CategoriasApiService, useValue: { listar: () => of([{ id: 3, nombre: 'Agua', descripcion: '' }]) } }
       ]
@@ -113,7 +116,7 @@ describe('MisCapasComponent', () => {
       expect(elemento.querySelector('button.crear')).not.toBeNull();
     });
 
-    it('la capa creada entra a la lista en orden y se abre en el mapa, como en SIATE', async () => {
+    it('la capa creada entra a la lista en orden y queda lista para dibujar, como en SIATE', async () => {
       crearCapa.mockReturnValue(of(nueva));
       crear();
       await TestBed.inject(Router).navigateByUrl('/ayuda');
@@ -123,7 +126,7 @@ describe('MisCapasComponent', () => {
 
       expect(crearCapa).toHaveBeenCalledWith({ nombre: 'Aduanas', descripcion: '' });
       expect(botones().map((boton) => boton.querySelector('.nombre')?.textContent)).toEqual(['Aduanas', 'Bodegas', 'Servicio IDE']);
-      expect(capasAbiertas.abrir).toHaveBeenCalledWith(50);
+      expect(edicion.iniciar).toHaveBeenCalledWith(50);
       expect(TestBed.inject(Router).url).toBe('/mapa');
       expect(menu.alElegir).toHaveBeenCalled();
     });
@@ -135,7 +138,7 @@ describe('MisCapasComponent', () => {
       crearDesdeElDialogo();
 
       expect(botones()).toHaveLength(2);
-      expect(capasAbiertas.abrir).not.toHaveBeenCalled();
+      expect(edicion.iniciar).not.toHaveBeenCalled();
     });
   });
 
@@ -150,7 +153,7 @@ describe('MisCapasComponent', () => {
 
       expect(gestionar()[0].getAttribute('aria-expanded')).toBe('true');
       expect(gestionar()[0].getAttribute('aria-controls')).toBe('opciones-capa-1');
-      expect(opciones().map((boton) => boton.textContent?.trim())).toEqual(['Editar', 'Publicar', 'Eliminar']);
+      expect(opciones().map((boton) => boton.textContent?.trim())).toEqual(['Dibujar', 'Editar', 'Publicar', 'Eliminar']);
 
       desplegarOpciones();
       expect(opciones()).toHaveLength(0);
@@ -162,7 +165,7 @@ describe('MisCapasComponent', () => {
 
       desplegarOpciones(1);
 
-      expect(opciones().map((boton) => boton.textContent?.trim())).toEqual(['Editar', 'Despublicar', 'Eliminar']);
+      expect(opciones().map((boton) => boton.textContent?.trim())).toEqual(['Dibujar', 'Editar', 'Despublicar', 'Eliminar']);
     });
 
     it('una capa formal no las ofrece', () => {
@@ -171,6 +174,18 @@ describe('MisCapasComponent', () => {
 
       expect(botones()).toHaveLength(1);
       expect(gestionar()).toHaveLength(0);
+    });
+
+    it('Dibujar vuelve al mapa y empieza a editar la capa', async () => {
+      crear();
+      desplegarOpciones();
+
+      opcion('Dibujar').click();
+      await fixture.whenStable();
+
+      expect(edicion.iniciar).toHaveBeenCalledWith(1);
+      expect(TestBed.inject(Router).url).toBe('/mapa');
+      expect(menu.alElegir).toHaveBeenCalled();
     });
 
     it('Editar abre el formulario con los datos de la capa', () => {
@@ -296,6 +311,20 @@ describe('MisCapasComponent', () => {
 
     expect(capasAbiertas.cerrar).toHaveBeenCalledWith(2);
     expect(capasAbiertas.abrir).not.toHaveBeenCalled();
+  });
+
+  it('cerrar la capa que se está dibujando pasa por la edición, por si hay cambios sin guardar', () => {
+    crear();
+    capasAbiertas.abiertas.set([enMapa(bodegas)]);
+    edicion.capa.set(enMapa(bodegas).capa);
+    fixture.detectChanges();
+
+    botones()[0].click();
+
+    expect(capasAbiertas.cerrar).not.toHaveBeenCalled();
+    edicion.terminar.mock.calls[0][0]();
+    expect(capasAbiertas.cerrar).toHaveBeenCalledWith(1);
+    edicion.capa.set(null);
   });
 
   it('una capa abierta se puede ocultar y acercar', () => {

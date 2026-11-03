@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { MenuLateralService } from '../../../../../shared/menu-lateral/menu-lateral.service';
 import { CapasAbiertas } from '../../../application/capas-abiertas';
+import { EdicionElementos } from '../../../application/edicion-elementos';
 import { CapasRepositorio } from '../../../application/port/out/capas.repositorio';
 import { CapaCatalogo, ResumenCapa, SeccionCatalogo } from '../../../domain/capa';
 import { CapasFormalesComponent, FavoritasComponent } from './favoritas.component';
@@ -31,6 +32,7 @@ describe('FavoritasComponent', () => {
         provideRouter([{ path: '**', children: [] }]),
         { provide: CapasRepositorio, useValue: { listarFavoritas, catalogo } },
         { provide: CapasAbiertas, useValue: { abiertas: signal([]), abriendo: signal(new Set()) } },
+        { provide: EdicionElementos, useValue: { capa: signal(null) } },
         { provide: MenuLateralService, useValue: { alElegir: vi.fn() } }
       ]
     });

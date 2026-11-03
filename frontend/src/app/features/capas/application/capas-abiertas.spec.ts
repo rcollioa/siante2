@@ -23,6 +23,7 @@ describe('CapasAbiertas', () => {
     descripcion: '',
     visibilidad: 'PRIVADA',
     propia: true,
+    editable: true,
     tipo: 'VECTORIAL',
     elementos: [elemento],
     servicio: null,

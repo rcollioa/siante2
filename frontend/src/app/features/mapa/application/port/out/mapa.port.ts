@@ -6,6 +6,8 @@ import {
   CapaWmts,
   ElementoMapa,
   ElementoSeleccionado,
+  HerramientaDibujo,
+  OyenteEdicion,
   PuntoWms,
   ZonaVisible
 } from '../../../domain/mapa';
@@ -45,6 +47,18 @@ export abstract class MapaPort {
   /** Acerca el mapa para ver todos los elementos de la capa. */
   abstract acercarA(id: number): void;
   abstract deseleccionar(): void;
+
+  /** Permite editar una capa vectorial ya mostrada, una sola a la vez: lo seleccionado en ella se mueve y cambia de
+   * forma, y las herramientas dibujan en ella. */
+  abstract editarCapa(id: number, oyente: OyenteEdicion): void;
+  abstract terminarEdicion(): void;
+  /** Con qué dibuja cada clic en la capa en edición, sin seleccionar; null vuelve a seleccionar. */
+  abstract usarHerramienta(herramienta: HerramientaDibujo | null): void;
+  /** Muestra un elemento nuevo y lo deja seleccionado. */
+  abstract agregarElemento(capa: number, elemento: ElementoMapa): void;
+  /** Cambia los datos o el estilo de un elemento mostrado; su forma es la que ya tiene en el mapa. */
+  abstract reemplazarElemento(capa: number, anterior: ElementoMapa, nuevo: ElementoMapa): void;
+  abstract quitarElemento(capa: number, elemento: ElementoMapa): void;
 
   /** Centra el mapa en el punto (EPSG:4326) y lo marca. */
   abstract irA(longitud: number, latitud: number): void;

@@ -84,6 +84,22 @@ export interface paths {
         patch: operations["editarCapa"];
         trace?: never;
     };
+    "/siante2/api/capas/{id}/elementos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["guardarElementosDeCapa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/capas/{id}/eliminar": {
         parameters: {
             query?: never;
@@ -284,8 +300,14 @@ export interface components {
             /** @enum {string} */
             visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
         };
+        CambiosElementos: {
+            eliminados: number[];
+            modificados: components["schemas"]["ElementoCapa"][];
+            nuevos: components["schemas"]["ElementoCapa"][];
+        };
         Capa: {
             descripcion: string;
+            editable: boolean;
             elementos: components["schemas"]["ElementoCapa"][];
             /** Format: int32 */
             id: number;
@@ -373,6 +395,9 @@ export interface components {
         };
         ElementosDeServicioResponse: {
             data: components["schemas"]["ElementoDeServicio"][];
+        };
+        ElementosGuardados: {
+            nuevos: number[];
         };
         EstiloElemento: {
             color: string;
@@ -603,6 +628,32 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    guardarElementosDeCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiosElementos"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElementosGuardados"];
+                };
             };
         };
     };

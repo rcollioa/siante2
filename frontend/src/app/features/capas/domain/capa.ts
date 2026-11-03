@@ -146,6 +146,8 @@ export interface ServicioCapa {
 
 export interface Capa extends ResumenCapa {
   propia: boolean;
+  /** Su dueño puede dibujar en ella: no es formal ni un área de dibujo, y sus elementos no vienen de una URL. */
+  editable: boolean;
   tipo: TipoCapa;
   elementos: ElementoCapa[];
   /** Solo en las capas por URL. */
@@ -178,6 +180,14 @@ export class ServidorDeMapasNoDisponible extends Error {
   constructor(readonly id: number) {
     super(`El servidor de mapas de la capa ${id} no responde`);
     this.name = 'ServidorDeMapasNoDisponible';
+  }
+}
+
+/** El backend rechazó los cambios de una capa, con un mensaje para el usuario. */
+export class CambiosRechazados extends Error {
+  constructor(mensaje: string) {
+    super(mensaje);
+    this.name = 'CambiosRechazados';
   }
 }
 

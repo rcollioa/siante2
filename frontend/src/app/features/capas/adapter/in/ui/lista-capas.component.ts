@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, contentChild, inject, inp
 import { Router } from '@angular/router';
 import { MenuLateralService } from '../../../../../shared/menu-lateral/menu-lateral.service';
 import { CapasAbiertas } from '../../../application/capas-abiertas';
+import { EdicionElementos } from '../../../application/edicion-elementos';
 import { ResumenCapa, sePuedeGestionar, VISIBILIDADES } from '../../../domain/capa';
 
 /** Una lista de capas del menú, como en SIATE: cada capa se abre sobre las demás en el mapa, y abierta se puede
@@ -30,6 +31,7 @@ export class ListaCapasComponent {
   private readonly router = inject(Router);
   private readonly menu = inject(MenuLateralService);
   protected readonly capasAbiertas = inject(CapasAbiertas);
+  private readonly edicion = inject(EdicionElementos);
   protected readonly visibilidades = VISIBILIDADES;
   protected readonly abiertasPorId = computed(
     () => new Map(this.capasAbiertas.abiertas().map((abierta) => [abierta.capa.id, abierta]))
@@ -37,16 +39,16 @@ export class ListaCapasComponent {
 
   /** Elegir una capa abierta la cierra. Desde otra página (Ayuda), primero vuelve al mapa. */
   protected alternar(capa: ResumenCapa): void {
-    if (this.abiertasPorId().has(capa.id)) {
+    if (!this.abiertasPorId().has(capa.id)) {
+      this.irAlMapa();
+      this.capasAbiertas.abrir(capa.id);
+    } else if (this.edicion.capa()?.id === capa.id) {
+      // Si tiene cambios sin guardar, la barra de dibujo pregunta qué hacer: tiene que estar a la vista.
+      this.irAlMapa();
+      this.edicion.terminar(() => this.capasAbiertas.cerrar(capa.id));
+    } else {
       this.capasAbiertas.cerrar(capa.id);
-      return;
     }
-    this.abrir(capa);
-  }
-
-  abrir(capa: ResumenCapa): void {
-    this.irAlMapa();
-    this.capasAbiertas.abrir(capa.id);
   }
 
   protected alternarGestion(capa: ResumenCapa): void {
@@ -58,7 +60,7 @@ export class ListaCapasComponent {
     this.capasAbiertas.acercar(capa.id);
   }
 
-  private irAlMapa(): void {
+  irAlMapa(): void {
     if (!this.router.url.startsWith('/mapa')) {
       void this.router.navigateByUrl('/mapa');
     }

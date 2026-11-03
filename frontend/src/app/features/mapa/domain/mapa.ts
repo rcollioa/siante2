@@ -97,3 +97,21 @@ export interface ElementoSeleccionado {
   capa: number;
   elemento: ElementoMapa;
 }
+
+/** Lo que se dibuja en una capa, como en SIATE. `Box` es un cuadro: se guarda como polígono. */
+export type HerramientaDibujo = 'Point' | 'LineString' | 'Box' | 'Polygon' | 'Circle';
+
+/** La forma de un elemento en el mapa, como en `ElementoMapa`. */
+export type FormaElemento = Pick<ElementoMapa, 'geometria' | 'radio'>;
+
+/** Lo que el usuario hace sobre la capa en edición. El mapa no decide qué elemento resulta: lo muestra quien escucha. */
+export interface OyenteEdicion {
+  alDibujar(forma: FormaElemento): void;
+  /** Lo movió o cambió sus vértices: el mapa ya lo muestra con su forma nueva. */
+  alCambiarForma(elemento: ElementoMapa, forma: FormaElemento): void;
+}
+
+// Los de SIATE para lo que no definió su estilo (getDefaultStyle en su map.service).
+export const COLOR_POR_DEFECTO = '#71aecb';
+export const RELLENO_POR_DEFECTO = 'rgba(230, 248, 253, 0.35)';
+export const GROSOR_POR_DEFECTO = 2;

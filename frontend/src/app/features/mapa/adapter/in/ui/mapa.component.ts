@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { AyudaApiService } from '../../../../ayuda/ayuda-api.service';
+import { BarraDibujoComponent } from '../../../../capas/adapter/in/ui/barra-dibujo.component';
 import { PanelCapaComponent } from '../../../../capas/adapter/in/ui/panel-capa.component';
 import { BuscadorDireccionesComponent } from '../../../../direcciones/buscador-direcciones.component';
 import { MapaPort } from '../../../application/port/out/mapa.port';
@@ -10,7 +11,7 @@ import { MapaPort } from '../../../application/port/out/mapa.port';
 @Component({
   selector: 'app-mapa',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, BuscadorDireccionesComponent, PanelCapaComponent],
+  imports: [RouterLink, BuscadorDireccionesComponent, PanelCapaComponent, BarraDibujoComponent],
   templateUrl: './mapa.component.html',
   styleUrl: './mapa.component.css'
 })
