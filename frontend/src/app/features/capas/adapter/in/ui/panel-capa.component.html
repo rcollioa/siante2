@@ -5,6 +5,8 @@
     <p class="error">{{ servicio.error() }}</p>
     <button type="button" class="boton" (click)="servicio.descartarError()">Cerrar</button>
   </div>
+} @else if (edicion.seleccionado(); as seleccionado) {
+  <app-editor-elemento class="panel editor" [elemento]="seleccionado" />
 } @else if (servicio.elegido(); as elegido) {
   <section class="panel" aria-labelledby="elemento-elegido">
     <div class="encabezado">

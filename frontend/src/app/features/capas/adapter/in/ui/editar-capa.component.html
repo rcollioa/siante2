@@ -1,0 +1,98 @@
+<dialog #dialogo aria-labelledby="titulo-editar-capa">
+  <div class="encabezado">
+    <h2 id="titulo-editar-capa">Editar capa</h2>
+    <button type="button" class="cerrar" aria-label="Cerrar sin guardar" title="Cerrar" (click)="cerrar()">
+      <span aria-hidden="true">×</span>
+    </button>
+  </div>
+  <form novalidate (submit)="guardar($event)">
+    <div class="campo">
+      <label for="nombre-capa">Nombre</label>
+      <input
+        #campoNombre
+        id="nombre-capa"
+        type="text"
+        autocomplete="off"
+        required
+        [attr.maxlength]="maximoNombre"
+        [value]="nombre()"
+        [attr.aria-invalid]="mostrarErrores() && errores().nombre !== ''"
+        [attr.aria-describedby]="mostrarErrores() && errores().nombre ? 'error-nombre-capa' : null"
+        (input)="nombre.set(texto($event))"
+        (blur)="mostrarErrores.set(true)" />
+      @if (mostrarErrores() && errores().nombre) {
+        <p id="error-nombre-capa" class="error">{{ errores().nombre }}</p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="descripcion-capa">Descripción</label>
+      <textarea
+        id="descripcion-capa"
+        rows="4"
+        [attr.maxlength]="maximoDescripcion"
+        [value]="descripcion()"
+        [attr.aria-invalid]="mostrarErrores() && errores().descripcion !== ''"
+        [attr.aria-describedby]="mostrarErrores() && errores().descripcion ? 'error-descripcion-capa' : null"
+        (input)="descripcion.set(texto($event))"></textarea>
+      @if (mostrarErrores() && errores().descripcion) {
+        <p id="error-descripcion-capa" class="error">{{ errores().descripcion }}</p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="categoria-capa">Categoría</label>
+      <select
+        id="categoria-capa"
+        required
+        [attr.aria-invalid]="mostrarErrores() && errores().categoria !== ''"
+        [attr.aria-describedby]="mostrarErrores() && errores().categoria ? 'error-categoria-capa' : null"
+        (change)="elegirCategoria($event)">
+        <option value="0" disabled [selected]="categoriaId() === 0">Seleccione una categoría</option>
+        @for (categoria of categorias(); track categoria.id) {
+          <option [value]="categoria.id" [selected]="categoria.id === categoriaId()">{{ categoria.nombre }}</option>
+        }
+      </select>
+      @if (sinCategorias()) {
+        <p class="error" role="alert">
+          No se pudieron cargar las categorías.
+          <button type="button" class="enlace" (click)="cargarCategorias()">Reintentar</button>
+        </p>
+      } @else if (mostrarErrores() && errores().categoria) {
+        <p id="error-categoria-capa" class="error">{{ errores().categoria }}</p>
+      }
+    </div>
+
+    <fieldset class="campo">
+      <legend>Visibilidad</legend>
+      <label class="opcion">
+        <input
+          type="radio"
+          name="visibilidad-capa"
+          value="PUBLICA"
+          [checked]="visibilidad() === 'PUBLICA'"
+          (change)="visibilidad.set('PUBLICA')" />
+        Pública
+      </label>
+      <label class="opcion">
+        <input
+          type="radio"
+          name="visibilidad-capa"
+          value="PRIVADA"
+          [checked]="visibilidad() === 'PRIVADA'"
+          (change)="visibilidad.set('PRIVADA')" />
+        Privada
+      </label>
+    </fieldset>
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <div class="botones">
+      <button type="button" class="boton" (click)="cerrar()">Cancelar</button>
+      <button type="submit" class="boton aplicar" [disabled]="enviando()">
+        {{ enviando() ? 'Guardando…' : 'Aplicar cambios' }}
+      </button>
+    </div>
+  </form>
+</dialog>

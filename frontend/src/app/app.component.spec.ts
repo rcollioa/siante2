@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { AppComponent } from './app.component';
+import { SesionService } from './shared/sesion/sesion.service';
 
 describe('AppComponent', () => {
   it('muestra el contenido recién cuando el router revisó las guardas de la primera ruta', async () => {
@@ -29,5 +30,23 @@ describe('AppComponent', () => {
     await navegacion;
     fixture.detectChanges();
     expect(contenido().classList).not.toContain('esperando');
+  });
+
+  it('acepta archivos soltados solo con la sesión activa', () => {
+    TestBed.configureTestingModule({
+      imports: [AppComponent],
+      providers: [provideRouter([{ path: '**', children: [] }]), provideHttpClient(), provideHttpClientTesting()]
+    });
+    const fixture = TestBed.createComponent(AppComponent);
+    const sesion = TestBed.inject(SesionService);
+    const soltar = (): Element | null => fixture.nativeElement.querySelector('app-soltar-archivos');
+
+    sesion.estado.set('pendiente');
+    fixture.detectChanges();
+    expect(soltar()).toBeNull();
+
+    sesion.estado.set('activa');
+    fixture.detectChanges();
+    expect(soltar()).not.toBeNull();
   });
 });

@@ -6,17 +6,21 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import siante2.capas.application.port.out.CapasReadPort;
+import siante2.capas.application.port.out.CapasWritePort;
 import siante2.capas.application.port.out.ServiciosMapaPort;
 import siante2.capas.application.port.out.ServiciosWmtsPort;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.CapaDeServicio;
+import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.ConsultaPunto;
+import siante2.capas.domain.EdicionCapa;
 import siante2.capas.domain.ElementoDeServicio;
 import siante2.capas.domain.GrillaWmts;
 import siante2.capas.domain.ImagenMapa;
 import siante2.capas.domain.MatrizMosaicos;
 import siante2.capas.domain.Metadato;
+import siante2.capas.domain.NuevaCapa;
 import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.PedidoMapa;
 import siante2.capas.domain.PedidoMosaico;
@@ -26,6 +30,7 @@ import siante2.capas.domain.ServicioMapa;
 import siante2.capas.domain.TipoCapa;
 import siante2.capas.domain.TipoServicio;
 import siante2.capas.domain.Visibilidad;
+import siante2.categorias.domain.Categoria;
 import siante2.compartido.domain.RecursoNoEncontradoException;
 import siante2.compartido.domain.ServicioExternoNoDisponibleException;
 import siante2.compartido.domain.SolicitudInvalidaException;
@@ -46,9 +51,13 @@ class CapasServiceTest {
     private static class CapasEnMemoria implements CapasReadPort {
 
         @Override
-        public List<ResumenCapa> listarDe(int usuarioId) {
-            return usuarioId != 7 ? List.of() : List.of(resumen(1, "zona norte"), resumen(2, "Árboles"),
-                    resumen(3, "Arroyos"), resumen(4, "Bodegas"));
+        public List<CapaPropia> listarDe(int usuarioId) {
+            return usuarioId != 7 ? List.of() : List.of(propia(1, "zona norte"), propia(2, "Árboles"),
+                    propia(3, "Arroyos"), propia(4, "Bodegas"));
+        }
+
+        private static CapaPropia propia(int id, String nombre) {
+            return new CapaPropia(id, nombre, "", Visibilidad.PRIVADA, 3);
         }
 
         @Override
@@ -57,8 +66,8 @@ class CapasServiceTest {
                 return Optional.empty();
             }
             return switch (capaId) {
-                case 1 -> Optional.of(new Capa(1, "Bodegas", "", Visibilidad.PRIVADA, true, TipoCapa.VECTORIAL, List.of(), null));
-                case 20, 21, 22, 23 -> Optional.of(new Capa(capaId, "IDE", "", Visibilidad.PUBLICA, false, TipoCapa.URL, List.of(), null));
+                case 1 -> Optional.of(new Capa(1, "Bodegas", "", Visibilidad.PRIVADA, true, true, TipoCapa.VECTORIAL, List.of(), null));
+                case 20, 21, 22, 23 -> Optional.of(new Capa(capaId, "IDE", "", Visibilidad.PUBLICA, false, false, TipoCapa.URL, List.of(), null));
                 default -> Optional.empty();
             };
         }
@@ -147,10 +156,168 @@ class CapasServiceTest {
         }
     }
 
+    /** Solo el usuario 7 es dueño, y solo de la capa 1; registra lo que se escribió. */
+    private static class EscrituraEnMemoria implements CapasWritePort {
+
+        EdicionCapa editada;
+        Visibilidad visibilidad;
+        boolean eliminada;
+        NuevaCapa creada;
+        int duenoDeLaCreada;
+
+        private static boolean esDelDueno(int capaId, int duenoId) {
+            return capaId == 1 && duenoId == 7;
+        }
+
+        @Override
+        public int crear(int duenoId, NuevaCapa nueva) {
+            creada = nueva;
+            duenoDeLaCreada = duenoId;
+            return 50;
+        }
+
+        @Override
+        public boolean actualizar(int capaId, int duenoId, EdicionCapa edicion) {
+            editada = esDelDueno(capaId, duenoId) ? edicion : null;
+            return editada != null;
+        }
+
+        @Override
+        public boolean cambiarVisibilidad(int capaId, int duenoId, Visibilidad nueva) {
+            visibilidad = esDelDueno(capaId, duenoId) ? nueva : null;
+            return visibilidad != null;
+        }
+
+        @Override
+        public boolean eliminar(int capaId, int duenoId) {
+            eliminada = esDelDueno(capaId, duenoId);
+            return eliminada;
+        }
+    }
+
     private final ServiciosEnMemoria servicios = new ServiciosEnMemoria();
     private final MosaicosEnMemoria mosaicos = new MosaicosEnMemoria();
-    private final CapasService servicio = new CapasService(new CapasEnMemoria(),
-            ivUser -> Optional.ofNullable(USUARIOS.get(ivUser)), servicios, mosaicos);
+    private final EscrituraEnMemoria escritura = new EscrituraEnMemoria();
+    private final CapasService servicio = new CapasService(new CapasEnMemoria(), escritura,
+            ivUser -> Optional.ofNullable(USUARIOS.get(ivUser)), () -> List.of(new Categoria(3, "Agua", "")), servicios, mosaicos);
+
+    private static EdicionCapa edicion(String nombre, String descripcion) {
+        return new EdicionCapa(nombre, descripcion, 3, Visibilidad.PUBLICA);
+    }
+
+    @Test
+    void crearGuardaAlUsuarioDeWebSealComoDuenoYEntregaLaCapaPrivadaYSinCategoria() {
+        CapaPropia capa = servicio.crear("jperez", new NuevaCapa("  Bodegas norte ", " Región "));
+
+        assertThat(escritura.duenoDeLaCreada).isEqualTo(7);
+        assertThat(escritura.creada).isEqualTo(new NuevaCapa("Bodegas norte", "Región"));
+        assertThat(capa).isEqualTo(new CapaPropia(50, "Bodegas norte", "Región", Visibilidad.PRIVADA, 0));
+    }
+
+    @Test
+    void crearSinDescripcionLaGuardaVacia() {
+        assertThat(servicio.crear("jperez", new NuevaCapa("Bodegas", null)).descripcion()).isEmpty();
+    }
+
+    @Test
+    void crearExigeLosMismosLimitesQueEditarSinEscribir() {
+        assertThatThrownBy(() -> servicio.crear("jperez", new NuevaCapa(null, "")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("Nombre requerido.");
+        assertThatThrownBy(() -> servicio.crear("jperez", new NuevaCapa(" abc ", "")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("El nombre debe tener al menos 4 caracteres.");
+        assertThatThrownBy(() -> servicio.crear("jperez", new NuevaCapa("a".repeat(101), "")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("El nombre no puede tener más de 100 caracteres.");
+        assertThatThrownBy(() -> servicio.crear("jperez", new NuevaCapa("Bodegas", "a".repeat(201))))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("La descripción no puede tener más de 200 caracteres.");
+        assertThat(escritura.creada).isNull();
+    }
+
+    @Test
+    void unUsuarioSinRegistroNoPuedeCrear() {
+        assertThatThrownBy(() -> servicio.crear("nuevo", new NuevaCapa("Bodegas", "")))
+                .isInstanceOf(RecursoNoEncontradoException.class).hasMessage("El usuario no está registrado.");
+        assertThat(escritura.creada).isNull();
+    }
+
+    @Test
+    void editarGuardaLosDatosSinEspaciosALosLados() {
+        servicio.editar(1, "jperez", new EdicionCapa("  Bodegas norte ", " Región ", 3, Visibilidad.PUBLICA));
+
+        assertThat(escritura.editada).isEqualTo(new EdicionCapa("Bodegas norte", "Región", 3, Visibilidad.PUBLICA));
+    }
+
+    @Test
+    void sinDescripcionSeGuardaVacia() {
+        servicio.editar(1, "jperez", edicion("Bodegas", null));
+
+        assertThat(escritura.editada.descripcion()).isEmpty();
+    }
+
+    @Test
+    void rechazaUnNombreSinLosLimitesDeSiate() {
+        assertThatThrownBy(() -> servicio.editar(1, "jperez", edicion(null, "")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("Nombre requerido.");
+        assertThatThrownBy(() -> servicio.editar(1, "jperez", edicion("     ", "")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("Nombre requerido.");
+        assertThatThrownBy(() -> servicio.editar(1, "jperez", edicion(" abc ", "")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("El nombre debe tener al menos 4 caracteres.");
+        assertThatThrownBy(() -> servicio.editar(1, "jperez", edicion("a".repeat(101), "")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("El nombre no puede tener más de 100 caracteres.");
+        assertThatThrownBy(() -> servicio.editar(1, "jperez", edicion("Bodegas", "a".repeat(201))))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("La descripción no puede tener más de 200 caracteres.");
+        assertThat(escritura.editada).isNull();
+    }
+
+    @Test
+    void aceptaLosLimitesExactos() {
+        servicio.editar(1, "jperez", edicion("abcd", "a".repeat(200)));
+        assertThat(escritura.editada.nombre()).isEqualTo("abcd");
+
+        servicio.editar(1, "jperez", edicion("a".repeat(100), ""));
+        assertThat(escritura.editada.nombre()).hasSize(100);
+    }
+
+    @Test
+    void rechazaUnaCategoriaQueNoExisteSinEscribir() {
+        assertThatThrownBy(() -> servicio.editar(1, "jperez", new EdicionCapa("Bodegas", "", 99, Visibilidad.PRIVADA)))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("La categoría no existe.");
+        assertThat(escritura.editada).isNull();
+    }
+
+    @Test
+    void unaCapaNoSePuedeVolverFormalNiAreaDeDibujo() {
+        assertThatThrownBy(() -> servicio.editar(1, "jperez", new EdicionCapa("Bodegas", "", 3, Visibilidad.FORMAL)))
+                .isInstanceOf(SolicitudInvalidaException.class);
+        assertThatThrownBy(() -> servicio.editar(1, "jperez", new EdicionCapa("Bodegas", "", 3, null)))
+                .isInstanceOf(SolicitudInvalidaException.class);
+        assertThatThrownBy(() -> servicio.cambiarVisibilidad(1, "jperez", Visibilidad.AREA_DE_DIBUJO))
+                .isInstanceOf(SolicitudInvalidaException.class);
+        assertThatThrownBy(() -> servicio.cambiarVisibilidad(1, "jperez", null))
+                .isInstanceOf(SolicitudInvalidaException.class);
+        assertThat(escritura.editada).isNull();
+        assertThat(escritura.visibilidad).isNull();
+    }
+
+    @Test
+    void publicarYEliminarAplicanSobreLaCapaPropia() {
+        servicio.cambiarVisibilidad(1, "jperez", Visibilidad.PUBLICA);
+        assertThat(escritura.visibilidad).isEqualTo(Visibilidad.PUBLICA);
+
+        servicio.eliminar(1, "jperez");
+        assertThat(escritura.eliminada).isTrue();
+    }
+
+    @Test
+    void escribirEnUnaCapaAjenaOSinRegistroEsLoMismoQueNoEncontrarla() {
+        assertThatThrownBy(() -> servicio.editar(2, "jperez", edicion("Bodegas", "")))
+                .isInstanceOf(RecursoNoEncontradoException.class).hasMessage("La capa no existe.");
+        assertThatThrownBy(() -> servicio.cambiarVisibilidad(2, "jperez", Visibilidad.PUBLICA))
+                .isInstanceOf(RecursoNoEncontradoException.class);
+        assertThatThrownBy(() -> servicio.eliminar(2, "jperez")).isInstanceOf(RecursoNoEncontradoException.class);
+        assertThatThrownBy(() -> servicio.editar(1, "nuevo", edicion("Bodegas", "")))
+                .isInstanceOf(RecursoNoEncontradoException.class);
+        assertThatThrownBy(() -> servicio.eliminar(1, "nuevo")).isInstanceOf(RecursoNoEncontradoException.class);
+    }
 
     @Test
     void unaCapaWmtsSeAbreConSusCapasYLaGrillaDeMosaicos() {
@@ -251,7 +418,7 @@ class CapasServiceTest {
 
     @Test
     void ordenaLasCapasComoUnDiccionarioSinImportarTildesNiMayusculas() {
-        assertThat(servicio.listar("jperez")).extracting(ResumenCapa::nombre)
+        assertThat(servicio.listar("jperez")).extracting(CapaPropia::nombre)
                 .containsExactly("Árboles", "Arroyos", "Bodegas", "zona norte");
     }
 

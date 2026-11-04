@@ -1,6 +1,8 @@
 package siante2.capas.adapter.out.oracle;
 
 import jakarta.persistence.EntityManagerFactory;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +11,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import siante2.ContadorSql;
 import siante2.capas.domain.Capa;
+import siante2.capas.domain.CapaPropia;
+import siante2.capas.domain.EdicionCapa;
+import siante2.capas.domain.NuevaCapa;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.ResumenCapa;
@@ -57,12 +62,106 @@ class OracleCapasRepositoryTest {
 
     @Test
     void listaLasCapasActivasDelUsuarioSinAreasDeDibujoEnUnaSolaConsulta() {
+        jdbc.update("update V_LAYERS set CATEGORY_ID = 9 where ID = 1");
         ContadorSql sql = new ContadorSql(fabrica);
 
         assertThat(repositorio.listarDe(YO)).containsExactly(
-                new ResumenCapa(1, "Bodegas", "Descripción de Bodegas", Visibilidad.PRIVADA),
-                new ResumenCapa(4, "Servicio IDE", "Descripción de Servicio IDE", Visibilidad.PUBLICA));
+                new CapaPropia(1, "Bodegas", "Descripción de Bodegas", Visibilidad.PRIVADA, 9),
+                new CapaPropia(4, "Servicio IDE", "Descripción de Servicio IDE", Visibilidad.PUBLICA, 0));
         assertThat(sql.sentencias()).isEqualTo(1);
+    }
+
+    /** Una fila real de LAYERS (las lecturas van por V_LAYERS), con las columnas que la edición no debe tocar. */
+    private void filaDeCapa(int id, int dueno, String visibilidad, String estado) {
+        jdbc.update("insert into LAYERS (ID, OWNER, NAME, ORIGIN, STATUS, JSON_METADATA, DESCRIPTION, VISIBILITY, L_GROUP_ID, CATEGORY_ID) "
+                + "values (?, ?, 'Original', 'origen', ?, '{\"type\":\"FeatureCollection\"}', 'Sin cambios', ?, 11, 5)",
+                id, dueno, estado, visibilidad);
+    }
+
+    private Map<String, Object> fila(int id) {
+        return jdbc.queryForMap("select * from LAYERS where ID = ?", id);
+    }
+
+    @Test
+    void crearInsertaUnaCapaActivaPrivadaYEnBlancoEnUnaSentencia() {
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        int id = repositorio.crear(YO, new NuevaCapa("Nueva", "Región"));
+
+        assertThat(sql.sentencias()).isEqualTo(1);
+        assertThat(fila(id)).containsEntry("OWNER", YO).containsEntry("NAME", "Nueva").containsEntry("DESCRIPTION", "Región")
+                .containsEntry("STATUS", "1").containsEntry("VISIBILITY", "0").containsEntry("JSON_METADATA", null)
+                .containsEntry("ORIGIN", null).containsEntry("L_GROUP_ID", null).containsEntry("CATEGORY_ID", null);
+    }
+
+    @Test
+    void cadaCapaCreadaRecibeSuPropioId() {
+        assertThat(repositorio.crear(YO, new NuevaCapa("Primera", "")))
+                .isNotEqualTo(repositorio.crear(YO, new NuevaCapa("Segunda", "")));
+    }
+
+    @Test
+    void editarCambiaSoloSusColumnasEnUnaSentencia() {
+        filaDeCapa(50, YO, "0", "1");
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        assertThat(repositorio.actualizar(50, YO, new EdicionCapa("Nueva", "Otra", 9, Visibilidad.PUBLICA))).isTrue();
+
+        assertThat(sql.sentencias()).isEqualTo(1);
+        assertThat(fila(50)).containsEntry("NAME", "Nueva").containsEntry("DESCRIPTION", "Otra")
+                .containsEntry("CATEGORY_ID", 9).containsEntry("VISIBILITY", "1")
+                .containsEntry("OWNER", YO).containsEntry("STATUS", "1").containsEntry("ORIGIN", "origen")
+                .containsEntry("L_GROUP_ID", 11).containsEntry("JSON_METADATA", "{\"type\":\"FeatureCollection\"}");
+    }
+
+    @Test
+    void publicarYDespublicarCambianSoloLaVisibilidad() {
+        filaDeCapa(50, YO, "0", "1");
+
+        assertThat(repositorio.cambiarVisibilidad(50, YO, Visibilidad.PUBLICA)).isTrue();
+        assertThat(fila(50)).containsEntry("VISIBILITY", "1").containsEntry("NAME", "Original");
+
+        assertThat(repositorio.cambiarVisibilidad(50, YO, Visibilidad.PRIVADA)).isTrue();
+        assertThat(fila(50)).containsEntry("VISIBILITY", "0");
+    }
+
+    @Test
+    void unaCapaSinVisibilidadSeGestionaComoPrivada() {
+        filaDeCapa(50, YO, null, "1");
+
+        assertThat(repositorio.cambiarVisibilidad(50, YO, Visibilidad.PUBLICA)).isTrue();
+        assertThat(fila(50)).containsEntry("VISIBILITY", "1");
+    }
+
+    @Test
+    void eliminarLaDejaInactivaSinBorrarLaFilaNiSusElementos() {
+        filaDeCapa(50, YO, "1", "1");
+        elemento(50, 0, "{}");
+
+        assertThat(repositorio.eliminar(50, YO)).isTrue();
+
+        assertThat(fila(50)).containsEntry("STATUS", "0").containsEntry("NAME", "Original").containsEntry("VISIBILITY", "1");
+        assertThat(jdbc.queryForObject("select count(*) from LAYERS_FEATURES where ID_LAYER = 50", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void noSeEscribeEnCapasAjenasEliminadasFormalesNiAreasDeDibujo() {
+        filaDeCapa(50, OTRO, "0", "1");
+        filaDeCapa(51, YO, "0", "0");
+        filaDeCapa(52, YO, "2", "1");
+        filaDeCapa(53, YO, "3", "1");
+        EdicionCapa edicion = new EdicionCapa("Nueva", "", 9, Visibilidad.PUBLICA);
+
+        for (int capa : List.of(50, 51, 52, 53, 999)) {
+            assertThat(repositorio.actualizar(capa, YO, edicion)).isFalse();
+            assertThat(repositorio.cambiarVisibilidad(capa, YO, Visibilidad.PUBLICA)).isFalse();
+            assertThat(repositorio.eliminar(capa, YO)).isFalse();
+        }
+
+        assertThat(fila(50)).containsEntry("NAME", "Original").containsEntry("VISIBILITY", "0").containsEntry("STATUS", "1");
+        assertThat(fila(51)).containsEntry("STATUS", "0").containsEntry("NAME", "Original");
+        assertThat(fila(52)).containsEntry("VISIBILITY", "2").containsEntry("STATUS", "1");
+        assertThat(fila(53)).containsEntry("VISIBILITY", "3").containsEntry("STATUS", "1");
     }
 
     @Test
@@ -89,6 +188,18 @@ class OracleCapasRepositoryTest {
     }
 
     @Test
+    void soloSeDibujaEnLasCapasPropiasPrivadasOPublicasConElementosPropios() {
+        capa(8, YO, "Propia formal", "2", "1", "");
+        capa(9, YO, "Colección traída de una URL", "0", "1", "{\"type\":\"FeatureCollection\",\"url\":\"https://ide.cl/kml\",\"features\":[]}");
+
+        assertThat(repositorio.buscarVisible(1, YO).orElseThrow().editable()).isTrue();
+        assertThat(repositorio.buscarVisible(4, YO).orElseThrow().editable()).as("por URL").isFalse();
+        assertThat(repositorio.buscarVisible(6, YO).orElseThrow().editable()).as("ajena").isFalse();
+        assertThat(repositorio.buscarVisible(8, YO).orElseThrow().editable()).as("formal").isFalse();
+        assertThat(repositorio.buscarVisible(9, YO).orElseThrow().editable()).as("se sincroniza").isFalse();
+    }
+
+    @Test
     void unaCapaPrivadaAjenaOBorradaNoSaleDeLaBase() {
         assertThat(repositorio.buscarVisible(5, YO)).isEmpty();
         assertThat(repositorio.buscarVisible(3, YO)).isEmpty();
@@ -101,6 +212,52 @@ class OracleCapasRepositoryTest {
                 .contains(new OrigenServicio(TipoServicio.WMS, "https://ide.cl/wms"));
         assertThat(repositorio.servicioVisible(1, YO)).isEmpty();
         assertThat(repositorio.servicioVisible(5, YO)).isEmpty();
+    }
+
+    @Test
+    void unaCapaSinFilasEnLayersFeaturesTraeLosElementosDeSuPropioJson() {
+        capa(8, YO, "Sin migrar", "0", "1", """
+                {"type":"FeatureCollection","features":[
+                 {"type":"Feature","geometry":{"type":"Point","coordinates":[-70.65,-33.44]}},
+                 {"type":"Feature","geometry":{"type":"LineString","coordinates":[[-70.6,-33.4],[-70.5,-33.3]]}},
+                 {"type":"Feature","geometry":{"type":"Point"}}]}""");
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        Capa capa = repositorio.buscarVisible(8, YO).orElseThrow();
+
+        assertThat(capa.elementos()).extracting(elemento -> elemento.geometria().type()).containsExactly("Point", "LineString");
+        assertThat(sql.sentencias()).isEqualTo(3);
+    }
+
+    @Test
+    void conFilasEnLayersFeaturesNoSeLeeElJsonDeLaCapa() {
+        capa(8, YO, "Migrada", "0", "1", """
+                {"type":"FeatureCollection","features":[{"geometry":{"type":"Point","coordinates":[-1.0,-1.0]}}]}""");
+        elemento(8, 0, "{\"geometry\":{\"type\":\"LineString\",\"coordinates\":[[-70.6,-33.4],[-70.5,-33.3]]}}");
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        Capa capa = repositorio.buscarVisible(8, YO).orElseThrow();
+
+        assertThat(capa.elementos()).extracting(elemento -> elemento.geometria().type()).containsExactly("LineString");
+        assertThat(sql.sentencias()).isEqualTo(2);
+    }
+
+    @Test
+    void unaCapaEnBlancoNoLeeSuJson() {
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        assertThat(repositorio.buscarVisible(7, YO).orElseThrow().elementos()).isEmpty();
+        assertThat(sql.sentencias()).isEqualTo(2);
+    }
+
+    @Test
+    void enOracleUnTextoVacioLlegaComoNullYElDominioRecibeTextoVacio() {
+        assertThat(new FilaResumenCapa(1, null, null, "0").descripcion()).isEmpty();
+        assertThat(new FilaCapaPropia(1, null, null, "0", 0).nombre()).isEmpty();
+        assertThat(new FilaCapaVisible(1, null, null, "0", 7, null).descripcion()).isEmpty();
+        FilaCapaCatalogo catalogo = new FilaCapaCatalogo(1, null, null, "1", null, null, null, false);
+        assertThat(List.of(catalogo.nombre(), catalogo.descripcion(), catalogo.categoria(), catalogo.nombreDueno(), catalogo.apellidoDueno()))
+                .containsOnly("");
     }
 
     @Test

@@ -1,0 +1,58 @@
+dialog.arrastrando {
+  outline: 3px dashed var(--color-primary);
+  outline-offset: -0.35rem;
+}
+
+.zona {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed var(--color-border-medium);
+  border-radius: var(--radius-sm);
+}
+
+.arrastrando .zona {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.zona:has(input[aria-invalid='true']) {
+  border-color: var(--color-danger);
+}
+
+/* El botón visible es la etiqueta; el campo sigue recibiendo el foco del teclado. */
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.solo-lectores:focus-visible + .boton {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.elegido {
+  min-width: 0;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.nota,
+.advertencia {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+}
+
+.nota {
+  color: var(--color-muted);
+}
+
+.advertencia {
+  color: var(--color-ink);
+}

@@ -11,25 +11,26 @@ import org.springframework.data.repository.Repository;
 interface VistaCapaJpaRepository extends Repository<VistaCapaEntity, Integer> {
 
     @Query("""
-            select new siante2.capas.adapter.out.oracle.FilaResumenCapa(
-                c.id, coalesce(c.name, ''), coalesce(c.description, ''), coalesce(c.visibility, '0'))
+            select new siante2.capas.adapter.out.oracle.FilaCapaPropia(
+                c.id, coalesce(c.name, ''), coalesce(c.description, ''), coalesce(c.visibility, '0'), coalesce(c.categoryId, 0))
             from VistaCapaEntity c
             where c.userId = :usuario and c.status = :activa and coalesce(c.visibility, '0') <> :areaDeDibujo
             order by c.id""")
-    List<FilaResumenCapa> buscarDe(int usuario, String activa, String areaDeDibujo);
+    List<FilaCapaPropia> buscarDe(int usuario, String activa, String areaDeDibujo);
 
     /** La visibilidad va en el where (README "Autorización"): una capa privada ajena no sale de la base. */
     @Query("""
             select new siante2.capas.adapter.out.oracle.FilaCapaVisible(
                 c.id, coalesce(c.name, ''), coalesce(c.description, ''), coalesce(c.visibility, '0'), c.userId,
-                substring(c.jsonMetadata, 1, 100))
+                substring(c.jsonMetadata, 1, """ + InicioJsonCapa.LARGO + """
+            ))
             from VistaCapaEntity c
             where c.id = :capa and c.status = :activa and (c.userId = :usuario or c.visibility in :deTodos)
             limit 1""")
     Optional<FilaCapaVisible> buscarVisible(int capa, int usuario, String activa, Collection<String> deTodos);
 
-    /** El JSON completo de una capa que el usuario puede ver. Solo para las capas por URL, cuyo JSON es corto: el de
-     * una vectorial puede pesar megas. */
+    /** El JSON completo de una capa que el usuario puede ver. Solo si hace falta: el de una capa por URL es corto, pero
+     * el de una vectorial sin filas en {@code LAYERS_FEATURES} puede pesar megas. */
     @Query("""
             select c.jsonMetadata
             from VistaCapaEntity c

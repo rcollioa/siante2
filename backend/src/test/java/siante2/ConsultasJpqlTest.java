@@ -1,6 +1,7 @@
 package siante2;
 
 import jakarta.persistence.Entity;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.core.ResolvableType;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.core.type.filter.AssignableTypeFilter;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.util.ClassUtils;
@@ -66,10 +68,18 @@ class ConsultasJpqlTest {
                         .filter(metodo -> !metodo.getAnnotation(Query.class).nativeQuery())
                         .map(metodo -> DynamicTest.dynamicTest(
                                 repositorio.getSimpleName() + "." + metodo.getName(),
-                                () -> assertThatCode(() -> sessionFactory.inSession(sesion ->
-                                        sesion.createSelectionQuery(metodo.getAnnotation(Query.class).value(),
-                                                tipoDeResultado(metodo))))
+                                () -> assertThatCode(() -> sessionFactory.inSession(sesion -> compilar(sesion, metodo)))
                                         .doesNotThrowAnyException())));
+    }
+
+    /** Un {@code update} o {@code delete} no es una selección: Hibernate los compila por separado. */
+    private static void compilar(Session sesion, Method metodo) {
+        String jpql = metodo.getAnnotation(Query.class).value();
+        if (metodo.isAnnotationPresent(Modifying.class)) {
+            sesion.createMutationQuery(jpql);
+        } else {
+            sesion.createSelectionQuery(jpql, tipoDeResultado(metodo));
+        }
     }
 
     /** {@code List<X>}, {@code Page<X>}, {@code Stream<X>} u {@code Optional<X>} → {@code X}; cualquier otro retorno tal cual. */

@@ -2,7 +2,7 @@ import Circle from 'ol/geom/Circle';
 import Point from 'ol/geom/Point';
 import Polygon from 'ol/geom/Polygon';
 import { toLonLat } from 'ol/proj';
-import { Circle as Punto, Icon, Style } from 'ol/style';
+import { Icon, Style } from 'ol/style';
 import { ElementoMapa } from '../../../domain/mapa';
 import { aFeatures, ELEMENTO } from './elementos-openlayers';
 
@@ -47,18 +47,25 @@ describe('aFeatures', () => {
     expect(estilo(0, elementos).getStroke()?.getColor()).toBe('#ff0000');
     expect(estilo(0, elementos).getStroke()?.getWidth()).toBe(4);
     expect(estilo(0, elementos).getFill()?.getColor()).toBe('rgba(0, 0, 0, 0.5)');
-    expect(estilo(1, elementos).getStroke()?.getColor()).toBe('#4c6fed');
+    expect(estilo(1, elementos).getStroke()?.getColor()).toBe('#71aecb');
     expect(estilo(1, elementos).getStroke()?.getWidth()).toBe(2);
+    expect(estilo(1, elementos).getFill()?.getColor()).toBe('rgba(230, 248, 253, 0.35)');
   });
 
-  it('usa los íconos incrustados, pero no los de otros servidores, que la CSP bloquearía', () => {
-    const elementos = [
-      elemento({ estilo: { ...sinEstilo, icono: 'data:image/svg+xml;base64,PHN2Zy8+' } }),
-      elemento({ estilo: { ...sinEstilo, icono: 'https://otro.cl/icono.png' } })
-    ];
+  it('una línea sin estilo se dibuja con el trazo de SIATE', () => {
+    const linea = { type: 'LineString', coordinates: [[-70, -33], [-70.1, -33]] };
 
-    expect(estilo(0, elementos).getImage()).toBeInstanceOf(Icon);
-    expect(estilo(1, elementos).getImage()).toBeInstanceOf(Punto);
+    expect(estilo(0, [elemento({ geometria: linea })]).getStroke()?.getColor()).toBe('#71aecb');
+    expect(estilo(0, [elemento({ geometria: linea, estilo: { ...sinEstilo, color: '#ff0000' } })]).getStroke()?.getColor()).toBe('#ff0000');
+  });
+
+  it('un punto es el pin de SIATE, salvo que traiga un ícono incrustado', () => {
+    const icono = (guardado: string) => (estilo(0, [elemento({ estilo: { ...sinEstilo, icono: guardado } })]).getImage() as Icon).getSrc();
+
+    expect(icono('')).toBe('assets/img/marker.svg');
+    expect(icono('./assets/img/marker.svg')).toBe('assets/img/marker.svg');
+    expect(icono('https://otro.cl/icono.png')).toBe('assets/img/marker.svg');
+    expect(icono('data:image/svg+xml;base64,PHN2Zy8+')).toBe('data:image/svg+xml;base64,PHN2Zy8+');
   });
 
   it('omite los elementos que no se pueden dibujar', () => {

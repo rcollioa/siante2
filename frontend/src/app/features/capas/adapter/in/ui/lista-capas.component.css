@@ -4,11 +4,20 @@ ul {
   list-style: none;
 }
 
-/* Una capa y, si está abierta, sus acciones a la derecha. */
+/* Una capa y, si está abierta, sus acciones a la derecha. Sus opciones van en otra línea. */
 .fila {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.125rem;
+}
+
+.opciones {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.125rem 0.75rem 0.4rem;
 }
 
 .capa {
@@ -50,8 +59,10 @@ ul {
   gap: 0.125rem;
 }
 
-.accion {
+.accion,
+.gestionar {
   display: grid;
+  flex-shrink: 0;
   place-items: center;
   width: 2rem;
   height: 2rem;
@@ -63,13 +74,16 @@ ul {
   cursor: pointer;
 }
 
-.accion:hover {
+.accion:hover,
+.gestionar:hover,
+.gestionar[aria-expanded='true'] {
   background: var(--color-hover);
   color: var(--color-ink);
 }
 
 .capa:focus-visible,
 .accion:focus-visible,
+.gestionar:focus-visible,
 .reintentar:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;

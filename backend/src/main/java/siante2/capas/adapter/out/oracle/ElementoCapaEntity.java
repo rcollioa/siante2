@@ -9,9 +9,10 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import org.hibernate.annotations.Immutable;
 
-/** Elemento (feature) de una capa: tabla {@code LAYERS_FEATURES} de SIATE (modelo {@code LayerFeature}), solo lectura.
- * Sin {@code SPATIAL_OBJECT}: la geometría se lee como GML con consulta nativa. Clave {@code (ID_FEATURE, ID_LAYER)}:
- * SIATE numera los elementos dentro de cada capa. */
+/** Elemento (feature) de una capa: tabla {@code LAYERS_FEATURES} de SIATE (modelo {@code LayerFeature}). Sigue siendo
+ * {@code @Immutable} para Hibernate: se escribe con SQL nativo en {@link OracleElementosRepository}, porque
+ * {@code SPATIAL_OBJECT} no está aquí. Clave {@code (ID_FEATURE, ID_LAYER)}: SIATE numera los elementos dentro de cada
+ * capa. */
 @Entity
 @Immutable
 @Table(name = "LAYERS_FEATURES")

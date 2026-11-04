@@ -29,4 +29,13 @@ export class Favoritas {
       error: () => this.estadoActual.set('error')
     });
   }
+
+  /** El dueño la editó desde "Mis capas": sin esto, la lista quedaría con los datos anteriores hasta volver a abrirla. */
+  actualizar(id: number, datos: Partial<ResumenCapa>): void {
+    this.lista.update((capas) => capas.map((capa) => (capa.id === id ? { ...capa, ...datos } : capa)));
+  }
+
+  quitar(id: number): void {
+    this.lista.update((capas) => capas.filter((capa) => capa.id !== id));
+  }
 }

@@ -1,0 +1,113 @@
+<dialog #dialogo data-recibe-archivos [class.arrastrando]="soltados.arrastrando()" aria-labelledby="titulo-crear-capa">
+  <div class="encabezado">
+    <h2 id="titulo-crear-capa">Nueva capa</h2>
+    <button type="button" class="cerrar" aria-label="Cerrar sin crear" title="Cerrar" (click)="cerrar()">
+      <span aria-hidden="true">×</span>
+    </button>
+  </div>
+  <form novalidate (submit)="guardar($event)">
+    <fieldset class="campo">
+      <legend>Tipo de capa</legend>
+      <label class="opcion">
+        <input
+          type="radio"
+          name="tipo-nueva-capa"
+          value="BLANCO"
+          [checked]="tipo() === 'BLANCO'"
+          (change)="elegirTipo('BLANCO')" />
+        Capa en blanco
+      </label>
+      <label class="opcion">
+        <input
+          type="radio"
+          name="tipo-nueva-capa"
+          value="ARCHIVO"
+          [checked]="tipo() === 'ARCHIVO'"
+          (change)="elegirTipo('ARCHIVO')" />
+        Archivo
+      </label>
+    </fieldset>
+
+    @if (tipo() === 'ARCHIVO') {
+      <div class="campo">
+        <span id="formatos-nueva-capa">Archivo (KML, JSON o GeoJSON, hasta 30 MB)</span>
+        <div class="zona">
+          <input
+            id="archivo-nueva-capa"
+            class="solo-lectores"
+            type="file"
+            [accept]="extensiones"
+            [attr.aria-invalid]="errorArchivo() !== ''"
+            [attr.aria-describedby]="errorArchivo() ? 'formatos-nueva-capa error-archivo-nueva-capa' : 'formatos-nueva-capa'"
+            (change)="elegirArchivo($event)" />
+          <label class="boton" for="archivo-nueva-capa">Seleccionar archivo</label>
+          <span class="elegido">{{ nombreArchivo() || 'o arrástrelo hasta aquí' }}</span>
+        </div>
+        <div role="status">
+          @if (leyendo()) {
+            <p class="nota">Leyendo el archivo…</p>
+          } @else if (archivo(); as leido) {
+            <p class="nota">
+              {{ leido.elementos.length === 1 ? 'Se importará 1 elemento.' : 'Se importarán ' + leido.elementos.length + ' elementos.' }}
+            </p>
+            @if (leido.omitidos > 0) {
+              <p class="advertencia">
+                {{ leido.omitidos === 1 ? '1 elemento no tiene una geometría válida y se omitirá.' : leido.omitidos + ' elementos no tienen una geometría válida y se omitirán.' }}
+              </p>
+            }
+            @if (leido.enCarpetas) {
+              <p class="advertencia">Las carpetas del KML no se conservan: todos sus elementos quedarán en una sola capa.</p>
+            }
+          }
+        </div>
+        @if (errorArchivo()) {
+          <p id="error-archivo-nueva-capa" class="error" role="alert">{{ errorArchivo() }}</p>
+        }
+      </div>
+    }
+
+    <div class="campo">
+      <label for="nombre-nueva-capa">Nombre</label>
+      <input
+        #campoNombre
+        id="nombre-nueva-capa"
+        type="text"
+        autocomplete="off"
+        required
+        [attr.maxlength]="maximoNombre"
+        [value]="nombre()"
+        [attr.aria-invalid]="mostrarErrores() && errorNombre() !== ''"
+        [attr.aria-describedby]="mostrarErrores() && errorNombre() ? 'error-nombre-nueva-capa' : null"
+        (input)="nombre.set(texto($event))"
+        (blur)="mostrarErrores.set(true)" />
+      @if (mostrarErrores() && errorNombre()) {
+        <p id="error-nombre-nueva-capa" class="error">{{ errorNombre() }}</p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="descripcion-nueva-capa">Descripción</label>
+      <textarea
+        id="descripcion-nueva-capa"
+        rows="4"
+        [attr.maxlength]="maximoDescripcion"
+        [value]="descripcion()"
+        [attr.aria-invalid]="mostrarErrores() && errorDescripcion() !== ''"
+        [attr.aria-describedby]="mostrarErrores() && errorDescripcion() ? 'error-descripcion-nueva-capa' : null"
+        (input)="descripcion.set(texto($event))"></textarea>
+      @if (mostrarErrores() && errorDescripcion()) {
+        <p id="error-descripcion-nueva-capa" class="error">{{ errorDescripcion() }}</p>
+      }
+    </div>
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <div class="botones">
+      <button type="button" class="boton" (click)="cerrar()">Cancelar</button>
+      <button type="submit" class="boton aplicar" [disabled]="enviando() || leyendo()">
+        {{ enviando() ? 'Creando…' : 'Crear capa' }}
+      </button>
+    </div>
+  </form>
+</dialog>

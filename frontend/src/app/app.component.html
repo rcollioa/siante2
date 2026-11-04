@@ -6,5 +6,8 @@
   <main class="contenido" [class.esperando]="!rutaInicialRevisada()">
     <router-outlet />
   </main>
+  @if (sesion.estado() === 'activa') {
+    <app-soltar-archivos />
+  }
   <app-pantalla-carga />
 </div>

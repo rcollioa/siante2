@@ -16,6 +16,18 @@ describe('Favoritas', () => {
     servicio = TestBed.inject(Favoritas);
   });
 
+  it('refleja lo que el dueño cambió desde "Mis capas", sin volver a pedirlas', () => {
+    servicio.cargar();
+
+    servicio.actualizar(3, { nombre: 'Ríos de Chile' });
+    expect(servicio.favoritas()).toEqual([{ ...rios, nombre: 'Ríos de Chile' }]);
+
+    servicio.quitar(3);
+    expect(servicio.favoritas()).toEqual([]);
+    expect(servicio.formales()).toEqual([hospitales]);
+    expect(listarFavoritas).toHaveBeenCalledOnce();
+  });
+
   it('separa las favoritas de las capas formales con una sola consulta', () => {
     servicio.cargar();
 

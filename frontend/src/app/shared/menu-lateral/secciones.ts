@@ -6,12 +6,15 @@ export interface Seccion {
   ruta?: string;
   /** Lista que se despliega bajo la sección, como en el menú de SIATE; se descarga al abrirla por primera vez. */
   panel?: () => Promise<Type<unknown>>;
+  /** Un archivo soltado en la ventana se entrega a este panel, que se despliega para recibirlo. */
+  recibeArchivos?: boolean;
 }
 
 export const SECCIONES: Seccion[] = [
   { nombre: 'Inicio', ruta: '/mapa' },
   {
     nombre: 'Mis capas',
+    recibeArchivos: true,
     panel: () => import('../../features/capas/adapter/in/ui/mis-capas.component').then((m) => m.MisCapasComponent)
   },
   {

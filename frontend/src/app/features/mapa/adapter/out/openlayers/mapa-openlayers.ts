@@ -29,15 +29,19 @@ import {
   CapaBase,
   CapaWms,
   CapaWmts,
+  ElementoLeido,
   ElementoMapa,
   ElementoSeleccionado,
   formatearDistancia,
   Extension,
+  HerramientaDibujo,
+  OyenteEdicion,
   PuntoWms,
   ZonaVisible
 } from '../../../domain/mapa';
 import { crearCapasBase } from './capas-base';
-import { aFeatures, ELEMENTO } from './elementos-openlayers';
+import { EdicionOpenLayers } from './edicion-openlayers';
+import { aFeatures, ELEMENTO, estiloDe } from './elementos-openlayers';
 
 const CENTRO_CHILE = fromLonLat([-70.65, -33.45]);
 const ZOOM_DIRECCION = 17;
@@ -102,6 +106,7 @@ export class MapaOpenLayers extends MapaPort {
   private direccionElegida = false;
   private posicionUsuario: Coordinate | null = null;
   private teselasFallidasSeguidas = 0;
+  private edicion: EdicionOpenLayers | null = null;
 
   readonly avisoUbicacion = signal<AvisoUbicacion | null>(null);
   readonly ubicando = signal(false);
@@ -146,8 +151,8 @@ export class MapaOpenLayers extends MapaPort {
     }
     // Como la herramienta de selección de SIATE: un clic muestra la información del elemento.
     this.mapa.on('singleclick', ({ pixel, coordinate }) => {
-      // Con la regla activa, cada clic es un punto de la línea que se mide, como en SIATE.
-      if (this.midiendo()) {
+      // Con la regla activa o mientras se dibuja, cada clic es un punto de la línea o de lo que se está dibujando.
+      if (this.midiendo() || this.edicion?.dibujando) {
         return;
       }
       // Solo cuentan las capas abiertas y visibles: OpenLayers no busca en las que no dibuja.
@@ -155,12 +160,90 @@ export class MapaOpenLayers extends MapaPort {
         layerFilter: (capa) => capa instanceof VectorLayer && capa.get(CAPA) !== undefined,
         hitTolerance: 4
       });
-      this.elementoSeleccionado.set(
-        feature ? { capa: feature.get(CAPA) as number, elemento: feature.get(ELEMENTO) as ElementoMapa } : null
-      );
+      this.seleccionar(feature ?? null);
       // Como en SIATE, un elemento propio tapa lo que haya debajo en las capas WMS.
       this.consultaWms.set(feature ? [] : this.puntosWms(coordinate));
     });
+  }
+
+  private seleccionar(feature: Feature | null): void {
+    this.elementoSeleccionado.set(
+      feature ? { capa: feature.get(CAPA) as number, elemento: feature.get(ELEMENTO) as ElementoMapa } : null
+    );
+    this.edicion?.seleccionar(feature?.get(CAPA) === this.edicion.capa ? feature : null);
+  }
+
+  editarCapa(id: number, oyente: OyenteEdicion): void {
+    this.terminarEdicion();
+    const fuente = this.fuenteDe(id);
+    if (fuente) {
+      this.deseleccionarDe(id);
+      this.edicion = new EdicionOpenLayers(this.mapa, id, fuente, oyente);
+    }
+  }
+
+  terminarEdicion(): void {
+    const edicion = this.edicion;
+    if (edicion) {
+      edicion.terminar();
+      this.edicion = null;
+      this.deseleccionarDe(edicion.capa);
+    }
+  }
+
+  usarHerramienta(herramienta: HerramientaDibujo | null): void {
+    // Dos dibujos a la vez convertirían cada clic en un punto de la medición y otro del elemento.
+    if (herramienta && this.edicion && this.midiendo()) {
+      this.apagarRegla();
+    }
+    this.edicion?.usarHerramienta(herramienta);
+  }
+
+  agregarElemento(capa: number, elemento: ElementoMapa): void {
+    const [feature] = aFeatures([elemento]);
+    if (feature) {
+      feature.set(CAPA, capa);
+      this.fuenteDe(capa)?.addFeature(feature);
+      this.seleccionar(feature);
+    }
+  }
+
+  reemplazarElemento(capa: number, anterior: ElementoMapa, nuevo: ElementoMapa): void {
+    const feature = this.featureDe(capa, anterior);
+    if (!feature) {
+      return;
+    }
+    feature.set(ELEMENTO, nuevo);
+    if (this.elementoSeleccionado()?.elemento === anterior) {
+      this.elementoSeleccionado.set({ capa, elemento: nuevo });
+    }
+    if (this.edicion?.capa === capa) {
+      this.edicion.redibujar(feature);
+    } else {
+      feature.setStyle(estiloDe(nuevo));
+    }
+  }
+
+  quitarElemento(capa: number, elemento: ElementoMapa): void {
+    const feature = this.featureDe(capa, elemento);
+    if (!feature) {
+      return;
+    }
+    if (this.elementoSeleccionado()?.elemento === elemento) {
+      this.seleccionar(null);
+    }
+    this.fuenteDe(capa)?.removeFeature(feature);
+  }
+
+  private fuenteDe(capa: number): VectorSource | null {
+    const capaOl = this.capas.get(capa);
+    return capaOl instanceof VectorLayer ? (capaOl.getSource() as VectorSource | null) : null;
+  }
+
+  private featureDe(capa: number, elemento: ElementoMapa): Feature | undefined {
+    return this.fuenteDe(capa)
+      ?.getFeatures()
+      .find((feature) => feature.get(ELEMENTO) === elemento);
   }
 
   mostrarCapa(id: number, elementos: readonly ElementoMapa[]): void {
@@ -267,6 +350,9 @@ export class MapaOpenLayers extends MapaPort {
     if (!capa) {
       return;
     }
+    if (this.edicion?.capa === id) {
+      this.terminarEdicion();
+    }
     this.grupoCapas.getLayers().remove(capa);
     this.capas.delete(id);
     this.marcarSinRespuesta(id, false);
@@ -309,7 +395,7 @@ export class MapaOpenLayers extends MapaPort {
   }
 
   deseleccionar(): void {
-    this.elementoSeleccionado.set(null);
+    this.seleccionar(null);
     this.consultaWms.set([]);
   }
 
@@ -318,6 +404,7 @@ export class MapaOpenLayers extends MapaPort {
       this.apagarRegla();
       return;
     }
+    this.edicion?.usarHerramienta(null);
     this.deseleccionar();
     // Un clic agrega un punto y el doble clic termina la línea, como en SIATE.
     const dibujo = new Draw({ source: this.mediciones, type: 'LineString', style: ESTILO_MEDICION });
@@ -377,7 +464,7 @@ export class MapaOpenLayers extends MapaPort {
 
   private deseleccionarDe(capa: number): void {
     if (this.elementoSeleccionado()?.capa === capa) {
-      this.elementoSeleccionado.set(null);
+      this.seleccionar(null);
     }
     if (this.consultaWms().some((punto) => punto.capa === capa)) {
       this.consultaWms.update((puntos) => puntos.filter((punto) => punto.capa !== capa));
@@ -406,6 +493,12 @@ export class MapaOpenLayers extends MapaPort {
 
   descartarAvisoUbicacion(): void {
     this.avisoUbicacion.set(null);
+  }
+
+  /** Con import dinámico: el lector de KML pesa, y solo lo necesita quien importa un archivo. */
+  async leerKml(texto: string): Promise<ElementoLeido[]> {
+    const { leerKml } = await import('./lector-kml');
+    return leerKml(texto);
   }
 
   /** Sin animación si el usuario reduce el movimiento. */

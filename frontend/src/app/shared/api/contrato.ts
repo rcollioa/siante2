@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/siante2/api/capas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["crearCapa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/capas/catalogo": {
         parameters: {
             query?: never;
@@ -30,6 +46,22 @@ export interface paths {
         get: operations["listarCapasFavoritas"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/siante2/api/capas/importar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["importarCapa"];
         delete?: never;
         options?: never;
         head?: never;
@@ -65,7 +97,55 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        patch: operations["editarCapa"];
+        trace?: never;
+    };
+    "/siante2/api/capas/{id}/elementos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["guardarElementosDeCapa"];
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/siante2/api/capas/{id}/eliminar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["eliminarCapa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/siante2/api/capas/{id}/visibilidad": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["cambiarVisibilidadDeCapa"];
         trace?: never;
     };
     "/siante2/api/capas/{id}/wms": {
@@ -232,8 +312,18 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CambioVisibilidad: {
+            /** @enum {string} */
+            visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
+        };
+        CambiosElementos: {
+            eliminados: number[];
+            modificados: components["schemas"]["ElementoCapa"][];
+            nuevos: components["schemas"]["ElementoCapa"][];
+        };
         Capa: {
             descripcion: string;
+            editable: boolean;
             elementos: components["schemas"]["ElementoCapa"][];
             /** Format: int32 */
             id: number;
@@ -261,6 +351,23 @@ export interface components {
             nombre: string;
             titulo: string;
         };
+        CapaImportada: {
+            descripcion: string;
+            elementos: components["schemas"]["ElementoCapa"][];
+            nombre: string;
+            /** @enum {string} */
+            origen: "KML" | "GEOJSON";
+        };
+        CapaPropia: {
+            /** Format: int32 */
+            categoriaId: number;
+            descripcion: string;
+            /** Format: int32 */
+            id: number;
+            nombre: string;
+            /** @enum {string} */
+            visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
+        };
         CapasResponse: {
             data: components["schemas"]["ResumenCapa"][];
         };
@@ -286,6 +393,14 @@ export interface components {
         DireccionesResponse: {
             data: components["schemas"]["Direccion"][];
         };
+        EdicionCapa: {
+            /** Format: int32 */
+            categoriaId: number;
+            descripcion: string;
+            nombre: string;
+            /** @enum {string} */
+            visibilidad: "PRIVADA" | "PUBLICA" | "FORMAL" | "AREA_DE_DIBUJO";
+        };
         ElementoCapa: {
             descripcion: string;
             estilo: components["schemas"]["EstiloElemento"];
@@ -303,6 +418,9 @@ export interface components {
         };
         ElementosDeServicioResponse: {
             data: components["schemas"]["ElementoDeServicio"][];
+        };
+        ElementosGuardados: {
+            nuevos: number[];
         };
         EstiloElemento: {
             color: string;
@@ -351,6 +469,9 @@ export interface components {
             nombre: string;
             valor: string;
         };
+        MisCapasResponse: {
+            data: components["schemas"]["CapaPropia"][];
+        };
         Multimedia: {
             descripcion: string;
             /** Format: int32 */
@@ -358,6 +479,10 @@ export interface components {
         };
         MultimediaResponse: {
             data: components["schemas"]["Multimedia"][];
+        };
+        NuevaCapa: {
+            descripcion: string;
+            nombre: string;
         };
         ResumenCapa: {
             descripcion: string;
@@ -397,6 +522,30 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    crearCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NuevaCapa"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapaPropia"];
+                };
+            };
+        };
+    };
     verCatalogoDeCapas: {
         parameters: {
             query: {
@@ -439,6 +588,30 @@ export interface operations {
             };
         };
     };
+    importarCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CapaImportada"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapaPropia"];
+                };
+            };
+        };
+    };
     listarMisCapas: {
         parameters: {
             query?: never;
@@ -454,7 +627,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CapasResponse"];
+                    "application/json": components["schemas"]["MisCapasResponse"];
                 };
             };
         };
@@ -478,6 +651,100 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Capa"];
                 };
+            };
+        };
+    };
+    editarCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EdicionCapa"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    guardarElementosDeCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiosElementos"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElementosGuardados"];
+                };
+            };
+        };
+    };
+    eliminarCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cambiarVisibilidadDeCapa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambioVisibilidad"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

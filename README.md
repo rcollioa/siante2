@@ -13,7 +13,7 @@ Qué trae ya resuelto:
 | Área | Backend | Frontend |
 |---|---|---|
 | Prefijo de la API | `ApiPrefijoConfig` (`app.api.prefijo`) | `API_PREFIJO`, `esRutaApi` |
-| Errores | `ApiExceptionHandler`: todo error responde `{code, message}`. 400 `INVALID_REQUEST` (también validación, parámetros y JSON mal formado), 404 `NOT_FOUND` (`RecursoNoEncontradoException`), 503 `EXTERNAL_SERVICE_UNAVAILABLE` (`ServicioExternoNoDisponibleException`), 503 `DATA_SOURCE_UNAVAILABLE`, 404/405 y 500 con el nombre del estado | `reintentoInterceptor` (502/503/504, salvo `EXTERNAL_SERVICE_UNAVAILABLE`: el backend ya reintentó al tercero), `tiempoLimiteInterceptor` (30 s), `tolerarFallos` |
+| Errores | `ApiExceptionHandler`: todo error responde `{code, message}`. 400 `INVALID_REQUEST` (también validación, parámetros y JSON mal formado), 404 `NOT_FOUND` (`RecursoNoEncontradoException`), 503 `EXTERNAL_SERVICE_UNAVAILABLE` (`ServicioExternoNoDisponibleException`), 503 `DATA_SOURCE_UNAVAILABLE`, 404/405 y 500 con el nombre del estado | `reintentoInterceptor` (502/503/504, salvo `EXTERNAL_SERVICE_UNAVAILABLE`: el backend ya reintentó al tercero), `tiempoLimiteInterceptor` (30 s; 120 s al importar una capa), `tolerarFallos` |
 | Caché | `CacheControlAdvice`: siempre `private` (ningún proxy guarda datos de un usuario); los controladores `@Catalogo` se guardan en el navegador `app.cache.max-age` y el resto se revalida (`no-cache` + ETag de `EtagApiFilter`, 304 si no cambió). Caffeine con `@Cacheable` para catálogos (`categorias`, `multimedia`), vigencia `SIANTE_CACHE_SERVIDOR` (1 h por defecto) | `CacheConsultas` en memoria, `?refrescar` en la URL |
 | CORS | `CorsConfig` (`APP_CORS_ALLOWED_ORIGINS`) | — |
 | Carga | — | Pantalla de carga global automática (`pantallaCargaInterceptor`) |
@@ -67,9 +67,9 @@ frontend/src/app/
   features/categorias/         servicio de API de categorías
   features/ayuda/              políticas de uso, manual (PDF) y guías animadas desde /multimedia
   features/direcciones/        buscador de direcciones sobre el mapa (geocodificación en el backend)
-  features/capas/              "Mis capas": lista en el menú, capa abierta en el mapa e información de sus elementos
+  features/capas/              "Mis capas", favoritos y catálogo: capas abiertas en el mapa; crear, editar, publicar y eliminar las propias
   shared/api/contrato.ts       tipos generados desde el contrato OpenAPI (npm run api:tipos)
-  shared/                      api, cache, errores, pantalla-carga
+  shared/                      api, cache, confirmacion, errores, pantalla-carga
 k8s/dev, k8s/prod              kustomize: backend, frontend, ingress, secreto
 ```
 
@@ -119,14 +119,17 @@ ESLint (`no-restricted-imports` en `eslint.config.js`) verifica en cada build, y
 
 ### Prácticas de JPA / Hibernate (7.4, la versión la fija Spring Boot)
 
-- Lecturas: proyección directa al dominio (`select new ...(…)` o métodos derivados) en vez de cargar entidades para mapearlas; `coalesce` en la consulta para que el dominio no reciba null.
+- Lecturas: proyección directa al dominio (`select new ...(…)` o métodos derivados) en vez de cargar entidades para mapearlas; `coalesce` en la consulta para que el dominio no reciba null. En Oracle `''` es NULL, así que `coalesce(x, '')` no sirve: el texto vacío se normaliza en el record de la proyección (`FilaResumenCapa`).
 - Transacciones: adaptadores con `@Transactional(readOnly = true)` a nivel de clase; métodos que escriben con `@Transactional`; el caso de uso que combina lectura y escritura, `@Transactional` en el servicio.
 - Limitar en la base (`findFirstBy…OrderBy…`, paginación), nunca `.stream().findFirst()` sobre una lista.
 - Asociaciones siempre `LAZY` (también `@ManyToOne`); para cargarlas, `join fetch` o `@EntityGraph` en la consulta que las necesita. Sin `FetchType.EAGER`.
 - Entidades: atributos con el nombre de la columna en camelCase (`LAST_NAME` → `lastName`, `L_GROUP_ID` → `lGroupId`), sin `@Column`: los mapea la estrategia de nombres de Spring Boot. `@Column` solo cuando esa regla no da la columna (dos mayúsculas seguidas, p. ej. `PURE_X_PURE`). Clases con sufijo `Entity`; los nombres en español quedan en el dominio. `EntidadesSiateTest` verifica columna por columna.
 - Entidades: `@Immutable` mientras SIATE escriba en la tabla, constructor `protected` vacío, sin setters, IDs por trigger con `IDENTITY`.
+- Actualizar una tabla que SIATE también escribe (como `LAYERS`): la entidad deja de ser `@Immutable` porque Hibernate rechaza un `update` sobre ella, pero sigue sin setters. Se da de alta con un constructor, y se cambia solo con `@Modifying` y un `update` JPQL de las columnas que cambian, con el dueño en el `where`: así nunca se reescribe la fila completa ni se cargan sus CLOB, y 0 filas actualizadas es un 404. `ConsultasJpqlTest` también compila estos `update`.
 - Vistas (`V_*`): no tienen clave primaria y el `@Id` de su entidad se infiere del modelo de SIATE. Si se repitiera, Hibernate devolvería una instancia por clave y descartaría el resto sin aviso. Por eso se leen solo con proyecciones, desde un repositorio que extiende `Repository` y no `JpaRepository`, para que nadie use `findAll` ni `findById`.
-- CLOB: `JSON_METADATA` de una capa llega a 1.800.000 caracteres (el límite de SIATE antes de usar `SCHEDULER_DATA`). Los listados no seleccionan columnas CLOB; se leen por elemento cuando se necesitan.
+- CLOB: `JSON_METADATA` de una capa llega a 1.800.000 caracteres (el límite de SIATE antes de usar `SCHEDULER_DATA`). Los listados no seleccionan columnas CLOB; se leen por elemento cuando se necesitan. Al abrir una capa vectorial se leen sus filas de `LAYERS_FEATURES` y, si no tiene ninguna (SIATE las crea con su `migration`), la colección de su `JSON_METADATA`. El primer guardado de elementos en una capa así pasa esa colección a filas, en la misma transacción, porque con la primera fila dejaría de leerse.
+- `LAYERS_FEATURES` se escribe con SQL nativo (`JdbcTemplate`, en `OracleElementosRepository`), porque `SPATIAL_OBJECT` no está en la entidad y se calcula en Oracle desde el WKT. Por eso la entidad sigue `@Immutable`. El WKT y el JSON van como CLOB, ya que más de 4000 bytes no caben en el `VARCHAR2` de una función de SQL. Los tests en H2 ejecutan ese mismo SQL con una función que reemplaza a `SDO_UTIL`; Oracle Spatial se prueba en los tests `@Tag("oracle")`.
+- Importar un archivo (`POST /capas/importar`): el navegador lo lee y envía sus elementos, y `LAYERS_FEATURES` los recibe todos o ninguno. A diferencia de SIATE, no se guarda el archivo en `FILE_BASE64`, que nada lee, ni una copia en `LAYERS.JSON_METADATA`, que queda desactualizada al editar: la capa queda igual que una dibujada.
 - Tests de repositorio verifican la cantidad de SQL con `ContadorSql` (estadísticas de Hibernate solo en el perfil `test`).
 - Configuración global en `application.properties`: `jdbc.fetch_size=100` (Oracle trae 10 por defecto), lotes de 50, `default_batch_fetch_size`, `in_clause_parameter_padding`, `fail_on_pagination_over_collection_fetch` y `log_slow_query` (`SIANTE_LOG_CONSULTA_LENTA_MS`).
 
@@ -266,6 +269,7 @@ En SIATE, WebSEAL era el único control. Los endpoints tomaban el usuario de la 
 - **El usuario sale de la identidad, nunca del cliente.** El ID de `USERS` se obtiene de `iv-user`; ninguna ruta ni cuerpo lo recibe. Las rutas hablan de recursos propios (`/capas/mias`, `/favoritos`), no de `/usuarios/{id}/...`.
 - **Dueño en cada escritura.** Editar o borrar una capa, un grupo, un favorito o un punto del catálogo exige que sea del usuario. Si no lo es, responde 404 `NOT_FOUND`, para no revelar que el recurso existe.
 - **Visibilidad en la consulta.** Las capas privadas solo las ve su dueño, y el filtro va en el `where`, no en memoria.
+- **Solo los verbos que ya usa SIATE.** Las escrituras van por `PATCH` y `POST` (eliminar una capa es `POST /capas/{id}/eliminar`, y los elementos de una capa se guardan con `POST /capas/{id}/elementos`). SIATE no usa `PUT` ni `DELETE`, y no está confirmado que WebSEAL los deje pasar.
 - **Grupos como roles solo si el negocio lo define.** SIATE guardaba `iv-groups` pero no lo usaba para permitir nada. Una función que requiera un grupo se protege con `@PreAuthorize("hasAuthority('GRUPO_<nombre>')")`. Va `hasAuthority` y no `hasRole`, porque `hasRole` antepone `ROLE_` y negaría siempre. Sin el grupo responde 403 `FORBIDDEN`.
 - **Endpoints públicos explícitos.** Solo la lectura de los reportes con QR queda abierta, ruta por ruta, en `SeguridadConfig`. Todo lo demás exige usuario.
 - **Auditoría.** Toda escritura deja un log `INFO` con la acción y el ID del recurso; el usuario y la solicitud ya van en cada línea.

@@ -2,7 +2,14 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, map, of, Subscription } from 'rxjs';
 import { MapaPort } from '../../mapa/application/port/out/mapa.port';
-import { Capa, CapaNoEncontrada, ElementoCapa, ElementoDeServicio, extensionDe, ServidorDeMapasNoDisponible } from '../domain/capa';
+import {
+  Capa,
+  CapaNoEncontrada,
+  ElementoCapa,
+  ElementoDeServicio,
+  extensionDe,
+  ServidorDeMapasNoDisponible
+} from '../domain/capa';
 import { CapasRepositorio } from './port/out/capas.repositorio';
 
 /** Una capa abierta en el mapa y si se está mostrando. */
@@ -42,6 +49,7 @@ export class CapasAbiertas {
   private readonly repositorio = inject(CapasRepositorio);
   private readonly mapa = inject(MapaPort);
   private readonly pedidos = new Map<number, Subscription>();
+  private readonly alAbrirse = new Map<number, (capa: Capa) => void>();
   private readonly lista = signal<readonly CapaEnMapa[]>([]);
   private readonly idsAbriendo = signal<ReadonlySet<number>>(new Set());
   private readonly mensajeError = signal('');
@@ -107,13 +115,19 @@ export class CapasAbiertas {
     return this.lista().some(({ capa }) => capa.id === id);
   }
 
-  /** Abre la capa sobre las demás y acerca el mapa a ella. Si ya estaba abierta, la muestra y la acerca. */
-  abrir(id: number): void {
+  /** Abre la capa sobre las demás y acerca el mapa a ella. Si ya estaba abierta, la muestra y la acerca. `alAbrirse`: lo
+   * que sigue cuando ya está en el mapa; si no se pudo abrir, no se llama. */
+  abrir(id: number, alAbrirse?: (capa: Capa) => void): void {
     this.mensajeError.set('');
-    if (this.estaAbierta(id)) {
+    const abierta = this.lista().find(({ capa }) => capa.id === id);
+    if (abierta) {
       this.cambiarVisibilidad(id, true);
       this.mapa.acercarA(id);
+      alAbrirse?.(abierta.capa);
       return;
+    }
+    if (alAbrirse) {
+      this.alAbrirse.set(id, alAbrirse);
     }
     if (this.pedidos.has(id)) {
       return;
@@ -123,12 +137,14 @@ export class CapasAbiertas {
       id,
       this.repositorio.ver(id).subscribe({
         next: (capa) => {
+          const alAbrirse = this.alAbrirse.get(id);
           this.terminarPedido(id);
           this.lista.update((abiertas) => [...abiertas, { capa, visible: true }]);
           this.mostrar(capa);
           this.mapa.acercarA(id);
           // Como el marcador del buscador en SIATE: desaparece al elegir otra capa.
           this.mapa.quitarMarcador();
+          alAbrirse?.(capa);
         },
         // Si falla, las capas que ya estaban abiertas siguen en el mapa.
         error: (error: unknown) => {
@@ -144,6 +160,13 @@ export class CapasAbiertas {
     this.terminarPedido(id);
     this.lista.update((abiertas) => abiertas.filter(({ capa }) => capa.id !== id));
     this.mapa.quitarCapa(id);
+  }
+
+  /** El dueño editó la capa mientras estaba abierta: el panel muestra sus datos nuevos, sin volver a descargarla. */
+  actualizar(id: number, datos: Partial<Capa>): void {
+    this.lista.update((abiertas) =>
+      abiertas.map((abierta) => (abierta.capa.id === id ? { ...abierta, capa: { ...abierta.capa, ...datos } } : abierta))
+    );
   }
 
   alternarVisibilidad(id: number): void {
@@ -163,6 +186,10 @@ export class CapasAbiertas {
 
   deseleccionar(): void {
     this.mapa.deseleccionar();
+  }
+
+  avisarError(mensaje: string): void {
+    this.mensajeError.set(mensaje);
   }
 
   descartarError(): void {
@@ -195,6 +222,7 @@ export class CapasAbiertas {
 
   private terminarPedido(id: number): void {
     this.pedidos.delete(id);
+    this.alAbrirse.delete(id);
     this.idsAbriendo.update((ids) => {
       const restantes = new Set(ids);
       restantes.delete(id);

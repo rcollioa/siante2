@@ -35,6 +35,15 @@ describe('MapaOpenLayers', () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
+  it('lee un KML sin mostrar sus elementos', async () => {
+    const leidos = await servicio.leerKml(
+      '<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><Point><coordinates>-70.65,-33.44</coordinates></Point></Placemark></kml>'
+    );
+
+    expect(leidos.map(({ geometria }) => geometria.coordinates)).toEqual([[-70.65, -33.44]]);
+    expect(abiertas()).toEqual([]);
+  });
+
   it('parte con el mapa como capa base y el satelital oculto', () => {
     expect(servicio.capaBase()).toBe('mapa');
     expect(visibles()).toEqual([true, false]);
@@ -312,6 +321,39 @@ describe('MapaOpenLayers', () => {
 
       expect(servicio.consultaWms()).toEqual([]);
       expect(servicio.elementoSeleccionado()).toBeNull();
+    });
+
+    it('activarla suelta la herramienta de dibujo de la capa en edición', () => {
+      servicio.mostrarCapa(1, []);
+      servicio.editarCapa(1, { alDibujar: vi.fn(), alCambiarForma: vi.fn() });
+      servicio.usarHerramienta('Polygon');
+
+      servicio.alternarRegla();
+
+      expect(servicio.midiendo()).toBe(true);
+      expect(dibujos()).toHaveLength(1);
+    });
+
+    it('elegir una herramienta de dibujo la apaga y borra las mediciones', () => {
+      servicio.mostrarCapa(1, []);
+      servicio.editarCapa(1, { alDibujar: vi.fn(), alCambiarForma: vi.fn() });
+      servicio.alternarRegla();
+      const medicion = new Feature(new LineString([[0, 0], [10, 0]]));
+      (dibujos()[0] as Draw).dispatchEvent(new DrawEvent('drawstart', medicion));
+
+      servicio.usarHerramienta('Polygon');
+
+      expect(servicio.midiendo()).toBe(false);
+      expect(dibujos()).toHaveLength(1);
+      expect(servicio.mapa.getOverlays().getLength()).toBe(0);
+    });
+
+    it('sin una capa en edición, elegir una herramienta no la apaga', () => {
+      servicio.alternarRegla();
+
+      servicio.usarHerramienta('Polygon');
+
+      expect(servicio.midiendo()).toBe(true);
     });
 
     it('muestra el largo de la línea mientras se dibuja, y al apagarla borra líneas y etiquetas', () => {

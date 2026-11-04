@@ -1,0 +1,74 @@
+<section aria-labelledby="titulo-editor-elemento">
+  <h2 id="titulo-editor-elemento">{{ elemento().nombre.trim() || 'Elemento sin nombre' }}</h2>
+  <p class="nota">Arrástrelo para moverlo{{ esPunto() ? '' : ' o mueva sus vértices para cambiar su forma' }}.</p>
+
+  <div class="campo">
+    <label for="nombre-elemento">Nombre</label>
+    <input
+      id="nombre-elemento"
+      type="text"
+      autocomplete="off"
+      [attr.maxlength]="maximoNombre"
+      [value]="elemento().nombre"
+      (input)="cambiarNombre($event)" />
+  </div>
+  <div class="campo">
+    <label for="descripcion-elemento">Descripción</label>
+    <textarea
+      id="descripcion-elemento"
+      rows="2"
+      [attr.maxlength]="maximoTexto"
+      [value]="elemento().descripcion"
+      (input)="cambiarDescripcion($event)"></textarea>
+  </div>
+
+  @if (!esPunto()) {
+    <div class="estilos">
+      <div class="campo">
+        <label for="color-elemento">Color de línea</label>
+        <input id="color-elemento" type="color" [value]="color()" (change)="cambiarColor($event)" />
+      </div>
+      <div class="campo">
+        <label for="grosor-elemento">Grosor de línea</label>
+        <input id="grosor-elemento" type="number" min="1" max="100" [value]="grosor()" (input)="cambiarGrosor($event)" />
+      </div>
+      @if (tieneRelleno()) {
+        <div class="campo">
+          <label for="relleno-elemento">Color de fondo</label>
+          <input id="relleno-elemento" type="color" [value]="relleno()" (change)="cambiarRelleno($event)" />
+        </div>
+      }
+    </div>
+  }
+
+  <h3>Metadata</h3>
+  @for (dato of elemento().metadatos; track $index) {
+    <div class="metadato" role="group" [attr.aria-label]="'Metadato ' + ($index + 1)">
+      <input
+        type="text"
+        autocomplete="off"
+        placeholder="Nombre"
+        [attr.aria-label]="'Nombre del metadato ' + ($index + 1)"
+        [attr.maxlength]="maximoNombre"
+        [value]="dato.nombre"
+        (input)="cambiarMetadato($index, { nombre: texto($event) })" />
+      <input
+        type="text"
+        autocomplete="off"
+        placeholder="Descripción"
+        [attr.aria-label]="'Descripción del metadato ' + ($index + 1)"
+        [attr.maxlength]="maximoTexto"
+        [value]="dato.valor"
+        (input)="cambiarMetadato($index, { valor: texto($event) })" />
+      <button
+        type="button"
+        class="quitar"
+        [attr.aria-label]="'Quitar el metadato ' + ($index + 1)"
+        title="Quitar"
+        (click)="quitarMetadato($index)">
+        <span aria-hidden="true">×</span>
+      </button>
+    </div>
+  }
+  <button type="button" class="agregar" (click)="agregarMetadato()">Agregar metadato</button>
+</section>

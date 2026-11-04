@@ -4,8 +4,11 @@ import {
   CapaBase,
   CapaWms,
   CapaWmts,
+  ElementoLeido,
   ElementoMapa,
   ElementoSeleccionado,
+  HerramientaDibujo,
+  OyenteEdicion,
   PuntoWms,
   ZonaVisible
 } from '../../../domain/mapa';
@@ -48,10 +51,27 @@ export abstract class MapaPort {
   abstract acercarA(id: number): void;
   abstract deseleccionar(): void;
 
-  /** Activa la regla o, si estaba activa, la apaga y borra las mediciones, como en SIATE. */
+  /** Activa la regla o, si estaba activa, la apaga y borra las mediciones, como en SIATE. Activarla suelta la
+   * herramienta de dibujo. */
   abstract alternarRegla(): void;
   /** Descarta la línea que se está midiendo; las ya terminadas quedan. */
   abstract cancelarMedicion(): void;
+
+  /** Permite editar una capa vectorial ya mostrada, una sola a la vez: lo seleccionado en ella se mueve y cambia de
+   * forma, y las herramientas dibujan en ella. */
+  abstract editarCapa(id: number, oyente: OyenteEdicion): void;
+  abstract terminarEdicion(): void;
+  /** Con qué dibuja cada clic en la capa en edición, sin seleccionar; null vuelve a seleccionar. Elegir una herramienta
+   * apaga la regla. */
+  abstract usarHerramienta(herramienta: HerramientaDibujo | null): void;
+  /** Muestra un elemento nuevo y lo deja seleccionado. */
+  abstract agregarElemento(capa: number, elemento: ElementoMapa): void;
+  /** Cambia los datos o el estilo de un elemento mostrado; su forma es la que ya tiene en el mapa. */
+  abstract reemplazarElemento(capa: number, anterior: ElementoMapa, nuevo: ElementoMapa): void;
+  abstract quitarElemento(capa: number, elemento: ElementoMapa): void;
+
+  /** Los elementos de un KML, sin mostrarlos; vacío si no se puede leer. Quien lee KML es la librería del mapa. */
+  abstract leerKml(texto: string): Promise<ElementoLeido[]>;
 
   /** Centra el mapa en el punto (EPSG:4326) y lo marca. */
   abstract irA(longitud: number, latitud: number): void;

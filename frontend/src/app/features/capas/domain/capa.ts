@@ -20,6 +20,74 @@ export interface ResumenCapa {
   visibilidad: Visibilidad;
 }
 
+/** Una capa del propio usuario en "Mis capas". Sin categoría, `categoriaId` es 0. */
+export interface CapaPropia extends ResumenCapa {
+  categoriaId: number;
+}
+
+/** Lo que el dueño puede elegir: SIATE solo ofrece público o privado. */
+export type VisibilidadEditable = 'PRIVADA' | 'PUBLICA';
+
+/** Los datos del formulario "Editar capa". */
+export interface EdicionCapa {
+  nombre: string;
+  descripcion: string;
+  categoriaId: number;
+  visibilidad: VisibilidadEditable;
+}
+
+/** Los "Datos básicos" de una capa en blanco, como en SIATE: su categoría y su visibilidad se eligen al editarla. */
+export interface NuevaCapa {
+  nombre: string;
+  descripcion: string;
+}
+
+/** Los límites de los formularios de SIATE; el backend exige los mismos. */
+export const MINIMO_NOMBRE = 4;
+export const MAXIMO_NOMBRE = 100;
+export const MAXIMO_DESCRIPCION = 200;
+
+/** Los límites de un elemento; el backend exige los mismos. Holgados: la descripción de un KML puede ser una tabla en HTML. */
+export const MAXIMO_NOMBRE_ELEMENTO = 500;
+export const MAXIMO_TEXTO_ELEMENTO = 65536;
+export const MAXIMO_METADATOS = 1000;
+
+/** Qué falta corregir en cada campo; vacío si está bien. */
+export interface ErroresEdicion {
+  nombre: string;
+  descripcion: string;
+  categoria: string;
+}
+
+/** Sin contar los espacios a los lados, que no se guardan: un nombre de solo espacios no es un nombre. */
+export function errorDeNombre(nombre: string): string {
+  const largo = nombre.trim().length;
+  if (largo === 0) {
+    return 'Nombre requerido.';
+  }
+  if (largo < MINIMO_NOMBRE) {
+    return `El nombre debe tener al menos ${MINIMO_NOMBRE} caracteres.`;
+  }
+  return largo > MAXIMO_NOMBRE ? `El nombre no puede tener más de ${MAXIMO_NOMBRE} caracteres.` : '';
+}
+
+export function errorDeDescripcion(descripcion: string): string {
+  return descripcion.trim().length > MAXIMO_DESCRIPCION ? `La descripción no puede tener más de ${MAXIMO_DESCRIPCION} caracteres.` : '';
+}
+
+export function erroresDeEdicion({ nombre, descripcion, categoriaId }: EdicionCapa): ErroresEdicion {
+  return {
+    nombre: errorDeNombre(nombre),
+    descripcion: errorDeDescripcion(descripcion),
+    categoria: categoriaId > 0 ? '' : 'Categoría requerida.'
+  };
+}
+
+/** Su dueño edita, publica o elimina solo capas privadas o públicas: ni formales ni áreas de dibujo. */
+export function sePuedeGestionar({ visibilidad }: ResumenCapa): boolean {
+  return visibilidad === 'PRIVADA' || visibilidad === 'PUBLICA';
+}
+
 export interface Metadato {
   nombre: string;
   valor: string;
@@ -83,6 +151,8 @@ export interface ServicioCapa {
 
 export interface Capa extends ResumenCapa {
   propia: boolean;
+  /** Su dueño puede dibujar en ella: no es formal ni un área de dibujo, y sus elementos no vienen de una URL. */
+  editable: boolean;
   tipo: TipoCapa;
   elementos: ElementoCapa[];
   /** Solo en las capas por URL. */
@@ -115,6 +185,14 @@ export class ServidorDeMapasNoDisponible extends Error {
   constructor(readonly id: number) {
     super(`El servidor de mapas de la capa ${id} no responde`);
     this.name = 'ServidorDeMapasNoDisponible';
+  }
+}
+
+/** El backend rechazó los cambios de una capa, con un mensaje para el usuario. */
+export class CambiosRechazados extends Error {
+  constructor(mensaje: string) {
+    super(mensaje);
+    this.name = 'CambiosRechazados';
   }
 }
 

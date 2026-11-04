@@ -23,6 +23,7 @@ describe('CapasAbiertas', () => {
     descripcion: '',
     visibilidad: 'PRIVADA',
     propia: true,
+    editable: true,
     tipo: 'VECTORIAL',
     elementos: [elemento],
     servicio: null,
@@ -241,6 +242,21 @@ describe('CapasAbiertas', () => {
 
     servicio.descartarError();
     expect(servicio.error()).toBe('');
+  });
+
+  it('una capa editada mientras está abierta muestra sus datos nuevos y conserva sus elementos', () => {
+    servicio.abrir(1);
+    servicio.abrir(2);
+    ver.mockClear();
+
+    servicio.actualizar(1, { nombre: 'Bodegas norte', visibilidad: 'PUBLICA' });
+
+    const [primera, segunda] = servicio.abiertas();
+    expect(primera.capa).toEqual(capa(1, { nombre: 'Bodegas norte', visibilidad: 'PUBLICA' }));
+    expect(primera.visible).toBe(true);
+    expect(segunda.capa).toEqual(capa(2));
+    expect(ver).not.toHaveBeenCalled();
+    expect(mapa.quitarCapa).not.toHaveBeenCalled();
   });
 
   it('otros errores invitan a intentar de nuevo', () => {
