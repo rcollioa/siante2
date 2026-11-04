@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/siante2/api/capas/url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["crearCapaPorUrl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/capas/{id}": {
         parameters: {
             query?: never;
@@ -244,6 +260,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/siante2/api/iconos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listarIconos"];
+        put?: never;
+        post: operations["crearIcono"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/siante2/api/iconos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["editarIcono"];
+        trace?: never;
+    };
+    "/siante2/api/iconos/{id}/eliminar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["eliminarIcono"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/siante2/api/multimedia": {
         parameters: {
             query?: never;
@@ -356,7 +420,12 @@ export interface components {
             elementos: components["schemas"]["ElementoCapa"][];
             nombre: string;
             /** @enum {string} */
-            origen: "KML" | "GEOJSON";
+            origen: "KML" | "GEOJSON" | "CSV" | "XLSX";
+        };
+        CapaPorUrl: {
+            descripcion: string;
+            nombre: string;
+            url: string;
         };
         CapaPropia: {
             /** Format: int32 */
@@ -382,6 +451,11 @@ export interface components {
         };
         CategoriasResponse: {
             data: components["schemas"]["Categoria"][];
+        };
+        DatosIcono: {
+            archivo: string;
+            imagen: string;
+            nombre: string;
         };
         Direccion: {
             /** Format: double */
@@ -447,6 +521,17 @@ export interface components {
         GrillaWmts: {
             crs: string;
             matrices: components["schemas"]["MatrizMosaicos"][];
+        };
+        Icono: {
+            archivo: string;
+            /** Format: int32 */
+            id: number;
+            imagen: string;
+            nombre: string;
+            propio: boolean;
+        };
+        IconosResponse: {
+            data: components["schemas"]["Icono"][];
         };
         MatrizMosaicos: {
             /** Format: int32 */
@@ -628,6 +713,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MisCapasResponse"];
+                };
+            };
+        };
+    };
+    crearCapaPorUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CapaPorUrl"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapaPropia"];
                 };
             };
         };
@@ -901,6 +1010,94 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DireccionesResponse"];
                 };
+            };
+        };
+    };
+    listarIconos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IconosResponse"];
+                };
+            };
+        };
+    };
+    crearIcono: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatosIcono"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Icono"];
+                };
+            };
+        };
+    };
+    editarIcono: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatosIcono"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    eliminarIcono: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

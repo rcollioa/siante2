@@ -107,6 +107,30 @@ describe('CapasHttp', () => {
       expect(recibida).toEqual(creada);
     });
 
+    it('crear por URL es un POST con los datos y la URL, sin pantalla de carga', () => {
+      const creada = { id: 50, nombre: 'Ríos', descripcion: '', visibilidad: 'PRIVADA', categoriaId: 0 };
+      let recibida: unknown;
+      servicio.crearPorUrl({ nombre: 'Ríos', descripcion: '' }, 'https://ide.cl/wms').subscribe((capa) => (recibida = capa));
+
+      const pedido = http.expectOne('/siante2/api/capas/url');
+      expect(pedido.request.method).toBe('POST');
+      expect(pedido.request.body).toEqual({ nombre: 'Ríos', descripcion: '', url: 'https://ide.cl/wms' });
+      expect(pedido.request.context.get(SIN_PANTALLA_CARGA)).toBe(true);
+      pedido.flush(creada, { status: 201, statusText: 'Created' });
+      expect(recibida).toEqual(creada);
+    });
+
+    it('crear por URL traduce el rechazo del backend con su mensaje', () => {
+      let error: unknown;
+      servicio.crearPorUrl({ nombre: 'Ríos', descripcion: '' }, 'https://ide.cl/wfs').subscribe({ error: (e: unknown) => (error = e) });
+
+      http
+        .expectOne('/siante2/api/capas/url')
+        .flush({ code: 'INVALID_REQUEST', message: 'El mapa no puede mostrar servidores WFS.' }, { status: 400, statusText: 'Bad Request' });
+
+      expect(error).toEqual(new CambiosRechazados('El mapa no puede mostrar servidores WFS.'));
+    });
+
     it('editar es un PATCH con los datos, que termina al responder 204', () => {
       const terminado = vi.fn();
       servicio.editar(5, edicion).subscribe({ complete: terminado });

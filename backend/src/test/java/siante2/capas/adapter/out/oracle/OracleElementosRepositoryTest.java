@@ -321,6 +321,21 @@ public class OracleElementosRepositoryTest {
     }
 
     @Test
+    void modificarConUnIconoLoGuardaEnImageComoSiate() {
+        fila(CAPA, 3, """
+                {"geometry":{"type":"Point","coordinates":[-1.0,-1.0]},"properties":{"image":"./assets/img/marker.svg","extra":1}}""");
+        ElementoCapa base = punto(3, -70.65, -33.44);
+        ElementoCapa conIcono = new ElementoCapa(base.id(), base.geometria(), base.radio(), base.nombre(), base.descripcion(),
+                new EstiloElemento("", 0, "", "data:image/png;base64,AA=="), base.metadatos());
+
+        repositorio.guardar(CAPA, YO, new CambiosElementos(List.of(), List.of(conIcono), List.of()));
+
+        JsonNode json = jsonGuardado(CAPA, 3);
+        assertThat(json.at("/properties/image").asString()).isEqualTo("data:image/png;base64,AA==");
+        assertThat(json.at("/properties/extra").asInt()).isEqualTo(1);
+    }
+
+    @Test
     void modificarYEliminarFuncionanEnElMismoGuardadoQueReparteLaColeccion() {
         capa(51, YO, "0", "1", """
                 {"type":"FeatureCollection","features":[

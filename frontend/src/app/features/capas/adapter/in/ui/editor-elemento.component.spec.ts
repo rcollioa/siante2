@@ -1,4 +1,6 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { CatalogoIconos } from '../../../application/catalogo-iconos';
 import { EdicionElementos } from '../../../application/edicion-elementos';
 import { ElementoCapa } from '../../../domain/capa';
 import { EditorElementoComponent } from './editor-elemento.component';
@@ -17,6 +19,7 @@ describe('EditorElementoComponent', () => {
   const punto: ElementoCapa = { ...poligono, geometria: { type: 'Point', coordinates: [-70, -33] } };
   const linea: ElementoCapa = { ...poligono, geometria: { type: 'LineString', coordinates: [] } };
   const circulo: ElementoCapa = { ...punto, radio: 500 };
+  const icono = { id: 1, nombre: 'Bodega', archivo: '', imagen: 'data:image/png;base64,AA==', propio: false };
   const cambiarDatos = vi.fn();
   let fixture: ComponentFixture<EditorElementoComponent>;
   let elemento: HTMLElement;
@@ -35,7 +38,12 @@ describe('EditorElementoComponent', () => {
 
   beforeEach(() => {
     cambiarDatos.mockReset();
-    TestBed.configureTestingModule({ providers: [{ provide: EdicionElementos, useValue: { cambiarDatos } }] });
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: EdicionElementos, useValue: { cambiarDatos } },
+        { provide: CatalogoIconos, useValue: { estado: signal('listo'), delSistema: signal([icono]), propios: signal([]), cargar: vi.fn() } }
+      ]
+    });
     fixture = TestBed.createComponent(EditorElementoComponent);
     elemento = fixture.nativeElement;
   });
@@ -58,6 +66,16 @@ describe('EditorElementoComponent', () => {
 
     escribir(campo('descripcion-elemento'), 'Al norte');
     expect(cambiarDatos).toHaveBeenLastCalledWith(poligono, { descripcion: 'Al norte' });
+  });
+
+  it('un marcador elige su ícono del catálogo, que cambia su estilo; otra forma no lo ofrece', () => {
+    mostrar(punto);
+    (elemento.querySelector('button[aria-label="Bodega"]') as HTMLButtonElement).click();
+
+    expect(cambiarDatos).toHaveBeenCalledWith(punto, { estilo: { ...sinEstilo, icono: icono.imagen } });
+
+    mostrar(linea);
+    expect(elemento.querySelector('app-selector-icono')).toBeNull();
   });
 
   it('muestra los colores de la aplicación si el elemento no define los suyos', () => {

@@ -17,6 +17,16 @@ class ServicioSiateTest {
     }
 
     @Test
+    void escribeComoSiateConElTipoPrimeroYSeVuelveALeer() {
+        OrigenServicio servicio = new OrigenServicio(TipoServicio.WMTS, "https://ide.cl/wmts?a=\"b\"&c=d");
+
+        String json = ServicioSiate.escribir(servicio);
+
+        assertThat(json).startsWith("{\"type\":\"WMTS\",\"url\":");
+        assertThat(ServicioSiate.leer(json)).contains(servicio);
+    }
+
+    @Test
     void sinServidorConocidoOUrlHttpNoHayServicio() {
         assertThat(ServicioSiate.leer("{\"type\":\"FeatureCollection\",\"features\":[]}")).isEmpty();
         assertThat(ServicioSiate.leer("{\"type\":\"WMS\",\"url\":\"file:///etc/passwd\"}")).isEmpty();

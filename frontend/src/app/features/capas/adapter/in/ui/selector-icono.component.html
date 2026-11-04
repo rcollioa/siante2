@@ -1,0 +1,112 @@
+<h3>Iconos personalizados</h3>
+
+<div class="iconos" role="group" aria-label="Íconos del sistema">
+  <button
+    type="button"
+    class="icono"
+    title="Marcador normal"
+    aria-label="Marcador normal"
+    [attr.aria-pressed]="esPorDefecto()"
+    (click)="usarPorDefecto()">
+    <img src="assets/img/marker.svg" alt="" />
+  </button>
+  @for (opcion of catalogo.delSistema(); track opcion.id) {
+    <button
+      type="button"
+      class="icono"
+      [title]="opcion.nombre"
+      [attr.aria-label]="opcion.nombre"
+      [attr.aria-pressed]="icono() === opcion.imagen"
+      (click)="elegido.emit(opcion.imagen)">
+      <img [src]="opcion.imagen" alt="" />
+    </button>
+  }
+</div>
+
+@if (catalogo.estado() === 'cargando') {
+  <p class="nota" role="status">Cargando íconos…</p>
+} @else if (catalogo.estado() === 'error') {
+  <p class="error" role="alert">
+    No se pudieron cargar los íconos.
+    <button type="button" class="enlace" (click)="catalogo.cargar()">Reintentar</button>
+  </p>
+}
+
+<ul class="propios" aria-label="Sus íconos">
+  @for (opcion of catalogo.propios(); track opcion.id) {
+    <li>
+      <button
+        type="button"
+        class="icono"
+        [title]="opcion.nombre"
+        [attr.aria-label]="opcion.nombre"
+        [attr.aria-pressed]="icono() === opcion.imagen"
+        (click)="elegido.emit(opcion.imagen)">
+        <img [src]="opcion.imagen" alt="" />
+      </button>
+      <span class="nombre">{{ opcion.nombre }}</span>
+      <button type="button" class="enlace" [attr.aria-label]="'Editar ' + opcion.nombre" (click)="abrirFormulario(opcion)">Editar</button>
+      <button type="button" class="enlace peligro" [attr.aria-label]="'Eliminar ' + opcion.nombre" (click)="preguntarEliminacion(opcion)">
+        Eliminar
+      </button>
+    </li>
+  }
+</ul>
+
+@if (formulario(); as abierto) {
+  <form class="formulario" novalidate [attr.aria-label]="abierto.editando ? 'Editar ícono' : 'Nuevo ícono'" (submit)="guardar($event)">
+    <label for="nombre-icono">Nombre</label>
+    <input
+      id="nombre-icono"
+      type="text"
+      autocomplete="off"
+      required
+      [attr.maxlength]="maximoNombre"
+      [value]="nombre()"
+      [attr.aria-invalid]="mostrarErrores() && errorNombre() !== ''"
+      [attr.aria-describedby]="mostrarErrores() && errorNombre() ? 'error-nombre-icono' : null"
+      (input)="escribirNombre($event)" />
+    @if (mostrarErrores() && errorNombre()) {
+      <p id="error-nombre-icono" class="error">{{ errorNombre() }}</p>
+    }
+
+    <label for="archivo-icono">Archivo SVG o PNG, hasta 66 x 88 píxeles</label>
+    <input
+      id="archivo-icono"
+      type="file"
+      accept=".svg,.png"
+      [attr.aria-invalid]="errorArchivo() !== ''"
+      [attr.aria-describedby]="errorArchivo() ? 'error-archivo-icono' : null"
+      (change)="elegirArchivo($event)" />
+    <div role="status">
+      @if (leyendo()) {
+        <p class="nota">Leyendo el archivo…</p>
+      } @else if (leido(); as listo) {
+        <p class="nota">
+          <img class="vista" [src]="listo.imagen" alt="" />
+          {{ listo.archivo }}
+        </p>
+      } @else if (abierto.editando; as editando) {
+        <p class="nota">
+          <img class="vista" [src]="editando.imagen" alt="" />
+          Conserva la imagen actual si no elige otra.
+        </p>
+      }
+    </div>
+    @if (errorArchivo()) {
+      <p id="error-archivo-icono" class="error" role="alert">{{ errorArchivo() }}</p>
+    }
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <div class="botones">
+      <button type="button" class="boton" (click)="cerrarFormulario()">Cancelar</button>
+      <button type="submit" class="boton aplicar" [disabled]="enviando() || leyendo()">{{ enviando() ? 'Guardando…' : 'Guardar ícono' }}</button>
+    </div>
+  </form>
+} @else {
+  <button type="button" class="enlace agregar" (click)="abrirFormulario(null)">Agregar ícono</button>
+}
+
+<app-confirmacion />

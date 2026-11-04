@@ -107,6 +107,11 @@ class ElementosServiceTest {
     }
 
     @Test
+    void rechazaUnIconoDesmedido() {
+        exigirRechazo(elemento(-1, PUNTO, 0, "", new EstiloElemento("", 0, "", "a".repeat(1_000_001)), null));
+    }
+
+    @Test
     void rechazaColoresYGrosoresInvalidos() {
         exigirRechazo(elemento(-1, PUNTO, 0, "", new EstiloElemento("url(http://x)", 0, "", ""), null));
         exigirRechazo(elemento(-1, PUNTO, 0, "", new EstiloElemento("", 0, "<script>", ""), null));

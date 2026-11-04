@@ -13,6 +13,7 @@ describe('MisCapas', () => {
   let listarMias: ReturnType<typeof vi.fn<() => Observable<CapaPropia[]>>>;
   const repositorio = {
     crear: vi.fn<(nueva: NuevaCapa) => Observable<CapaPropia>>(),
+    crearPorUrl: vi.fn<(nueva: NuevaCapa, url: string) => Observable<CapaPropia>>(),
     importar: vi.fn<(nueva: NuevaCapa, origen: string, elementos: readonly ElementoCapa[]) => Observable<CapaPropia>>(),
     editar: vi.fn<(id: number, edicion: EdicionCapa) => Observable<void>>(),
     cambiarVisibilidad: vi.fn<(id: number, visibilidad: string) => Observable<void>>(),
@@ -97,6 +98,16 @@ describe('MisCapas', () => {
       expect(recibida).toEqual(creada);
       expect(nombres()).toEqual(['Árboles', 'Bodegas', 'Zona norte']);
       expect(listarMias).not.toHaveBeenCalled();
+    });
+
+    it('crear por URL guarda sin espacios a los lados y agrega la capa en su lugar', () => {
+      const creada: CapaPropia = { id: 50, nombre: 'Árboles', descripcion: '', visibilidad: 'PRIVADA', categoriaId: 0 };
+      repositorio.crearPorUrl.mockReturnValue(of(creada));
+
+      servicio.crearPorUrl({ nombre: ' Árboles ', descripcion: '' }, ' https://ide.cl/wms ').subscribe();
+
+      expect(repositorio.crearPorUrl).toHaveBeenCalledWith({ nombre: 'Árboles', descripcion: '' }, 'https://ide.cl/wms');
+      expect(nombres()).toEqual(['Árboles', 'Bodegas', 'Zona norte']);
     });
 
     it('si crear falla, la lista queda como estaba', () => {

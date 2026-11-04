@@ -22,7 +22,9 @@
       (input)="cambiarDescripcion($event)"></textarea>
   </div>
 
-  @if (!esPunto()) {
+  @if (esPunto()) {
+    <app-selector-icono [icono]="elemento().estilo.icono" (elegido)="cambiarIcono($event)" />
+  } @else {
     <div class="estilos">
       <div class="campo">
         <label for="color-elemento">Color de línea</label>

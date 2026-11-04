@@ -1,17 +1,19 @@
 package siante2.capas.adapter.out.oracle;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.Immutable;
 
-/** Catálogo de puntos para importar: tabla {@code POINTS_CATALOG} de SIATE (modelo {@code PointsCatalog}), solo lectura. */
+/** Los íconos de los marcadores: tabla {@code POINTS_CATALOG} de SIATE (modelo {@code PointsCatalog}). Sin {@code @Immutable}
+ * porque se escribe, y sin setters: se da de alta y se cambia solo con {@link IconoJpaRepository}. */
 @Entity
-@Immutable
 @Table(name = "POINTS_CATALOG")
 public class PuntoCatalogoEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     private String name;
@@ -27,6 +29,15 @@ public class PuntoCatalogoEntity {
     private String nameImage;
 
     protected PuntoCatalogoEntity() {
+    }
+
+    /** Como SIATE: la imagen en {@code NAME_FILE}, sin URL. */
+    PuntoCatalogoEntity(int owner, String name, String nameImage, String nameFile, String visibility) {
+        this.owner = owner;
+        this.name = name;
+        this.nameImage = nameImage;
+        this.nameFile = nameFile;
+        this.visibility = visibility;
     }
 
     public Integer getId() {

@@ -34,6 +34,10 @@ export abstract class CapasRepositorio {
   /** Crea una capa privada y sin elementos; entrega la capa con su ID. */
   abstract crear(nueva: NuevaCapa): Observable<CapaPropia>;
 
+  /** Crea una capa privada que muestra lo que publica un servidor de mapas. Falla con CambiosRechazados si los datos no
+   * son válidos o el mapa no puede mostrar ese servidor. */
+  abstract crearPorUrl(nueva: NuevaCapa, url: string): Observable<CapaPropia>;
+
   /** Crea una capa privada con los elementos de un archivo, todos o ninguno. Falla con CambiosRechazados si los datos no
    * son válidos. */
   abstract importar(nueva: NuevaCapa, origen: OrigenArchivo, elementos: readonly ElementoCapa[]): Observable<CapaPropia>;

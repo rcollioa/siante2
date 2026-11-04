@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import siante2.capas.application.port.in.CambiarVisibilidadCapaUseCase;
 import siante2.capas.application.port.in.ConsultarPuntoUseCase;
+import siante2.capas.application.port.in.CrearCapaPorUrlUseCase;
 import siante2.capas.application.port.in.CrearCapaUseCase;
 import siante2.capas.application.port.in.EditarCapaUseCase;
 import siante2.capas.application.port.in.EliminarCapaUseCase;
@@ -30,6 +31,7 @@ import siante2.capas.application.port.in.VerCapaUseCase;
 import siante2.capas.application.port.in.VerCatalogoUseCase;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
+import siante2.capas.domain.CapaPorUrl;
 import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.ConsultaPunto;
 import siante2.capas.domain.EdicionCapa;
@@ -56,15 +58,17 @@ public class CapasController {
     private final ConsultarPuntoUseCase consulta;
     private final ObtenerMosaicoUseCase mosaico;
     private final CrearCapaUseCase crear;
+    private final CrearCapaPorUrlUseCase crearPorUrl;
     private final EditarCapaUseCase editar;
     private final CambiarVisibilidadCapaUseCase visibilidad;
     private final EliminarCapaUseCase eliminar;
 
     public CapasController(ListarMisCapasUseCase listar, VerCapaUseCase ver, ListarFavoritasUseCase favoritas,
                            VerCatalogoUseCase catalogo, ObtenerMapaUseCase mapa, ConsultarPuntoUseCase consulta,
-                           ObtenerMosaicoUseCase mosaico, CrearCapaUseCase crear, EditarCapaUseCase editar,
-                           CambiarVisibilidadCapaUseCase visibilidad, EliminarCapaUseCase eliminar) {
+                           ObtenerMosaicoUseCase mosaico, CrearCapaUseCase crear, CrearCapaPorUrlUseCase crearPorUrl,
+                           EditarCapaUseCase editar, CambiarVisibilidadCapaUseCase visibilidad, EliminarCapaUseCase eliminar) {
         this.crear = crear;
+        this.crearPorUrl = crearPorUrl;
         this.editar = editar;
         this.visibilidad = visibilidad;
         this.eliminar = eliminar;
@@ -88,6 +92,14 @@ public class CapasController {
     @ResponseStatus(HttpStatus.CREATED)
     public CapaPropia crearCapa(@RequestBody NuevaCapa nueva, Authentication autenticacion) {
         return crear.crear(autenticacion.getName(), nueva);
+    }
+
+    /** Una capa de un servidor WMS o WMTS. Reemplaza a {@code POST /siante/api/layers} con {@code JSON_METADATA}, que
+     * tomaba el dueño del cuerpo y aceptaba cualquier texto como servidor. */
+    @PostMapping("/url")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CapaPropia crearCapaPorUrl(@RequestBody CapaPorUrl capa, Authentication autenticacion) {
+        return crearPorUrl.crearPorUrl(autenticacion.getName(), capa);
     }
 
     /** Reemplaza a {@code PATCH /siante/api/layers/:ID} de SIATE, que no verificaba el dueño y dejaba cambiar cualquier

@@ -37,6 +37,11 @@ final class ServicioSiate {
         }
     }
 
+    /** Con el tipo primero: {@link InicioJsonCapa} lo busca en los primeros caracteres. */
+    static String escribir(OrigenServicio servicio) {
+        return JSON.createObjectNode().put("type", servicio.tipo().name()).put("url", servicio.url()).toString();
+    }
+
     private static Optional<TipoServicio> tipo(String texto) {
         try {
             return Optional.of(TipoServicio.valueOf(texto.trim().toUpperCase(Locale.ROOT)));

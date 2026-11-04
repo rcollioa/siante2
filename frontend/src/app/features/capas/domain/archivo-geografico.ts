@@ -3,7 +3,7 @@ import { elementoNuevo } from './cambios-elementos';
 import { ElementoCapa, MAXIMO_METADATOS, MAXIMO_NOMBRE_ELEMENTO, MAXIMO_TEXTO_ELEMENTO } from './capa';
 
 /** De qué tipo de archivo viene una capa importada. */
-export type OrigenArchivo = 'KML' | 'GEOJSON';
+export type OrigenArchivo = 'KML' | 'GEOJSON' | 'CSV' | 'XLSX';
 
 /** El aviso de SIATE dice 30 MB. */
 export const MAXIMO_BYTES_ARCHIVO = 30 * 1024 * 1024;
@@ -12,7 +12,9 @@ export const MAXIMO_ELEMENTOS_IMPORTADOS = 10000;
 /** Lo que SIATE envía en una sola petición. */
 const MAXIMO_CARACTERES_IMPORTADOS = 20_000_000;
 
-export const EXTENSIONES_ARCHIVO = ['.kml', '.json', '.geojson'];
+const EXTENSIONES_GEOGRAFICAS = ['.kml', '.json', '.geojson'];
+const EXTENSIONES_TABLA = ['.csv', '.xlsx'];
+export const EXTENSIONES_ARCHIVO = [...EXTENSIONES_GEOGRAFICAS, ...EXTENSIONES_TABLA];
 
 /** El archivo no se puede importar; el mensaje es para el usuario. */
 export class ArchivoInvalido extends Error {
@@ -34,10 +36,16 @@ export interface ArchivoLeido {
 
 export function origenDe(nombreArchivo: string): OrigenArchivo | null {
   const nombre = nombreArchivo.toLowerCase();
-  if (!EXTENSIONES_ARCHIVO.some((extension) => nombre.endsWith(extension))) {
+  if (!EXTENSIONES_GEOGRAFICAS.some((extension) => nombre.endsWith(extension))) {
     return null;
   }
   return nombre.endsWith('.kml') ? 'KML' : 'GEOJSON';
+}
+
+/** Un Excel o un CSV: antes de crear la capa hay que elegir en qué columnas está la ubicación. */
+export function esTabla(nombreArchivo: string): boolean {
+  const nombre = nombreArchivo.toLowerCase();
+  return EXTENSIONES_TABLA.some((extension) => nombre.endsWith(extension));
 }
 
 export function nombreSugerido(nombreArchivo: string, maximo: number): string {

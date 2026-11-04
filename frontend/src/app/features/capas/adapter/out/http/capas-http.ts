@@ -35,6 +35,7 @@ type CatalogoResponse = components['schemas']['CatalogoResponse'];
 type ElementosDeServicioResponse = components['schemas']['ElementosDeServicioResponse'];
 type CambiosElementosDto = components['schemas']['CambiosElementos'];
 type CapaImportadaDto = components['schemas']['CapaImportada'];
+type CapaPorUrlDto = components['schemas']['CapaPorUrl'];
 type ElementosGuardados = components['schemas']['ElementosGuardados'];
 
 /** Sin CacheConsultas: las capas de cada usuario cambian (también desde SIATE) y el ETag ya evita volver a
@@ -56,6 +57,14 @@ export class CapasHttp extends CapasRepositorio {
     return this.http
       .post<CapaPropiaDto>(`${API_PREFIJO}/capas`, cuerpo, { context: sinPantallaDeCarga() })
       .pipe(map((capa): CapaPropia => capa));
+  }
+
+  crearPorUrl(nueva: NuevaCapa, url: string): Observable<CapaPropia> {
+    const cuerpo: CapaPorUrlDto = { ...nueva, url };
+    return this.http.post<CapaPropiaDto>(`${API_PREFIJO}/capas/url`, cuerpo, { context: sinPantallaDeCarga() }).pipe(
+      map((capa): CapaPropia => capa),
+      catchError((error: unknown) => throwError(() => traducirRechazo(error, 0)))
+    );
   }
 
   /** El contrato marca `geometries` como obligatorio, pero una geometría leída de un archivo no lo lleva. */

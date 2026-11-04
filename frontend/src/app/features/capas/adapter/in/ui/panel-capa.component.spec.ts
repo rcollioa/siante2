@@ -2,6 +2,7 @@ import { LOCALE_ID, signal } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localeEsCl from '@angular/common/locales/es-CL';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { CatalogoIconos } from '../../../application/catalogo-iconos';
 import { CapaEnMapa, CapasAbiertas, ElementoElegido, PuntoConsultado } from '../../../application/capas-abiertas';
 import { EdicionElementos } from '../../../application/edicion-elementos';
 import { Capa, ElementoCapa } from '../../../domain/capa';
@@ -59,6 +60,7 @@ describe('PanelCapaComponent', () => {
       providers: [
         { provide: CapasAbiertas, useValue: servicio },
         { provide: EdicionElementos, useValue: edicion },
+        { provide: CatalogoIconos, useValue: { estado: signal('listo'), delSistema: signal([]), propios: signal([]), cargar: () => undefined } },
         { provide: LOCALE_ID, useValue: 'es-CL' }
       ]
     });

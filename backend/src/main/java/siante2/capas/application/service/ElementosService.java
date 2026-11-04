@@ -35,6 +35,8 @@ public class ElementosService implements GuardarElementosUseCase, ImportarCapaUs
     private static final int MAXIMO_TEXTO = 65536;
     private static final int MAXIMO_METADATOS = 1000;
     private static final double MAXIMO_GROSOR = 1000;
+    /** Holgado: SIATE no limitaba los íconos, y un elemento antiguo debe poder guardarse con el suyo. */
+    private static final int MAXIMO_ICONO = 1_000_000;
     private static final Set<String> GEOMETRIAS =
             Set.of("Point", "LineString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon");
     /** Los colores que SIATE guarda: hexadecimal, rgb(a) o el nombre CSS de un archivo importado. */
@@ -122,6 +124,7 @@ public class ElementosService implements GuardarElementosUseCase, ImportarCapaUs
         if (estilo.grosor() < 0 || estilo.grosor() > MAXIMO_GROSOR) {
             throw new SolicitudInvalidaException("El grosor de línea de un elemento no es válido.");
         }
+        exigirLargo(estilo.icono(), MAXIMO_ICONO, "El ícono");
     }
 
     private static void validar(List<Metadato> metadatos) {

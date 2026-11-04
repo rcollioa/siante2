@@ -21,7 +21,9 @@
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
     "@fontsource/manrope": "^5.3.0",
+    "mgrs": "^2.2.0",
     "ol": "^10.11.0",
+    "read-excel-file": "^9.3.12",
     "rxjs": "^7.6.0",
     "zone.js": "^0.16.2"
   },

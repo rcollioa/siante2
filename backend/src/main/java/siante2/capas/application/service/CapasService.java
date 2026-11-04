@@ -1,5 +1,7 @@
 package siante2.capas.application.service;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.Collator;
 import java.util.Comparator;
 import java.util.List;
@@ -12,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import siante2.capas.application.port.in.CambiarVisibilidadCapaUseCase;
 import siante2.capas.application.port.in.ConsultarPuntoUseCase;
+import siante2.capas.application.port.in.CrearCapaPorUrlUseCase;
 import siante2.capas.application.port.in.CrearCapaUseCase;
 import siante2.capas.application.port.in.EditarCapaUseCase;
 import siante2.capas.application.port.in.EliminarCapaUseCase;
@@ -28,6 +31,7 @@ import siante2.capas.application.port.out.ServiciosWmtsPort;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.CapaDeServicio;
+import siante2.capas.domain.CapaPorUrl;
 import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.ConsultaPunto;
 import siante2.capas.domain.EdicionCapa;
@@ -53,7 +57,8 @@ import siante2.usuarios.application.port.in.IdentificarUsuarioUseCase;
 @Service
 public class CapasService
         implements ListarMisCapasUseCase, VerCapaUseCase, ListarFavoritasUseCase, VerCatalogoUseCase, ObtenerMapaUseCase,
-        ConsultarPuntoUseCase, ObtenerMosaicoUseCase, CrearCapaUseCase, EditarCapaUseCase, CambiarVisibilidadCapaUseCase,
+        ConsultarPuntoUseCase, ObtenerMosaicoUseCase, CrearCapaUseCase, CrearCapaPorUrlUseCase, EditarCapaUseCase,
+        CambiarVisibilidadCapaUseCase,
         EliminarCapaUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(CapasService.class);
@@ -65,6 +70,7 @@ public class CapasService
     private static final int MINIMO_NOMBRE = 4;
     private static final int MAXIMO_NOMBRE = 100;
     private static final int MAXIMO_DESCRIPCION = 200;
+    private static final int MAXIMO_URL = 2000;
 
     private final CapasReadPort capas;
     private final CapasWritePort escritura;
@@ -96,6 +102,46 @@ public class CapasService
         int id = escritura.crear(dueno, valida);
         log.info("Capa {} creada", id);
         return new CapaPropia(id, valida.nombre(), valida.descripcion(), Visibilidad.PRIVADA, SIN_CATEGORIA);
+    }
+
+    @Override
+    public CapaPropia crearPorUrl(String ivUser, CapaPorUrl capa) {
+        NuevaCapa valida = new NuevaCapa(nombreValido(capa.nombre()), descripcionValida(capa.descripcion()));
+        String url = urlValida(capa.url());
+        TipoServicio tipo = TipoServicio.deUrl(url);
+        // SIATE la crea, pero dejó de dibujarlas: quedaría una capa que siempre se abre vacía.
+        if (tipo == TipoServicio.WFS) {
+            throw new SolicitudInvalidaException("El mapa no puede mostrar servidores WFS: use una URL WMS o WMTS.");
+        }
+        int dueno = usuarios.idDe(ivUser)
+                .orElseThrow(() -> new RecursoNoEncontradoException("El usuario no está registrado."));
+        int id = escritura.crearPorUrl(dueno, valida, new OrigenServicio(tipo, url));
+        log.info("Capa {} creada por URL", id);
+        return new CapaPropia(id, valida.nombre(), valida.descripcion(), Visibilidad.PRIVADA, SIN_CATEGORIA);
+    }
+
+    /** Solo la forma: a dónde se puede conectar el backend lo revisa cada pedido al servidor, también tras redirecciones. */
+    private static String urlValida(String url) {
+        String limpia = url == null ? "" : url.trim();
+        if (limpia.isEmpty()) {
+            throw new SolicitudInvalidaException("URL requerida.");
+        }
+        if (limpia.length() > MAXIMO_URL) {
+            throw new SolicitudInvalidaException("La URL no puede tener más de " + MAXIMO_URL + " caracteres.");
+        }
+        if (!esUrlHttp(limpia)) {
+            throw new SolicitudInvalidaException("Debe ser una URL válida.");
+        }
+        return limpia;
+    }
+
+    private static boolean esUrlHttp(String url) {
+        try {
+            URI uri = new URI(url);
+            return uri.getHost() != null && ("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()));
+        } catch (URISyntaxException e) {
+            return false;
+        }
     }
 
     @Override

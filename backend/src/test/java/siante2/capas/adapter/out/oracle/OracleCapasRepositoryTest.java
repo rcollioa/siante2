@@ -14,6 +14,8 @@ import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.EdicionCapa;
 import siante2.capas.domain.NuevaCapa;
+import siante2.capas.domain.OrigenServicio;
+import siante2.capas.domain.TipoServicio;
 import siante2.capas.domain.ElementoCapa;
 import siante2.capas.domain.OrigenServicio;
 import siante2.capas.domain.ResumenCapa;
@@ -92,6 +94,19 @@ class OracleCapasRepositoryTest {
         assertThat(fila(id)).containsEntry("OWNER", YO).containsEntry("NAME", "Nueva").containsEntry("DESCRIPTION", "Región")
                 .containsEntry("STATUS", "1").containsEntry("VISIBILITY", "0").containsEntry("JSON_METADATA", null)
                 .containsEntry("ORIGIN", null).containsEntry("L_GROUP_ID", null).containsEntry("CATEGORY_ID", null);
+    }
+
+    @Test
+    void crearPorUrlInsertaElServidorComoSiateEnUnaSentenciaYLaCapaSeLeePorUrl() {
+        ContadorSql sql = new ContadorSql(fabrica);
+
+        int id = repositorio.crearPorUrl(YO, new NuevaCapa("Ríos", "Región"), new OrigenServicio(TipoServicio.WMS, "https://ide.cl/wms"));
+
+        assertThat(sql.sentencias()).isEqualTo(1);
+        assertThat(fila(id)).containsEntry("OWNER", YO).containsEntry("NAME", "Ríos").containsEntry("STATUS", "1")
+                .containsEntry("VISIBILITY", "0").containsEntry("ORIGIN", null).containsEntry("CATEGORY_ID", null)
+                .containsEntry("JSON_METADATA", "{\"type\":\"WMS\",\"url\":\"https://ide.cl/wms\"}");
+        assertThat(InicioJsonCapa.esPorUrl((String) fila(id).get("JSON_METADATA"))).isTrue();
     }
 
     @Test

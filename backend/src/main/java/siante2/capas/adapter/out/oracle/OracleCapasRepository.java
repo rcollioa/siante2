@@ -72,6 +72,13 @@ class OracleCapasRepository implements CapasReadPort, CapasWritePort {
 
     @Override
     @Transactional
+    public int crearPorUrl(int duenoId, NuevaCapa nueva, OrigenServicio servicio) {
+        return capas.save(CapaEntity.porUrl(duenoId, nueva.nombre(), nueva.descripcion(), ACTIVA, PRIVADA,
+                ServicioSiate.escribir(servicio))).getId();
+    }
+
+    @Override
+    @Transactional
     public boolean actualizar(int capaId, int duenoId, EdicionCapa edicion) {
         return capas.actualizar(capaId, duenoId, edicion.nombre(), edicion.descripcion(), edicion.categoriaId(),
                 codigo(edicion.visibilidad()), ACTIVA, GESTIONABLES) > 0;

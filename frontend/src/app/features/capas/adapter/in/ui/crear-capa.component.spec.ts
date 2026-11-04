@@ -4,13 +4,16 @@ import { LectorArchivos } from '../../../application/lector-archivos';
 import { MisCapas } from '../../../application/mis-capas';
 import { ArchivoInvalido, ArchivoLeido } from '../../../domain/archivo-geografico';
 import { CambiosRechazados, CapaPropia, NuevaCapa } from '../../../domain/capa';
+import { TablaLeida } from '../../../domain/tabla-geografica';
 import { CrearCapaComponent } from './crear-capa.component';
 
 describe('CrearCapaComponent', () => {
   const creada: CapaPropia = { id: 50, nombre: 'Bodegas', descripcion: 'Región', visibilidad: 'PRIVADA', categoriaId: 0 };
   const crear = vi.fn<(nueva: NuevaCapa) => Observable<CapaPropia>>();
   const importar = vi.fn<(nueva: NuevaCapa, archivo: ArchivoLeido) => Observable<CapaPropia>>();
+  const crearPorUrl = vi.fn<(nueva: NuevaCapa, url: string) => Observable<CapaPropia>>();
   const leer = vi.fn<(archivo: File) => Promise<ArchivoLeido>>();
+  const leerTabla = vi.fn<(archivo: File) => Promise<TablaLeida>>();
   const leido: ArchivoLeido = {
     origen: 'KML',
     elementos: [{ id: -1, geometria: { type: 'Point', coordinates: [-70, -33] }, radio: 0, nombre: '', descripcion: '', estilo: { color: '', grosor: 0, relleno: '', icono: '' }, metadatos: [] }],
@@ -62,14 +65,16 @@ describe('CrearCapaComponent', () => {
     crear.mockReturnValue(of(creada));
     importar.mockReset();
     importar.mockReturnValue(of(creada));
+    crearPorUrl.mockReset();
+    crearPorUrl.mockReturnValue(of(creada));
     leer.mockReset();
     leer.mockResolvedValue(leido);
     recibidas = [];
     importadas = [];
     TestBed.configureTestingModule({
       providers: [
-        { provide: MisCapas, useValue: { crear, importar } },
-        { provide: LectorArchivos, useValue: { leer } }
+        { provide: MisCapas, useValue: { crear, importar, crearPorUrl } },
+        { provide: LectorArchivos, useValue: { leer, leerTabla } }
       ]
     });
     fixture = TestBed.createComponent(CrearCapaComponent);
@@ -154,6 +159,172 @@ describe('CrearCapaComponent', () => {
     expect(nombre().value).toBe('Bodegas');
     expect(aplicar().disabled).toBe(false);
     expect(recibidas).toEqual([]);
+  });
+
+  describe('desde un Excel o un CSV', () => {
+    const tabla: TablaLeida = {
+      origen: 'CSV',
+      titulos: ['Nombre', 'Lat', 'Lon'],
+      filas: [['Bodega', '-33', '-70'], ['Mala', 'x', 'y']]
+    };
+    const select = (id: string) => elemento.querySelector(`#${id}`) as HTMLSelectElement;
+    const estado = () => elemento.querySelector('[role="status"]')?.textContent?.trim();
+
+    async function elegir(leida = tabla, nombreArchivo = 'sitios.csv'): Promise<void> {
+      leerTabla.mockResolvedValue(leida);
+      abrir();
+      (elemento.querySelector('input[value="ARCHIVO"]') as HTMLInputElement).click();
+      fixture.detectChanges();
+      const campo = elemento.querySelector('#archivo-nueva-capa') as HTMLInputElement;
+      Object.defineProperty(campo, 'files', { configurable: true, value: [{ name: nombreArchivo }] });
+      campo.dispatchEvent(new Event('change'));
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    function cambiar(id: string, valor: string): void {
+      select(id).value = valor;
+      select(id).dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    }
+
+    it('reconoce las columnas por sus títulos, avisa lo que importa y lo que omite, y crea la capa', async () => {
+      await elegir();
+
+      expect(leer).not.toHaveBeenCalled();
+      expect(select('columna-ubicacion-0').value).toBe('1');
+      expect(select('columna-ubicacion-1').value).toBe('2');
+      expect(estado()).toContain('Se importará 1 elemento.');
+      expect(estado()).toContain('1 elemento no tiene una geometría válida');
+      expect(nombre().value).toBe('sitios');
+
+      enviar();
+
+      const [, leido] = importar.mock.lastCall!;
+      expect(leido.origen).toBe('CSV');
+      expect(leido.elementos[0].nombre).toBe('Bodega');
+      expect(importadas).toEqual([creada]);
+    });
+
+    it('sin columnas reconocidas las pide antes de crear', async () => {
+      await elegir({ ...tabla, titulos: ['A', 'B', 'C'] });
+      escribir(nombre(), 'Bodegas');
+
+      enviar();
+
+      expect(errores()).toEqual(['Elija las columnas con la ubicación.']);
+      expect(importar).not.toHaveBeenCalled();
+    });
+
+    it('elegir las columnas deja lista la importación', async () => {
+      await elegir({ ...tabla, titulos: ['A', 'B', 'C'] });
+
+      cambiar('columna-ubicacion-0', '1');
+      expect(estado()).toBe('');
+      cambiar('columna-ubicacion-1', '2');
+
+      expect(estado()).toContain('Se importará 1 elemento.');
+    });
+
+    it('cambiar el tipo pide sus propias columnas', async () => {
+      await elegir();
+
+      cambiar('tipo-ubicacion', 'UTM');
+
+      expect(select('columna-ubicacion-2')).not.toBeNull();
+      expect(select('columna-ubicacion-0').value).toBe('-1');
+    });
+
+    it('si ninguna fila sirve lo explica, y otra columna lo corrige', async () => {
+      await elegir({ ...tabla, titulos: ['Nombre', 'Lat', 'Lon', 'Otra'], filas: [['A', 'x', '-70', '-33']] });
+      expect(alerta()).toContain('Las coordenadas del archivo no son válidas');
+
+      cambiar('columna-ubicacion-0', '3');
+
+      expect(alerta()).toBeUndefined();
+      expect(estado()).toContain('Se importará 1 elemento.');
+    });
+
+    const alerta = () => elemento.querySelector('#error-archivo-nueva-capa')?.textContent?.trim();
+  });
+
+  describe('desde una URL', () => {
+    const campoUrl = () => elemento.querySelector('#url-nueva-capa') as HTMLInputElement;
+
+    function elegirTipoUrl(): void {
+      (elemento.querySelector('input[value="URL"]') as HTMLInputElement).click();
+      fixture.detectChanges();
+    }
+
+    it('el campo solo aparece al elegir esa opción', () => {
+      abrir();
+      expect(campoUrl()).toBeNull();
+
+      elegirTipoUrl();
+
+      expect(campoUrl()).not.toBeNull();
+    });
+
+    it('crea la capa con su URL y la entrega para abrirla, sin entrar a dibujar', () => {
+      abrir();
+      elegirTipoUrl();
+      escribir(nombre(), 'Ríos');
+      escribir(campoUrl(), 'https://ide.cl/wms');
+
+      enviar();
+
+      expect(crearPorUrl).toHaveBeenCalledWith({ nombre: 'Ríos', descripcion: '' }, 'https://ide.cl/wms');
+      expect(crear).not.toHaveBeenCalled();
+      expect(dialogo().open).toBe(false);
+      expect(importadas).toEqual([creada]);
+      expect(recibidas).toEqual([]);
+    });
+
+    it.each([
+      ['', 'URL requerida.'],
+      ['   ', 'URL requerida.'],
+      ['ide.cl/wms', 'Debe ser una URL válida.'],
+      ['ftp://ide.cl/wms', 'Debe ser una URL válida.'],
+      ['https://', 'Debe ser una URL válida.'],
+      ['https://ide cl/wms', 'Debe ser una URL válida.'],
+      ['https://ide.cl/' + 'a'.repeat(2000), 'La URL no puede tener más de 2000 caracteres.']
+    ])('con la URL «%s» muestra el error y no crea', (url, mensaje) => {
+      abrir();
+      elegirTipoUrl();
+      escribir(nombre(), 'Ríos');
+      escribir(campoUrl(), url);
+
+      enviar();
+
+      expect(errores()).toEqual([mensaje]);
+      expect(campoUrl().getAttribute('aria-describedby')).toBe('error-url-nueva-capa');
+      expect(crearPorUrl).not.toHaveBeenCalled();
+      expect(dialogo().open).toBe(true);
+    });
+
+    it('muestra el motivo del rechazo del backend y conserva la URL', () => {
+      crearPorUrl.mockReturnValue(throwError(() => new CambiosRechazados('El mapa no puede mostrar servidores WFS.')));
+      abrir();
+      elegirTipoUrl();
+      escribir(nombre(), 'Ríos');
+      escribir(campoUrl(), 'https://ide.cl/wfs');
+
+      enviar();
+
+      expect(elemento.querySelector('[role="alert"]')?.textContent).toBe('El mapa no puede mostrar servidores WFS.');
+      expect(campoUrl().value).toBe('https://ide.cl/wfs');
+    });
+
+    it('al volver a abrir el diálogo la URL queda vacía', () => {
+      abrir();
+      elegirTipoUrl();
+      escribir(campoUrl(), 'https://ide.cl/wms');
+
+      abrir();
+      elegirTipoUrl();
+
+      expect(campoUrl().value).toBe('');
+    });
   });
 
   describe('desde un archivo', () => {

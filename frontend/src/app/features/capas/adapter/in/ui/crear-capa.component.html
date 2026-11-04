@@ -26,11 +26,41 @@
           (change)="elegirTipo('ARCHIVO')" />
         Archivo
       </label>
+      <label class="opcion">
+        <input
+          type="radio"
+          name="tipo-nueva-capa"
+          value="URL"
+          [checked]="tipo() === 'URL'"
+          (change)="elegirTipo('URL')" />
+        URL
+      </label>
     </fieldset>
+
+    @if (tipo() === 'URL') {
+      <div class="campo">
+        <label for="url-nueva-capa">URL de un servidor WMS o WMTS</label>
+        <input
+          id="url-nueva-capa"
+          type="url"
+          autocomplete="off"
+          required
+          placeholder="https://"
+          [attr.maxlength]="maximoUrl"
+          [value]="url()"
+          [attr.aria-invalid]="mostrarErrores() && errorUrl() !== ''"
+          [attr.aria-describedby]="mostrarErrores() && errorUrl() ? 'error-url-nueva-capa' : null"
+          (input)="url.set(texto($event))"
+          (blur)="mostrarErrores.set(true)" />
+        @if (mostrarErrores() && errorUrl()) {
+          <p id="error-url-nueva-capa" class="error">{{ errorUrl() }}</p>
+        }
+      </div>
+    }
 
     @if (tipo() === 'ARCHIVO') {
       <div class="campo">
-        <span id="formatos-nueva-capa">Archivo (KML, JSON o GeoJSON, hasta 30 MB)</span>
+        <span id="formatos-nueva-capa">Archivo (KML, JSON, GeoJSON, CSV o Excel .xlsx, hasta 30 MB)</span>
         <div class="zona">
           <input
             id="archivo-nueva-capa"
@@ -43,6 +73,25 @@
           <label class="boton" for="archivo-nueva-capa">Seleccionar archivo</label>
           <span class="elegido">{{ nombreArchivo() || 'o arrástrelo hasta aquí' }}</span>
         </div>
+        @if (tabla(); as leida) {
+          <div class="ubicacion">
+            <label for="tipo-ubicacion">Tipo de coordenadas</label>
+            <select id="tipo-ubicacion" (change)="elegirTipoUbicacion($event)">
+              @for (opcion of tiposUbicacion; track opcion.id) {
+                <option [value]="opcion.id" [selected]="opcion.id === tipoUbicacion()">{{ opcion.nombre }}</option>
+              }
+            </select>
+            @for (dato of columnasDelTipo(); track dato.nombre; let indice = $index) {
+              <label [for]="'columna-ubicacion-' + indice">{{ dato.nombre }}</label>
+              <select [id]="'columna-ubicacion-' + indice" (change)="elegirColumna(indice, $event)">
+                <option value="-1" [selected]="columnas()[indice] === -1">Seleccione una columna</option>
+                @for (titulo of leida.titulos; track $index; let columna = $index) {
+                  <option [value]="columna" [selected]="columnas()[indice] === columna">{{ titulo || 'Columna ' + (columna + 1) }}</option>
+                }
+              </select>
+            }
+          </div>
+        }
         <div role="status">
           @if (leyendo()) {
             <p class="nota">Leyendo el archivo…</p>

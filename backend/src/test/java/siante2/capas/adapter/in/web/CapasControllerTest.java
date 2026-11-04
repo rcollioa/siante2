@@ -10,6 +10,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import siante2.capas.application.port.in.CambiarVisibilidadCapaUseCase;
 import siante2.capas.application.port.in.ConsultarPuntoUseCase;
+import siante2.capas.application.port.in.CrearCapaPorUrlUseCase;
 import siante2.capas.application.port.in.CrearCapaUseCase;
 import siante2.capas.application.port.in.EditarCapaUseCase;
 import siante2.capas.application.port.in.EliminarCapaUseCase;
@@ -22,6 +23,7 @@ import siante2.capas.application.port.in.VerCatalogoUseCase;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.CapaDeServicio;
+import siante2.capas.domain.CapaPorUrl;
 import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.EdicionCapa;
 import siante2.capas.domain.ConsultaPunto;
@@ -94,6 +96,32 @@ class CapasControllerTest {
                         {"nombre":"","descripcion":""}"""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Nombre requerido."));
+    }
+
+    @MockitoBean
+    private CrearCapaPorUrlUseCase crearPorUrl;
+
+    @Test
+    void crearPorUrlResponde201ConLaCapaYElDuenoSaleDeWebSeal() throws Exception {
+        when(crearPorUrl.crearPorUrl("prueba", new CapaPorUrl("Ríos", "Región", "https://ide.cl/wms")))
+                .thenReturn(new CapaPropia(50, "Ríos", "Región", Visibilidad.PRIVADA, 0));
+
+        mockMvc.perform(post(RUTA + "/url").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nombre":"Ríos","descripcion":"Región","url":"https://ide.cl/wms","owner":9}"""))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(50))
+                .andExpect(jsonPath("$.url").doesNotExist());
+    }
+
+    @Test
+    void crearPorUrlInvalidaResponde400ConElMensaje() throws Exception {
+        when(crearPorUrl.crearPorUrl("prueba", new CapaPorUrl("Ríos", "", "x")))
+                .thenThrow(new SolicitudInvalidaException("Debe ser una URL válida."));
+
+        mockMvc.perform(post(RUTA + "/url").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nombre":"Ríos","descripcion":"","url":"x"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Debe ser una URL válida."));
     }
 
     @MockitoBean

@@ -37,6 +37,20 @@ dialog.arrastrando {
   outline-offset: 2px;
 }
 
+.ubicacion {
+  display: grid;
+  grid-template-columns: minmax(7rem, auto) 1fr;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.ubicacion select {
+  min-width: 0;
+  width: 100%;
+}
+
 .elegido {
   min-width: 0;
   color: var(--color-muted);

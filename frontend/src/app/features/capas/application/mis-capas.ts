@@ -37,6 +37,10 @@ export class MisCapas {
     return this.repositorio.crear(limpia(nueva)).pipe(tap((capa) => this.agregar(capa)));
   }
 
+  crearPorUrl(nueva: NuevaCapa, url: string): Observable<CapaPropia> {
+    return this.repositorio.crearPorUrl(limpia(nueva), url.trim()).pipe(tap((capa) => this.agregar(capa)));
+  }
+
   importar(nueva: NuevaCapa, { origen, elementos }: ArchivoLeido): Observable<CapaPropia> {
     return this.repositorio.importar(limpia(nueva), origen, elementos).pipe(tap((capa) => this.agregar(capa)));
   }

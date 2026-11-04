@@ -3,11 +3,13 @@ import { COLOR_POR_DEFECTO, GROSOR_POR_DEFECTO, RELLENO_POR_DEFECTO } from '../.
 import { EdicionElementos } from '../../../application/edicion-elementos';
 import { aHexadecimal, rellenoDe } from '../../../domain/cambios-elementos';
 import { ElementoCapa, MAXIMO_NOMBRE_ELEMENTO, MAXIMO_TEXTO_ELEMENTO, Metadato } from '../../../domain/capa';
+import { SelectorIconoComponent } from './selector-icono.component';
 
 /** El panel de edición de SIATE para el elemento seleccionado: "General", "Estilos" y "Metadata". */
 @Component({
   selector: 'app-editor-elemento',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [SelectorIconoComponent],
   templateUrl: './editor-elemento.component.html',
   styleUrl: './editor-elemento.component.css'
 })
@@ -51,6 +53,10 @@ export class EditorElementoComponent {
     if (grosor >= 1 && grosor <= 100) {
       this.cambiarEstilo({ grosor });
     }
+  }
+
+  protected cambiarIcono(icono: string): void {
+    this.cambiarEstilo({ icono });
   }
 
   protected cambiarMetadato(indice: number, cambio: Partial<Metadato>): void {

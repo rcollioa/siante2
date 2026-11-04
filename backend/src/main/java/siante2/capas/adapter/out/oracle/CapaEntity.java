@@ -54,6 +54,13 @@ public class CapaEntity {
         this.origin = origin;
     }
 
+    /** Lo que guarda SIATE para una capa por URL: el servidor en {@code JSON_METADATA}, sin origen ni categoría. */
+    static CapaEntity porUrl(int owner, String name, String description, String status, String visibility, String jsonMetadata) {
+        CapaEntity capa = new CapaEntity(owner, name, description, status, visibility);
+        capa.jsonMetadata = jsonMetadata;
+        return capa;
+    }
+
     public Integer getId() {
         return id;
     }

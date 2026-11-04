@@ -127,6 +127,34 @@
         "tags" : [ "capas-controller" ]
       }
     },
+    "/siante2/api/capas/url" : {
+      "post" : {
+        "operationId" : "crearCapaPorUrl",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CapaPorUrl"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CapaPropia"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "capas-controller" ]
+      }
+    },
     "/siante2/api/capas/{id}" : {
       "get" : {
         "operationId" : "verCapa",
@@ -605,6 +633,100 @@
         "tags" : [ "direcciones-controller" ]
       }
     },
+    "/siante2/api/iconos" : {
+      "get" : {
+        "operationId" : "listarIconos",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IconosResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "iconos-controller" ]
+      },
+      "post" : {
+        "operationId" : "crearIcono",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DatosIcono"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Icono"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "iconos-controller" ]
+      }
+    },
+    "/siante2/api/iconos/{id}" : {
+      "patch" : {
+        "operationId" : "editarIcono",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DatosIcono"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "tags" : [ "iconos-controller" ]
+      }
+    },
+    "/siante2/api/iconos/{id}/eliminar" : {
+      "post" : {
+        "operationId" : "eliminarIcono",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "tags" : [ "iconos-controller" ]
+      }
+    },
     "/siante2/api/multimedia" : {
       "get" : {
         "operationId" : "listarMultimedia",
@@ -843,10 +965,25 @@
           },
           "origen" : {
             "type" : "string",
-            "enum" : [ "KML", "GEOJSON" ]
+            "enum" : [ "KML", "GEOJSON", "CSV", "XLSX" ]
           }
         },
         "required" : [ "descripcion", "elementos", "nombre", "origen" ]
+      },
+      "CapaPorUrl" : {
+        "type" : "object",
+        "properties" : {
+          "descripcion" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "descripcion", "nombre", "url" ]
       },
       "CapaPropia" : {
         "type" : "object",
@@ -923,6 +1060,21 @@
           }
         },
         "required" : [ "data" ]
+      },
+      "DatosIcono" : {
+        "type" : "object",
+        "properties" : {
+          "archivo" : {
+            "type" : "string"
+          },
+          "imagen" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "archivo", "imagen", "nombre" ]
       },
       "Direccion" : {
         "type" : "object",
@@ -1119,6 +1271,40 @@
           }
         },
         "required" : [ "crs", "matrices" ]
+      },
+      "Icono" : {
+        "type" : "object",
+        "properties" : {
+          "archivo" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "imagen" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "propio" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "archivo", "id", "imagen", "nombre", "propio" ]
+      },
+      "IconosResponse" : {
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Icono"
+            }
+          }
+        },
+        "required" : [ "data" ]
       },
       "MatrizMosaicos" : {
         "type" : "object",

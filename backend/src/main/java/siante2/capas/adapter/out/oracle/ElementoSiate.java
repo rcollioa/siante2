@@ -124,11 +124,14 @@ final class ElementoSiate {
         return geometria;
     }
 
-    /** Sin tocar {@code image}: el ícono no se edita todavía. */
+    /** Sin ícono se conserva el {@code image} que tenía: volver al marcador normal es guardar el de SIATE. */
     private static void estiloEn(ObjectNode propiedades, EstiloElemento estilo) {
         EstiloElemento dado = Objects.requireNonNullElse(estilo, EstiloElemento.SIN_ESTILO);
         ponerOQuitar(propiedades, "color", dado.color());
         ponerOQuitar(propiedades, "fill", dado.relleno());
+        if (dado.icono() != null && !dado.icono().isEmpty()) {
+            propiedades.put("image", dado.icono());
+        }
         if (dado.grosor() > 0) {
             propiedades.put("width", dado.grosor());
         } else {

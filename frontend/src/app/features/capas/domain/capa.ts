@@ -46,6 +46,7 @@ export interface NuevaCapa {
 export const MINIMO_NOMBRE = 4;
 export const MAXIMO_NOMBRE = 100;
 export const MAXIMO_DESCRIPCION = 200;
+export const MAXIMO_URL = 2000;
 
 /** Los límites de un elemento; el backend exige los mismos. Holgados: la descripción de un KML puede ser una tabla en HTML. */
 export const MAXIMO_NOMBRE_ELEMENTO = 500;
@@ -57,6 +58,18 @@ export interface ErroresEdicion {
   nombre: string;
   descripcion: string;
   categoria: string;
+}
+
+/** Solo la forma: qué tipo de servidor es y si se puede mostrar lo responde el backend. */
+export function errorDeUrl(url: string): string {
+  const limpia = url.trim();
+  if (limpia.length === 0) {
+    return 'URL requerida.';
+  }
+  if (limpia.length > MAXIMO_URL) {
+    return `La URL no puede tener más de ${MAXIMO_URL} caracteres.`;
+  }
+  return /^https?:\/\/[^\s/?#]+\S*$/i.test(limpia) ? '' : 'Debe ser una URL válida.';
 }
 
 /** Sin contar los espacios a los lados, que no se guardan: un nombre de solo espacios no es un nombre. */

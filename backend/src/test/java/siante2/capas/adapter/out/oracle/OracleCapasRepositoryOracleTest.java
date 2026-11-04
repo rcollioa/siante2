@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import siante2.OracleFreeDePrueba;
 import siante2.capas.domain.NuevaCapa;
+import siante2.capas.domain.OrigenServicio;
+import siante2.capas.domain.TipoServicio;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -47,6 +49,14 @@ class OracleCapasRepositoryOracleTest {
                 .extracting(String::valueOf).containsExactly("7", "Bodegas", "Región", "1", "0");
         assertThat(jdbc.queryForObject("select count(*) from LAYERS where ID = ? and JSON_METADATA is null"
                 + " and ORIGIN is null and CATEGORY_ID is null and CREATED_DATE is not null", Integer.class, id)).isEqualTo(1);
+    }
+
+    @Test
+    void crearPorUrlGuardaElServidorEnElClobDeOracle() {
+        int id = repositorio.crearPorUrl(7, new NuevaCapa("Ríos", ""), new OrigenServicio(TipoServicio.WMS, "https://ide.cl/wms"));
+
+        assertThat(jdbc.queryForObject("select JSON_METADATA from LAYERS where ID = ?", String.class, id))
+                .isEqualTo("{\"type\":\"WMS\",\"url\":\"https://ide.cl/wms\"}");
     }
 
     @Test

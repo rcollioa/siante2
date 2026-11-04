@@ -318,7 +318,7 @@ Por eso **el esquema de PostgreSQL lo maneja Flyway** (partiendo de `V1__esquema
 ## Pendientes para el DBA
 1. Definición SQL de las vistas `V_LAYERS`, `V_LAYERS_GROUPS`, `V_LF_TYPE_FILTER`, `V_SELECT_AREA` y `V_MEASURE_DISTANCE`.
 2. Triggers y secuencias de los IDs.
-3. Si `SPATIAL_OBJECT` admite NULL y tiene un índice espacial. siante2 lo deja en NULL solo al pasar a filas un elemento de `LAYERS.JSON_METADATA` cuya geometría Oracle Spatial no aceptaría, para no perderlo.
+3. Si `SPATIAL_OBJECT` admite NULL. Su índice espacial en DESA es `create index SIANTE.INDICE on SIANTE.LAYERS_FEATURES (SPATIAL_OBJECT) indextype is MDSYS.SPATIAL_INDEX`, sin parámetros (SRID 4326 en su metadata): Oracle lo mantiene con cada escritura en `LAYERS_FEATURES`, y si queda en `FAILED`, insertar falla con `ORA-29861`, aunque la aplicación no lo consulte. siante2 deja `SPATIAL_OBJECT` en NULL solo al pasar a filas un elemento de `LAYERS.JSON_METADATA` cuya geometría Oracle Spatial no aceptaría, para no perderlo.
 4. Si otro sistema usa las 5 tablas sin uso conocido y `USERS.SUPERUSER`.
 5. Volumen: filas por tabla y tamaño de los `CLOB`/`BLOB`, para dimensionar PostgreSQL y la carga inicial.
 6. Valores de `CREATE_TYPE`, `ORIGIN` y `SCHEDULER_DATA.STATUS`.

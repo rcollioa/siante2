@@ -12,6 +12,7 @@ import siante2.capas.application.port.out.ServiciosWmtsPort;
 import siante2.capas.domain.Capa;
 import siante2.capas.domain.CapaCatalogo;
 import siante2.capas.domain.CapaDeServicio;
+import siante2.capas.domain.CapaPorUrl;
 import siante2.capas.domain.CapaPropia;
 import siante2.capas.domain.ConsultaPunto;
 import siante2.capas.domain.EdicionCapa;
@@ -164,6 +165,7 @@ class CapasServiceTest {
         boolean eliminada;
         NuevaCapa creada;
         int duenoDeLaCreada;
+        OrigenServicio servidorDeLaCreada;
 
         private static boolean esDelDueno(int capaId, int duenoId) {
             return capaId == 1 && duenoId == 7;
@@ -174,6 +176,12 @@ class CapasServiceTest {
             creada = nueva;
             duenoDeLaCreada = duenoId;
             return 50;
+        }
+
+        @Override
+        public int crearPorUrl(int duenoId, NuevaCapa nueva, OrigenServicio servidor) {
+            servidorDeLaCreada = servidor;
+            return crear(duenoId, nueva);
         }
 
         @Override
@@ -235,6 +243,53 @@ class CapasServiceTest {
     @Test
     void unUsuarioSinRegistroNoPuedeCrear() {
         assertThatThrownBy(() -> servicio.crear("nuevo", new NuevaCapa("Bodegas", "")))
+                .isInstanceOf(RecursoNoEncontradoException.class).hasMessage("El usuario no está registrado.");
+        assertThat(escritura.creada).isNull();
+    }
+
+    @Test
+    void crearPorUrlGuardaElServidorConSuTipoYEntregaLaCapaPrivada() {
+        CapaPropia capa = servicio.crearPorUrl("jperez", new CapaPorUrl(" Ríos ", " Región ", "  https://ide.cl/wmts "));
+
+        assertThat(escritura.duenoDeLaCreada).isEqualTo(7);
+        assertThat(escritura.creada).isEqualTo(new NuevaCapa("Ríos", "Región"));
+        assertThat(escritura.servidorDeLaCreada).isEqualTo(new OrigenServicio(TipoServicio.WMTS, "https://ide.cl/wmts"));
+        assertThat(capa).isEqualTo(new CapaPropia(50, "Ríos", "Región", Visibilidad.PRIVADA, 0));
+    }
+
+    @Test
+    void crearPorUrlExigeLosLimitesDeLaCapaSinEscribir() {
+        assertThatThrownBy(() -> servicio.crearPorUrl("jperez", new CapaPorUrl("abc", "", "https://ide.cl/wms")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("El nombre debe tener al menos 4 caracteres.");
+        assertThat(escritura.creada).isNull();
+    }
+
+    @Test
+    void crearPorUrlExigeUnaUrlHttpConServidor() {
+        assertThatThrownBy(() -> servicio.crearPorUrl("jperez", new CapaPorUrl("Ríos", "", null)))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("URL requerida.");
+        assertThatThrownBy(() -> servicio.crearPorUrl("jperez", new CapaPorUrl("Ríos", "", "   ")))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("URL requerida.");
+        assertThatThrownBy(() -> servicio.crearPorUrl("jperez", new CapaPorUrl("Ríos", "", "https://ide.cl/" + "a".repeat(2000))))
+                .isInstanceOf(SolicitudInvalidaException.class).hasMessage("La URL no puede tener más de 2000 caracteres.");
+        for (String invalida : List.of("ide.cl/wms", "file:///etc/passwd", "ftp://ide.cl/wms", "https:///wms", "https://ide cl/wms")) {
+            assertThatThrownBy(() -> servicio.crearPorUrl("jperez", new CapaPorUrl("Ríos", "", invalida)))
+                    .isInstanceOf(SolicitudInvalidaException.class).hasMessage("Debe ser una URL válida.");
+        }
+        assertThat(escritura.creada).isNull();
+    }
+
+    @Test
+    void crearPorUrlRechazaUnServidorWfsPorqueSeAbririaSiempreVacia() {
+        assertThatThrownBy(() -> servicio.crearPorUrl("jperez", new CapaPorUrl("Ríos", "", "https://ide.cl/wfs")))
+                .isInstanceOf(SolicitudInvalidaException.class)
+                .hasMessage("El mapa no puede mostrar servidores WFS: use una URL WMS o WMTS.");
+        assertThat(escritura.creada).isNull();
+    }
+
+    @Test
+    void unUsuarioSinRegistroNoPuedeCrearPorUrl() {
+        assertThatThrownBy(() -> servicio.crearPorUrl("nuevo", new CapaPorUrl("Ríos", "", "https://ide.cl/wms")))
                 .isInstanceOf(RecursoNoEncontradoException.class).hasMessage("El usuario no está registrado.");
         assertThat(escritura.creada).isNull();
     }
